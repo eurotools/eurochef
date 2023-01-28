@@ -1,0 +1,6 @@
+[workspace]
+members = [
+  "eurochef",
+  "eurochef-edb",
+  "eurochef-elx"
+]

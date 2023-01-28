@@ -1,0 +1,12 @@
+[package]
+name = "eurochef"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+eurochef-edb = { path = "../eurochef-edb" }
+eurochef-elx = { path = "../eurochef-elx" }
+image = "0.24"
+squish = "1.0"
