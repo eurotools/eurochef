@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: ["main"]
+    paths-ignore:
+      - "**/.md"
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    name: Build (${{ matrix.platform }})
+    runs-on: ${{ matrix.platform }}
+    strategy:
+      fail-fast: true
+      matrix:
+        platform: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v3
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Cargo fetch
+        run: cargo fetch
+
+      - name: Build
+        working-directory: ./eurochef
+        run: cargo build --verbose --release
+
+      - name: Determine short GitHub SHA
+        shell: bash
+        run: |
+          export GITHUB_SHA_SHORT=$(git rev-parse --short "$GITHUB_SHA")
+          echo "GITHUB_SHA_SHORT=$GITHUB_SHA_SHORT" >> $GITHUB_ENV
+
+      - name: Publish artifact (Windows)
+        if: matrix.platform == 'windows-latest'
+        uses: actions/upload-artifact@v3
+        with:
+          name: eurochef-win-${{ env.GITHUB_SHA_SHORT }}
+          path: ./eurochef/target/release/eurochef.exe
