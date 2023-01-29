@@ -37,7 +37,6 @@ impl<T: BinRead> BinRead for EXGeoCommonArray<T> {
         };
 
         if array.array_size > 0 {
-            println!("Seekto 0x{:x}", array.rel_offset.offset_absolute());
             let pos_saved = reader.stream_position()?;
             reader.seek(std::io::SeekFrom::Start(array.rel_offset.offset_absolute()))?;
 

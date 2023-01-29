@@ -3,6 +3,7 @@ use binrw::Endian;
 pub const EDB_VERSION_SPYRO_DEMO: u32 = 213;
 pub const EDB_VERSION_SPYRO: u32 = 240;
 pub const EDB_VERSION_GFORCE: u32 = 259;
+pub const EDB_VERSION_ICEAGE3: u32 = 260;
 pub const EDB_VERSION_BOND: u32 = 263;
 
 #[derive(Debug)]
@@ -29,7 +30,7 @@ impl Platform {
                 ),
             },
             Endian::Big => match flags & 0xff000000 {
-                0x20000000 => Platform::GameCube,
+                0x20000000 => Platform::GameCube, // ! Matched by X360 as well
                 _ => panic!(
                     "Couldn't find platform for endianness/flags pair {endianness}/0x{flags:x}"
                 ),

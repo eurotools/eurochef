@@ -6,7 +6,7 @@ use crate::{
     array::{EXGeoCommonArray, EXGeoCommonArrayElement},
     common::{EXGeoAnimModeHeader, EXGeoAnimSetHeader, EXGeoEntityHeader, EXGeoSpreadSheetHeader},
     texture::EXGeoTextureHeader,
-    versions::{EDB_VERSION_BOND, EDB_VERSION_GFORCE},
+    versions::{EDB_VERSION_BOND, EDB_VERSION_GFORCE, EDB_VERSION_ICEAGE3},
 };
 
 pub type EXGeoMapHeader = EXGeoCommonArrayElement;
@@ -22,7 +22,7 @@ pub type EXGeoFontHeader = EXGeoCommonArrayElement;
 pub struct EXGeoHeader {
     pub hashcode: u32,
 
-    #[brw(assert(version.eq(&EDB_VERSION_GFORCE) || version.eq(&EDB_VERSION_BOND), "Unsupported version {version}"))]
+    #[brw(assert(version.eq(&EDB_VERSION_GFORCE) || version.eq(&EDB_VERSION_BOND) || version.eq(&EDB_VERSION_ICEAGE3), "Unsupported version {version}"))]
     pub version: u32,
 
     pub flags: u32,
