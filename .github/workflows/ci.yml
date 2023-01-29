@@ -26,7 +26,6 @@ jobs:
         run: cargo fetch
 
       - name: Build
-        working-directory: ./eurochef
         run: cargo build --verbose --release
 
       - name: Determine short GitHub SHA
