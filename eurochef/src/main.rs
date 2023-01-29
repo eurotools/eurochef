@@ -8,7 +8,7 @@ use std::{
 use eurochef_edb::{
     binrw::{BinReaderExt, Endian, NullWideString},
     header::EXGeoHeader,
-    text::{self, EXGeoSpreadSheet, EXGeoTextItem},
+    text::{EXGeoSpreadSheet, EXGeoTextItem},
     texture::{EXGeoTexture, EXTexFmt},
     versions::Platform,
 };
@@ -37,7 +37,7 @@ fn main() -> std::io::Result<()> {
                     let header = file
                         .read_type::<EXGeoHeader>(endian)
                         .expect("Failed to read header");
-                    println!("Read header: {header:#?}");
+                    // println!("Read header: {header:#?}");
 
                     println!(
                         "Guessed platform: {:?}",
@@ -45,6 +45,10 @@ fn main() -> std::io::Result<()> {
                     );
 
                     for s in &header.spreadsheet_list {
+                        if s.m_type != 1 {
+                            continue;
+                        }
+
                         file.seek(std::io::SeekFrom::Start(s.common.address as u64))?;
                         let spreadsheet = file
                             .read_type::<EXGeoSpreadSheet>(endian)
@@ -57,7 +61,7 @@ fn main() -> std::io::Result<()> {
                             file.seek(std::io::SeekFrom::Start(refpointer.address as u64))?;
 
                             // Header format is slightly larger for Spyro
-                            let text_count = if header.version == 240 {
+                            let text_count = if [213, 236, 221, 240].contains(&header.version) {
                                 file.seek(std::io::SeekFrom::Current(20))?;
                                 file.read_type::<u32>(endian).unwrap()
                             } else {
@@ -77,8 +81,12 @@ fn main() -> std::io::Result<()> {
                                     .read_type::<NullWideString>(endian)
                                     .expect("Failed to read text string");
 
-                                let offset = item.string.offset_absolute();
-                                println!("str #{i} - '{string}' @ 0x{offset:x}");
+                                print!("{:08x} - {}", item.hashcode, string);
+                                if item.sound_hashcode != 0xffffffff {
+                                    print!(" (voice hash {:08x})", item.sound_hashcode);
+                                }
+
+                                println!();
 
                                 file.seek(std::io::SeekFrom::Start(pos_saved))?;
                             }
@@ -206,11 +214,11 @@ fn main() -> std::io::Result<()> {
                                 }
                             }
 
-                            // File::create(format!(
-                            //     "extract/{:08x}_frame{}.bin",
-                            //     t.common.hashcode, i
-                            // ))?
-                            // .write_all(&data)?;
+                            File::create(format!(
+                                "extract/{:08x}_frame{}.bin",
+                                t.common.hashcode, i
+                            ))?
+                            .write_all(&data)?;
                         }
                     }
                 }
