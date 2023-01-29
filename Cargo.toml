@@ -5,5 +5,5 @@ members = [
   "eurochef-elx"
 ]
 
-[profile.dev.image]
+[profile.dev.package.image]
 opt-level = 3
