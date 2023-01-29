@@ -6,8 +6,9 @@ use std::{
 };
 
 use eurochef_edb::{
-    binrw::{BinReaderExt, Endian},
+    binrw::{BinReaderExt, Endian, NullWideString},
     header::EXGeoHeader,
+    text::{self, EXGeoSpreadSheet, EXGeoTextItem},
     texture::{EXGeoTexture, EXTexFmt},
     versions::Platform,
 };
@@ -42,6 +43,47 @@ fn main() -> std::io::Result<()> {
                         "Guessed platform: {:?}",
                         Platform::from_flags(header.flags, endian)
                     );
+
+                    for s in &header.spreadsheet_list {
+                        file.seek(std::io::SeekFrom::Start(s.common.address as u64))?;
+                        let spreadsheet = file
+                            .read_type::<EXGeoSpreadSheet>(endian)
+                            .expect("Failed to read spreadsheet");
+
+                        for s in spreadsheet.sections {
+                            let refpointer =
+                                &header.refpointer_list.data[s.refpointer_index as usize];
+
+                            file.seek(std::io::SeekFrom::Start(refpointer.address as u64))?;
+
+                            // Header format is slightly larger for Spyro
+                            let text_count = if header.version == 240 {
+                                file.seek(std::io::SeekFrom::Current(20))?;
+                                file.read_type::<u32>(endian).unwrap()
+                            } else {
+                                file.seek(std::io::SeekFrom::Current(4))?; // Skip commonobject
+                                file.read_type::<u32>(endian).unwrap()
+                            };
+                            println!("{} strings @ 0x{:x}", text_count, refpointer.address);
+                            for i in 0..text_count {
+                                let item = file
+                                    .read_type::<EXGeoTextItem>(endian)
+                                    .expect("Failed to read textitem");
+
+                                let pos_saved = file.stream_position()?;
+                                file.seek(std::io::SeekFrom::Start(item.string.offset_absolute()))?;
+
+                                let string = file
+                                    .read_type::<NullWideString>(endian)
+                                    .expect("Failed to read text string");
+
+                                let offset = item.string.offset_absolute();
+                                println!("str #{i} - '{string}' @ 0x{offset:x}");
+
+                                file.seek(std::io::SeekFrom::Start(pos_saved))?;
+                            }
+                        }
+                    }
 
                     for t in &header.texture_list {
                         file.seek(std::io::SeekFrom::Start(t.common.address as u64))?;
