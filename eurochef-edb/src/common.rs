@@ -1,5 +1,7 @@
 use binrw::{binrw, BinRead, BinWrite};
 
+use crate::array::EXGeoCommonArrayElement;
+
 // TODO: Remove debug or write a custom impl
 #[derive(Debug)]
 pub struct EXRelPtr {
@@ -49,7 +51,32 @@ impl BinWrite for EXRelPtr {
 }
 
 #[binrw]
-pub struct EXGeoCommonObject(pub u32);
+#[derive(Debug)]
+pub struct EXGeoSpreadSheetHeader {
+    pub common: EXGeoCommonArrayElement,
+    pub m_type: u32,
+}
+
+#[binrw]
+#[derive(Debug)]
+pub struct EXGeoEntityHeader {
+    pub common: EXGeoCommonArrayElement,
+    pub unk_4: u32,
+}
+
+#[binrw]
+#[derive(Debug)]
+pub struct EXGeoAnimModeHeader {
+    pub common: EXGeoCommonArrayElement,
+    pub num_anim_modes: u32,
+}
+
+#[binrw]
+#[derive(Debug)]
+pub struct EXGeoAnimSetHeader {
+    pub common: EXGeoCommonArrayElement,
+    pub num_anim_sets: u32,
+}
 
 #[test]
 pub fn assert_struct_size() {

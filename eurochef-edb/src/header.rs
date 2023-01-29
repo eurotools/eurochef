@@ -2,12 +2,20 @@ use std::io::SeekFrom;
 
 use binrw::binrw;
 
-use crate::{array::EXGeoCommonArray, texture::EXGeoTextureHeader};
+use crate::{
+    array::{EXGeoCommonArray, EXGeoCommonArrayElement},
+    common::{EXGeoAnimModeHeader, EXGeoAnimSetHeader, EXGeoEntityHeader, EXGeoSpreadSheetHeader},
+    texture::EXGeoTextureHeader,
+    versions::{EDB_VERSION_BOND, EDB_VERSION_GFORCE},
+};
 
-const EDB_VERSION_GFORCE: u32 = 259;
-const EDB_VERSION_BOND: u32 = 263;
+pub type EXGeoMapHeader = EXGeoCommonArrayElement;
+pub type EXGeoParticleHeader = EXGeoCommonArrayElement;
+pub type EXGeoRefPointerHeader = EXGeoCommonArrayElement;
+pub type EXGeoScriptHeader = EXGeoCommonArrayElement;
+pub type EXGeoSwooshHeader = EXGeoCommonArrayElement;
+pub type EXGeoFontHeader = EXGeoCommonArrayElement;
 
-#[rustfmt::skip]
 #[binrw]
 #[brw(magic = 0x47454F4Du32)]
 #[derive(Debug)]
@@ -23,21 +31,20 @@ pub struct EXGeoHeader {
     pub base_file_size: u32,
 
     // pub versions: [u32; 6],
-
-    #[brw(seek_before = SeekFrom::Start(0x40))] 
+    #[brw(seek_before = SeekFrom::Start(0x40))]
     pub section_list: EXGeoCommonArray<()>,
-    pub refpointer_list: EXGeoCommonArray<()>,
-    pub entity_list: EXGeoCommonArray<()>,
+    pub refpointer_list: EXGeoCommonArray<EXGeoRefPointerHeader>,
+    pub entity_list: EXGeoCommonArray<EXGeoEntityHeader>,
     pub anim_list: EXGeoCommonArray<()>,
     pub animskin_list: EXGeoCommonArray<()>,
-    pub script_list: EXGeoCommonArray<()>,
-    pub map_list: EXGeoCommonArray<()>,
-    pub animmode_list: EXGeoCommonArray<()>,
-    pub animset_list: EXGeoCommonArray<()>,
-    pub particle_list: EXGeoCommonArray<()>,
-    pub swoosh_list: EXGeoCommonArray<()>,
-    pub spreadsheet_list: EXGeoCommonArray<()>,
-    pub font_list: EXGeoCommonArray<()>,
+    pub script_list: EXGeoCommonArray<EXGeoScriptHeader>,
+    pub map_list: EXGeoCommonArray<EXGeoMapHeader>,
+    pub animmode_list: EXGeoCommonArray<EXGeoAnimModeHeader>,
+    pub animset_list: EXGeoCommonArray<EXGeoAnimSetHeader>,
+    pub particle_list: EXGeoCommonArray<EXGeoParticleHeader>,
+    pub swoosh_list: EXGeoCommonArray<EXGeoSwooshHeader>,
+    pub spreadsheet_list: EXGeoCommonArray<EXGeoSpreadSheetHeader>,
+    pub font_list: EXGeoCommonArray<EXGeoFontHeader>,
     pub forcefeedback_list: EXGeoCommonArray<()>,
     pub material_list: EXGeoCommonArray<()>,
     pub texture_list: EXGeoCommonArray<EXGeoTextureHeader>,
