@@ -9,6 +9,7 @@ use eurochef_edb::{
     binrw::{BinReaderExt, Endian},
     header::EXGeoHeader,
     texture::{EXGeoTexture, EXTexFmt},
+    versions::Platform,
 };
 use eurochef_elx::ELXML;
 
@@ -36,6 +37,11 @@ fn main() -> std::io::Result<()> {
                         .read_type::<EXGeoHeader>(endian)
                         .expect("Failed to read header");
                     println!("Read header: {header:#?}");
+
+                    println!(
+                        "Guessed platform: {:?}",
+                        Platform::from_flags(header.flags, endian)
+                    );
 
                     for t in &header.texture_list {
                         file.seek(std::io::SeekFrom::Start(t.common.address as u64))?;
