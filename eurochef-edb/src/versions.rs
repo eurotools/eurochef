@@ -6,7 +6,7 @@ pub const EDB_VERSION_GFORCE: u32 = 259;
 pub const EDB_VERSION_ICEAGE3: u32 = 260;
 pub const EDB_VERSION_BOND: u32 = 263;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum Platform {
     Pc,
     Xbox,

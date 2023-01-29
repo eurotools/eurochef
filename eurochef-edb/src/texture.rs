@@ -1,29 +1,49 @@
 use binrw::binrw;
 
-use crate::{array::EXGeoCommonArrayElement, common::EXRelPtr};
+use crate::{array::EXGeoCommonArrayElement, common::EXRelPtr, versions::Platform};
 
 #[binrw]
 #[brw(repr(u8))]
 #[derive(Debug)]
 pub enum EXTexFmt {
-    R5G6B5 = 0,
-    A1R5G5B5 = 1,
-    Dxt1 = 2,
-    Dxt1Alpha = 3,
-    Dxt2 = 4,
-    A4R4G4B4 = 5,
-    A8R8G8B8 = 6,
-    Dxt3 = 7,
-    Dxt4 = 8,
-    Dxt5 = 9,
+    R5G6B5,
+    A1R5G5B5,
+    Dxt1,
+    Dxt1Alpha,
+    Dxt2,
+    A4R4G4B4,
+    A8R8G8B8,
+    Dxt3,
+    Dxt4,
+    Dxt5,
+    Cmpr,
 }
 
 impl EXTexFmt {
+    pub fn from_platform(fmt: u8, platform: Platform) -> Self {
+        match platform {
+            Platform::Pc => match fmt {
+                0 => Self::R5G6B5,
+                1 => Self::A1R5G5B5,
+                2 => Self::Dxt1,
+                3 => Self::Dxt1Alpha,
+                4 => Self::Dxt2,
+                5 => Self::A4R4G4B4,
+                6 => Self::A8R8G8B8,
+                7 => Self::Dxt3,
+                8 => Self::Dxt4,
+                9 => Self::Dxt5,
+                _ => panic!("Invalid texture format 0x{fmt:x}"),
+            },
+            _ => panic!("Couldn't get texture format {fmt} for platform {platform:?}"),
+        }
+    }
+
     pub fn bpp(&self) -> usize {
         match self {
             Self::R5G6B5 => 16,
             Self::A1R5G5B5 => 16,
-            Self::Dxt1 | Self::Dxt1Alpha => 4,
+            Self::Dxt1 | Self::Dxt1Alpha | Self::Cmpr => 4,
             Self::Dxt2 => 8,
             Self::A4R4G4B4 => 16,
             Self::A8R8G8B8 => 32,
@@ -69,17 +89,10 @@ pub struct EXGeoTexture {
     pub values_used: u8,
     pub regions_count: u8,
     pub mip_count: u8,
-    pub format: EXTexFmt,
+    pub format: u8,
     pub unk_14: u32,
     pub color: u32,
-    // }
 
-    // #[binrw]
-    // #[derive(Debug)]
-    // pub struct EXGeoTexture {
-    //     // ? TODO: Inheritance like with base structs can't exactly be done in rust
-    //     // ? Should we just merge the structs??
-    //     pub base: EXBaseGeoTexture,
     pad: [u8; 12],
 
     #[br(count = frame_count)]

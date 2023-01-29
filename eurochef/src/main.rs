@@ -39,10 +39,8 @@ fn main() -> std::io::Result<()> {
                         .expect("Failed to read header");
                     // println!("Read header: {header:#?}");
 
-                    println!(
-                        "Guessed platform: {:?}",
-                        Platform::from_flags(header.flags, endian)
-                    );
+                    let platform = Platform::from_flags(header.flags, endian);
+                    println!("Guessed platform: {platform:?}",);
 
                     for s in &header.spreadsheet_list {
                         if s.m_type != 1 {
@@ -83,7 +81,7 @@ fn main() -> std::io::Result<()> {
 
                                 print!("{:08x} - {}", item.hashcode, string);
                                 if item.sound_hashcode != 0xffffffff {
-                                    print!(" (voice hash {:08x})", item.sound_hashcode);
+                                    print!(" (sound hash {:08x})", item.sound_hashcode);
                                 }
 
                                 println!();
@@ -98,16 +96,17 @@ fn main() -> std::io::Result<()> {
                         let tex = file
                             .read_type::<EXGeoTexture>(endian)
                             .expect("Failed to read basetexture");
+                        let texfmt = EXTexFmt::from_platform(tex.format, platform);
                         println!(
-                            "0x{:08x} {:?} {}x{}x{}",
-                            t.common.hashcode, tex.format, tex.width, tex.height, tex.depth
+                            "0x{:08x} {:?}({}) {}x{}x{}",
+                            t.common.hashcode, texfmt, tex.format, tex.width, tex.height, tex.depth
                         );
 
                         for (i, frame_offset) in tex.frame_offsets.iter().enumerate() {
                             file.seek(std::io::SeekFrom::Start(frame_offset.offset_absolute()))?;
                             let mut data = vec![
                                 0u8;
-                                tex.format.calculate_image_size(
+                                texfmt.calculate_image_size(
                                     tex.width, tex.height, tex.depth, 0
                                 )
                             ];
@@ -131,14 +130,14 @@ fn main() -> std::io::Result<()> {
                                 i
                             );
 
-                            match tex.format {
+                            match texfmt {
                                 EXTexFmt::Dxt1
                                 | EXTexFmt::Dxt1Alpha
                                 | EXTexFmt::Dxt2
                                 | EXTexFmt::Dxt3
                                 | EXTexFmt::Dxt4
                                 | EXTexFmt::Dxt5 => {
-                                    let bcn = match tex.format {
+                                    let bcn = match texfmt {
                                         EXTexFmt::Dxt1 | EXTexFmt::Dxt1Alpha => squish::Format::Bc1,
                                         EXTexFmt::Dxt2 => squish::Format::Bc2,
                                         EXTexFmt::Dxt3 => squish::Format::Bc2,
