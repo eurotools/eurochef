@@ -23,3 +23,14 @@ _(Priority currently lies with G-Force)_
 | GoldenEye 007 (263)                  | ❌       | ❌   | ❌      | ❌       | ❌         | ❌        | ❌           |
 
 _Each field is formatted as R/W. For example, if a feature can be read, but not written, the field would be ✅/❌. If a feature can be both/neither read or written it will be represented by a single icon instead_
+
+| Platform      | Textures | Sounds |
+| ------------- | -------- | ------ |
+| PC            | 🚧       | ❌     |
+| Xbox          | 🚧       | ❌     |
+| Xbox 360      | ❌       | ❌     |
+| GameCube      | ❌       | ❌     |
+| Wii           | ❌       | ❌     |
+| Wii U         | ❌       | ❌     |
+| Playstation 2 | ❌       | ❌     |
+| Playstation 3 | ❌       | ❌     |
