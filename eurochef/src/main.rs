@@ -2,6 +2,7 @@ use std::{
     env::args,
     fs::File,
     io::{Read, Seek, Write},
+    path::Path,
 };
 
 use eurochef_edb::{
@@ -57,8 +58,22 @@ fn main() -> std::io::Result<()> {
 
                             file.read(&mut data)?;
 
-                            let filename =
-                                format!("extract/{:08x}_frame{}.png", t.common.hashcode, i);
+                            // I love rust paths /s
+                            std::fs::create_dir_all(format!(
+                                "extract/{}/",
+                                Path::new(&path)
+                                    .file_name()
+                                    .unwrap()
+                                    .to_string_lossy()
+                                    .to_string()
+                            ))?;
+
+                            let filename = format!(
+                                "extract/{}/{:08x}_frame{}.png",
+                                Path::new(&path).file_name().unwrap().to_string_lossy(),
+                                t.common.hashcode,
+                                i
+                            );
 
                             match tex.format {
                                 EXTexFmt::Dxt1
@@ -147,11 +162,11 @@ fn main() -> std::io::Result<()> {
                                 }
                             }
 
-                            File::create(format!(
-                                "extract/{:08x}_frame{}.bin",
-                                t.common.hashcode, i
-                            ))?
-                            .write_all(&data)?;
+                            // File::create(format!(
+                            //     "extract/{:08x}_frame{}.bin",
+                            //     t.common.hashcode, i
+                            // ))?
+                            // .write_all(&data)?;
                         }
                     }
                 }
