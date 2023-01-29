@@ -9,7 +9,7 @@ pub enum EXTexFmt {
     R5G6B5 = 0,
     A1R5G5B5 = 1,
     Dxt1 = 2,
-    Dxt1Alt = 3,
+    Dxt1Alpha = 3,
     Dxt2 = 4,
     A4R4G4B4 = 5,
     A8R8G8B8 = 6,
@@ -23,7 +23,7 @@ impl EXTexFmt {
         match self {
             Self::R5G6B5 => 16,
             Self::A1R5G5B5 => 16,
-            Self::Dxt1 | Self::Dxt1Alt => 4,
+            Self::Dxt1 | Self::Dxt1Alpha => 4,
             Self::Dxt2 => 8,
             Self::A4R4G4B4 => 16,
             Self::A8R8G8B8 => 32,

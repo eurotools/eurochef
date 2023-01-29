@@ -77,13 +77,13 @@ fn main() -> std::io::Result<()> {
 
                             match tex.format {
                                 EXTexFmt::Dxt1
-                                | EXTexFmt::Dxt1Alt
+                                | EXTexFmt::Dxt1Alpha
                                 | EXTexFmt::Dxt2
                                 | EXTexFmt::Dxt3
                                 | EXTexFmt::Dxt4
                                 | EXTexFmt::Dxt5 => {
                                     let bcn = match tex.format {
-                                        EXTexFmt::Dxt1 | EXTexFmt::Dxt1Alt => squish::Format::Bc1,
+                                        EXTexFmt::Dxt1 | EXTexFmt::Dxt1Alpha => squish::Format::Bc1,
                                         EXTexFmt::Dxt2 => squish::Format::Bc2,
                                         EXTexFmt::Dxt3 => squish::Format::Bc2,
                                         EXTexFmt::Dxt4 => squish::Format::Bc3,
@@ -138,14 +138,10 @@ fn main() -> std::io::Result<()> {
                                     for (i, byte) in data.chunks_exact(2).enumerate() {
                                         // TODO: Endianness. We're gonna need to move all of this anyways
                                         let value = u16::from_le_bytes([byte[0], byte[1]]);
-                                        let r = (value & 0b11111000) >> 3;
-                                        let g =
-                                            (value & 0b00000111) << 3 | (value & 0b11100000) >> 5;
-                                        let b = value & 0b00011111;
-
-                                        output[i * 2] = ((r << 3) | (r >> 2)) as u8;
-                                        output[i * 2 + 1] = ((g << 2) | (g >> 4)) as u8;
-                                        output[i * 2 + 2] = ((b << 3) | (b >> 2)) as u8;
+                                        // RRRRRGGGGGGBBBBB
+                                        output[i * 3 + 0] = (value >> 11) as u8 & 0b11111;
+                                        output[i * 3 + 1] = (value >> 5) as u8 & 0b111111;
+                                        output[i * 3 + 2] = value as u8 & 0b11111;
                                     }
 
                                     let img = image::RgbImage::from_raw(
