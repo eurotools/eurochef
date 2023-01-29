@@ -4,3 +4,6 @@ members = [
   "eurochef-edb",
   "eurochef-elx"
 ]
+
+[profile.dev.image]
+opt-level = 3
