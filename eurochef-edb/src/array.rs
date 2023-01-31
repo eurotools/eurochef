@@ -1,7 +1,7 @@
 use binrw::{binrw, BinRead, BinWrite};
-use std::{fmt::Debug, ops::Deref, slice::Iter};
+use std::{fmt::Debug, slice::Iter};
 
-use crate::{common::EXRelPtr, util::get_last_path_part};
+use crate::common::EXRelPtr;
 
 // #[binrw]
 pub struct EXGeoCommonArray<T: BinRead + 'static> {
@@ -75,12 +75,6 @@ impl<'a, T: BinRead> IntoIterator for &'a EXGeoCommonArray<T> {
 
 impl<T: BinRead + Debug> Debug for EXGeoCommonArray<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        // f.write_fmt(format_args!(
-        //     "EXGeoCommonArray<{}>[{}]",
-        //     get_last_path_part(std::any::type_name::<T>()).unwrap_or("?"),
-        //     self.array_size
-        // ));
-
         f.debug_list().entries(self.data.iter()).finish()
     }
 }

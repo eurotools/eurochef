@@ -5,7 +5,5 @@ pub mod text;
 pub mod texture;
 pub mod versions;
 
-mod util;
-
 // Expose binrw
 pub use binrw;
