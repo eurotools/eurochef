@@ -164,7 +164,7 @@ fn main() -> std::io::Result<()> {
 
                                     img.save(filename).expect("Failed to write image file");
                                 }
-                                EXTexFmt::A8R8G8B8 => {
+                                EXTexFmt::ARGB8 => {
                                     let mut output =
                                         vec![0u8; tex.width as usize * tex.height as usize * 4];
 
@@ -185,7 +185,7 @@ fn main() -> std::io::Result<()> {
 
                                     img.save(filename).expect("Failed to write image file");
                                 }
-                                EXTexFmt::R5G6B5 => {
+                                EXTexFmt::RGB565 => {
                                     let mut output =
                                         vec![0u8; tex.width as usize * tex.height as usize * 3];
 
