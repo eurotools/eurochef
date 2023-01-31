@@ -49,15 +49,23 @@ pub enum EXTexFmt {
     RGBA8,
     RGB565,
     ARGB1555,
+    RGBA5551,
     R5G5B5A3,
 
-    // TODO: Paletted formats require extra data for their palettes. When texture data is read, this needs to be read as well.
-    // Paletted formats
+    // Intensity/Alpha formats
     I4,
     I8,
+    /// Technically the same as I8, just used as alpha map instead of greyscale
     A8,
     IA4,
     IA8,
+
+    // TODO: Paletted formats require extra data for their palettes. When texture data is read, this needs to be read as well.
+    // Paletted formats
+    P16x16,  // 16 * RGBA1555
+    P16x32,  // 16 * RGBA8
+    P256x16, // 32 * RGBA1555
+    P256x32, // 32 * RGBA8
 
     // Block-based (formats BCn)
     Dxt1,
@@ -84,7 +92,7 @@ impl EXTexFmt {
                 7 => Self::Dxt3,
                 8 => Self::Dxt4,
                 9 => Self::Dxt5,
-                _ => panic!("Invalid texture format 0x{fmt:x}"),
+                _ => panic!("Invalid PC texture format 0x{fmt:x}"),
             },
             Platform::GameCube | Platform::Wii => match fmt {
                 0 => Self::I4,
@@ -96,7 +104,16 @@ impl EXTexFmt {
                 6 => Self::R5G5B5A3,
                 7 => Self::RGBA8, // FIXME: This is RGBA8
                 8 => Self::Cmpr,
-                _ => panic!("Invalid texture format 0x{fmt:x}"),
+                _ => panic!("Invalid GC/WII texture format 0x{fmt:x}"),
+            },
+            Platform::Ps2 => match fmt {
+                0 => Self::P16x16,
+                1 => Self::P16x32,
+                2 => Self::P256x16,
+                3 => Self::P256x32,
+                4 => Self::RGBA5551, // TODO: Check endianness, its most likely wrong
+                5 => Self::RGBA8,    // TODO: Check endianness, its most likely wrong
+                _ => panic!("Invalid PS2 texture format 0x{fmt:x}"),
             },
             _ => panic!("Couldn't get texture format {fmt} for platform {platform:?}"),
         }
@@ -106,20 +123,23 @@ impl EXTexFmt {
 
     pub fn bpp(&self) -> usize {
         match self {
-            Self::RGB565 | Self::ARGB1555 | Self::R5G5B5A3 => 16,
+            Self::RGB565 | Self::ARGB1555 | Self::R5G5B5A3 | Self::RGBA5551 => 16,
             Self::ARGB4 => 16,
             Self::ARGB8 | Self::RGBA8 => 32,
+
+            Self::I4 => 4,
+            Self::I8 | Self::A8 => 8,
+            Self::IA4 => 8,
+            Self::IA8 => 16,
+
+            Self::P16x16 | Self::P256x16 => 16,
+            Self::P16x32 | Self::P256x32 => 32,
 
             Self::Dxt1 | Self::Dxt1Alpha | Self::Cmpr => 4,
             Self::Dxt2 => 8,
             Self::Dxt3 => 8,
             Self::Dxt4 => 16,
             Self::Dxt5 => 32,
-
-            Self::I4 => 4,
-            Self::I8 | Self::A8 => 8,
-            Self::IA4 => 8,
-            Self::IA8 => 16,
         }
     }
 
