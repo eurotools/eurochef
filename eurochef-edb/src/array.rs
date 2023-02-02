@@ -1,9 +1,8 @@
 use binrw::{binrw, BinRead, BinWrite};
 use std::{fmt::Debug, slice::Iter};
 
-use crate::common::EXRelPtr;
+use crate::{common::EXRelPtr, structure_size_tests};
 
-// #[binrw]
 pub struct EXGeoCommonArray<T: BinRead + 'static> {
     pub array_size: i16,
 
@@ -12,7 +11,6 @@ pub struct EXGeoCommonArray<T: BinRead + 'static> {
 
     pub rel_offset: EXRelPtr,
 
-    // #[brw(ignore)]
     pub data: Vec<T>,
 }
 
@@ -90,3 +88,8 @@ pub struct EXGeoCommonArrayElement {
     // ? Only used internally in the engine?
     _ptr: u32,
 }
+
+structure_size_tests!(
+    // EXGeoCommonArray<()> = 8,
+    EXGeoCommonArrayElement = 16
+);

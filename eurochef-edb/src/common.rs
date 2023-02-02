@@ -1,6 +1,6 @@
 use binrw::{binrw, BinRead, BinWrite};
 
-use crate::array::EXGeoCommonArrayElement;
+use crate::{array::EXGeoCommonArrayElement, structure_size_tests};
 
 // TODO: Remove debug or write a custom impl
 #[derive(Debug)]
@@ -78,7 +78,9 @@ pub struct EXGeoAnimSetHeader {
     pub num_anim_sets: u32,
 }
 
-#[test]
-pub fn assert_struct_size() {
-    assert!(std::mem::size_of::<EXGeoCommonArray<0>>() == 8)
-}
+structure_size_tests!(
+    EXGeoSpreadSheetHeader = 20,
+    EXGeoEntityHeader = 20,
+    EXGeoAnimModeHeader = 20,
+    EXGeoAnimSetHeader = 20
+);

@@ -1,6 +1,8 @@
 use binrw::binrw;
 
-use crate::{array::EXGeoCommonArrayElement, common::EXRelPtr, versions::Platform};
+use crate::{
+    array::EXGeoCommonArrayElement, common::EXRelPtr, structure_size_tests, versions::Platform,
+};
 
 #[binrw]
 #[derive(Debug)]
@@ -153,8 +155,4 @@ impl EXTexFmt {
     }
 }
 
-#[test]
-pub fn assert_struct_size() {
-    assert!(std::mem::size_of::<EXGeoTextureHeader>() == 28);
-    assert!(std::mem::size_of::<EXBaseGeoTexture>() == 28);
-}
+structure_size_tests!(EXGeoTextureHeader = 28, EXGeoTexture = 64);

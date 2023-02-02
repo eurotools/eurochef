@@ -5,6 +5,7 @@ use binrw::binrw;
 use crate::{
     array::{EXGeoCommonArray, EXGeoCommonArrayElement},
     common::{EXGeoAnimModeHeader, EXGeoAnimSetHeader, EXGeoEntityHeader, EXGeoSpreadSheetHeader},
+    structure_size_tests,
     texture::EXGeoTextureHeader,
     versions::{EDB_VERSION_BOND, EDB_VERSION_GFORCE, EDB_VERSION_ICEAGE3},
 };
@@ -53,3 +54,5 @@ pub struct EXGeoHeader {
     pub unk_c8: EXGeoCommonArray<()>,
     pub unk_d0: EXGeoCommonArray<()>,
 }
+
+structure_size_tests!(EXGeoHeader = 936);

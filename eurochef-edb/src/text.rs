@@ -1,6 +1,6 @@
 use binrw::binrw;
 
-use crate::common::EXRelPtr;
+use crate::{common::EXRelPtr, structure_size_tests};
 
 #[binrw]
 #[derive(Debug)]
@@ -29,3 +29,5 @@ pub struct EXGeoTextItem {
     pub userdata: EXRelPtr,
     pub sound_hashcode: u32,
 }
+
+structure_size_tests!(EXGeoTextSection = 8, EXGeoTextItem = 40);

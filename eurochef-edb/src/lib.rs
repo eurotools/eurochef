@@ -5,5 +5,7 @@ pub mod text;
 pub mod texture;
 pub mod versions;
 
-// Expose binrw
+mod util;
+
+// Re-export binrw
 pub use binrw;
