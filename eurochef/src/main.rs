@@ -72,21 +72,12 @@ fn main() -> std::io::Result<()> {
                                     .read_type::<EXGeoTextItem>(endian)
                                     .expect("Failed to read textitem");
 
-                                let pos_saved = file.stream_position()?;
-                                file.seek(std::io::SeekFrom::Start(item.string.offset_absolute()))?;
-
-                                let string = file
-                                    .read_type::<NullWideString>(endian)
-                                    .expect("Failed to read text string");
-
-                                print!("{:08x} - {}", item.hashcode, string);
+                                print!("{:08x} - {}", item.hashcode, item.string.data);
                                 if item.sound_hashcode != 0xffffffff {
                                     print!(" (sound hash {:08x})", item.sound_hashcode);
                                 }
 
                                 println!();
-
-                                file.seek(std::io::SeekFrom::Start(pos_saved))?;
                             }
                         }
                     }

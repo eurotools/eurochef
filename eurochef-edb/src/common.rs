@@ -1,15 +1,19 @@
+use std::any::TypeId;
+
 use binrw::{binrw, BinRead, BinWrite};
 
 use crate::{array::EXGeoCommonArrayElement, structure_size_tests};
 
-// TODO: Remove debug or write a custom impl
+// TODO: RelPtr16 generic
 #[derive(Debug)]
-pub struct EXRelPtr {
+pub struct EXRelPtr<T: BinRead = ()> {
     pub offset: i32,
     pub offset_absolute: u64,
+
+    pub data: T,
 }
 
-impl EXRelPtr {
+impl<T: BinRead> EXRelPtr<T> {
     /// Returns the offset relative to the start of the file
     pub fn offset_absolute(&self) -> u64 {
         self.offset_absolute
@@ -21,23 +25,39 @@ impl EXRelPtr {
     }
 }
 
-impl BinRead for EXRelPtr {
-    type Args = ();
+impl<T: BinRead> BinRead for EXRelPtr<T> {
+    type Args = T::Args;
 
     fn read_options<R: std::io::Read + std::io::Seek>(
         reader: &mut R,
         options: &binrw::ReadOptions,
         args: Self::Args,
     ) -> binrw::BinResult<Self> {
-        let offset = i32::read_options(reader, options, args)?;
+        let offset = i32::read_options(reader, options, ())?;
+        let offset_absolute = (reader.stream_position()? as i64 + offset as i64) as u64 - 4;
+
+        let data = if TypeId::of::<T>() != TypeId::of::<()>() {
+            let pos_saved = reader.stream_position()?;
+            reader.seek(std::io::SeekFrom::Start(offset_absolute))?;
+
+            let inner = T::read_options(reader, options, args.clone())?;
+            reader.seek(std::io::SeekFrom::Start(pos_saved))?;
+
+            inner
+        } else {
+            // Hack to return () (no-op)
+            T::read_options(reader, options, args)?
+        };
+
         binrw::BinResult::Ok(Self {
             offset,
-            offset_absolute: (reader.stream_position()? as i64 + offset as i64) as u64 - 4,
+            offset_absolute,
+            data,
         })
     }
 }
 
-impl BinWrite for EXRelPtr {
+impl<T: BinRead> BinWrite for EXRelPtr<T> {
     type Args = ();
 
     fn write_options<W: std::io::Write + std::io::Seek>(

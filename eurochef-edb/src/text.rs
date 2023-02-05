@@ -1,4 +1,4 @@
-use binrw::binrw;
+use binrw::{binrw, NullWideString};
 
 use crate::{common::EXRelPtr, structure_size_tests};
 
@@ -23,9 +23,8 @@ pub struct EXGeoTextSection {
 pub struct EXGeoTextItem {
     pub hashcode: u32,
 
-    // TODO: It would be super convenient if we could have EXRelPtr read the string on it's own. Would like to have a separate struct for it though
     /// Pointer to UTF16 string data
-    pub string: EXRelPtr,
+    pub string: EXRelPtr<NullWideString>,
     pub userdata: EXRelPtr,
     pub sound_hashcode: u32,
 }
