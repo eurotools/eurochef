@@ -73,14 +73,34 @@ pub struct EXGeoAnimModeHeader {
 
 #[binrw]
 #[derive(Debug)]
+pub struct EXGeoAnimHeader {
+    pub common: EXGeoCommonArrayElement,
+    pub motiondata_info_addr: u32,
+    _ptr: u32,
+    pub datasize: u32,
+    pub skin_num: u32,
+}
+
+#[binrw]
+#[derive(Debug)]
 pub struct EXGeoAnimSetHeader {
     pub common: EXGeoCommonArrayElement,
     pub num_anim_sets: u32,
 }
 
+#[binrw]
+#[derive(Debug)]
+pub struct EXGeoAnimSkinHeader {
+    pub common: EXGeoCommonArrayElement,
+    pub base_skin_num: u32,
+    pub mip_ref: u32,
+    pub mip_distance: u32,
+}
+
 structure_size_tests!(
     EXGeoSpreadSheetHeader = 20,
     EXGeoEntityHeader = 20,
+    EXGeoAnimHeader = 32,
     EXGeoAnimModeHeader = 20,
     EXGeoAnimSetHeader = 20
 );

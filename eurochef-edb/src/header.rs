@@ -4,7 +4,10 @@ use binrw::binrw;
 
 use crate::{
     array::{EXGeoCommonArray, EXGeoCommonArrayElement},
-    common::{EXGeoAnimModeHeader, EXGeoAnimSetHeader, EXGeoEntityHeader, EXGeoSpreadSheetHeader},
+    common::{
+        EXGeoAnimHeader, EXGeoAnimModeHeader, EXGeoAnimSetHeader, EXGeoEntityHeader,
+        EXGeoSpreadSheetHeader,
+    },
     structure_size_tests,
     texture::EXGeoTextureHeader,
     versions::{EDB_VERSION_BOND, EDB_VERSION_GFORCE, EDB_VERSION_ICEAGE3},
@@ -35,19 +38,19 @@ pub struct EXGeoHeader {
     #[brw(seek_before = SeekFrom::Start(0x40))]
     pub section_list: EXGeoCommonArray<()>,
     pub refpointer_list: EXGeoCommonArray<EXGeoRefPointerHeader>,
-    pub entity_list: EXGeoCommonArray<EXGeoEntityHeader>,
-    pub anim_list: EXGeoCommonArray<()>,
-    pub animskin_list: EXGeoCommonArray<()>,
+    pub entity_list: EXGeoCommonArray<EXGeoEntityHeader>, // 0x50
+    pub anim_list: EXGeoCommonArray<EXGeoAnimHeader>,
+    pub animskin_list: EXGeoCommonArray<()>, // 0x60
     pub script_list: EXGeoCommonArray<EXGeoScriptHeader>,
-    pub map_list: EXGeoCommonArray<EXGeoMapHeader>,
+    pub map_list: EXGeoCommonArray<EXGeoMapHeader>, // 0x70
     pub animmode_list: EXGeoCommonArray<EXGeoAnimModeHeader>,
-    pub animset_list: EXGeoCommonArray<EXGeoAnimSetHeader>,
+    pub animset_list: EXGeoCommonArray<EXGeoAnimSetHeader>, // 0x80
     pub particle_list: EXGeoCommonArray<EXGeoParticleHeader>,
-    pub swoosh_list: EXGeoCommonArray<EXGeoSwooshHeader>,
+    pub swoosh_list: EXGeoCommonArray<EXGeoSwooshHeader>, // 0x90
     pub spreadsheet_list: EXGeoCommonArray<EXGeoSpreadSheetHeader>,
-    pub font_list: EXGeoCommonArray<EXGeoFontHeader>,
+    pub font_list: EXGeoCommonArray<EXGeoFontHeader>, // 0xa0
     pub forcefeedback_list: EXGeoCommonArray<()>,
-    pub material_list: EXGeoCommonArray<()>,
+    pub material_list: EXGeoCommonArray<()>, // 0xb0
     pub texture_list: EXGeoCommonArray<EXGeoTextureHeader>,
 
     pub unk_c0: EXGeoCommonArray<()>,

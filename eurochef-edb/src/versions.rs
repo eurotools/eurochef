@@ -4,6 +4,7 @@ use binrw::Endian;
 
 pub const EDB_VERSION_SPYRO_DEMO: u32 = 213;
 pub const EDB_VERSION_SPYRO: u32 = 240;
+pub const EDB_VERSION_PREDATOR: u32 = 250;
 pub const EDB_VERSION_GFORCE: u32 = 259;
 pub const EDB_VERSION_ICEAGE3: u32 = 260;
 pub const EDB_VERSION_BOND: u32 = 263;
