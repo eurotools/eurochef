@@ -2,17 +2,20 @@
 
 _Cooking up some EDBs_
 
-Eurochef provides tools and Rust crates for working with Eurocom EngineX(T) files, including .edb, .sfx and .elx files.
+Eurochef provides tools and Rust crates for working with Eurocom EngineX(T) files, including filelist, .edb, .sfx and .elx files.
 
 ## Features
 
 - [ ] Proper CLI Tool
 - [ ] Intermediate representation of EDB files
+- [ ] Filelist re-packer
+- [ ] Filelist VFS
+- [ ] GUI tool (Tauri+WebGL(?))
 - [ ] And more?
 
 ## Support Matrix
 
-### Game matrix
+### Games (EDB)
 
 _(Priority currently lies with G-Force)_
 
@@ -23,9 +26,9 @@ _(Priority currently lies with G-Force)_
 | Ice Age 2: The Meltdown (252)                  | ❌                      | ❌   | ❌      | ❌       | ❌         | ❌        | ❌           |
 | Predator: Concrete Jungle (250)                | ❌                      | ❌   | ❌      | ❌       | ❌         | ❌        | ❌           |
 | Pirates of the Caribbean: At World's End (252) | ❌                      | ❌   | ❌      | ❌       | ❌         | ❌        | ❌           |
-| Ice Age: Dawn of the Dinosaurs (258/260)       | ❌                      | ❌   | ❌      | ❌       | ❌         | ❌        | 🚧           |
+| Ice Age: Dawn of the Dinosaurs (258/260)       | 🚧/❌                   | ❌   | ❌      | ❌       | ❌         | ❌        | 🚧           |
 | G-Force (259)                                  | 🚧/❌                   | ❌   | ❌      | ❌       | ❌         | ❌        | ✅/❌        |
-| GoldenEye 007 (263)                            | ❌                      | ❌   | ❌      | ❌       | ❌         | ❌        | ✅/❌        |
+| GoldenEye 007 (263)                            | 🚧/❌                   | ❌   | ❌      | ❌       | ❌         | ❌        | ✅/❌        |
 
 <!-- ### Game matrix (unreleased builds)
 
@@ -37,9 +40,25 @@ _(Priority currently lies with G-Force)_
 
 <sup>[1]</sup> Texture support only indicates the ability to read texture headers and frame data. See the platform matrix for texture encoding/decoding support
 
-_Each field is formatted as R/W. For example, if a feature can be read, but not written, the field would be ✅/❌. If a feature can be both/neither read or written it will be represented by a single icon instead_
+_Each field is formatted as R/W. For example, if a feature can be read, but not written, the field would be ✅/❌. If a feature can be both/neither read and/or written it will be represented by a single icon instead_
 
-### Platform matrix
+### Filelists
+
+| Version | Read | Write |
+| ------- | ---- | ----- |
+| v4      | ✅   | ❌    |
+| v5      | ✅   | ❌    |
+| v6      | ✅   | ❌    |
+| v7      | ✅   | ❌    |
+| v9      | ❌   | ❌    |
+| v10     | ❌   | ❌    |
+| v11     | ❔   | ❌    |
+| v12     | ❔   | ❌    |
+| v13     | ❌   | ❌    |
+
+_❔ indicates an untested feature_
+
+### Platforms
 
 | Platform      | Endian | Textures | Sounds |
 | ------------- | ------ | -------- | ------ |

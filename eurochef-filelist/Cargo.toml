@@ -1,0 +1,9 @@
+[package]
+name = "eurochef-filelist"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1"
+binrw = "0.10.0"
+itertools = "0.10"

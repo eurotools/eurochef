@@ -2,7 +2,8 @@
 members = [
   "eurochef",
   "eurochef-edb",
-  "eurochef-elx"
+  "eurochef-elx",
+  "eurochef-filelist"
 ]
 
 [profile.dev.package.image]
