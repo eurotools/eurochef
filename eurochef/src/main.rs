@@ -124,7 +124,7 @@ fn main() -> std::io::Result<()> {
                             ))?;
 
                             let filename = format!(
-                                "extract/{}/{:08x}_frame{}.png",
+                                "extract/{}/{:08x}_frame{}.tga",
                                 Path::new(&path).file_name().unwrap().to_string_lossy(),
                                 t.common.hashcode,
                                 i
@@ -213,11 +213,11 @@ fn main() -> std::io::Result<()> {
                                 }
                             }
 
-                            File::create(format!(
-                                "extract/{:08x}_frame{}.bin",
-                                t.common.hashcode, i
-                            ))?
-                            .write_all(&data)?;
+                            // File::create(format!(
+                            //     "extract/{:08x}_frame{}.bin",
+                            //     t.common.hashcode, i
+                            // ))?
+                            // .write_all(&data)?;
                         }
                     }
                 }
