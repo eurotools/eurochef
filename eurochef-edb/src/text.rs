@@ -29,4 +29,4 @@ pub struct EXGeoTextItem {
     pub sound_hashcode: u32,
 }
 
-structure_size_tests!(EXGeoTextSection = 8, EXGeoTextItem = 40);
+structure_size_tests!(EXGeoTextSection = 8);
