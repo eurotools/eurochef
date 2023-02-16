@@ -3,7 +3,7 @@ use std::io::SeekFrom;
 use binrw::binrw;
 
 use crate::{
-    array::{EXGeoCommonArray, EXGeoCommonArrayElement},
+    array::{EXGeoCommonArrayElement, EXGeoHashArray},
     common::{
         EXGeoAnimHeader, EXGeoAnimModeHeader, EXGeoAnimSetHeader, EXGeoEntityHeader,
         EXGeoSpreadSheetHeader,
@@ -36,26 +36,26 @@ pub struct EXGeoHeader {
 
     // pub versions: [u32; 6],
     #[brw(seek_before = SeekFrom::Start(0x40))]
-    pub section_list: EXGeoCommonArray<()>,
-    pub refpointer_list: EXGeoCommonArray<EXGeoRefPointerHeader>,
-    pub entity_list: EXGeoCommonArray<EXGeoEntityHeader>, // 0x50
-    pub anim_list: EXGeoCommonArray<EXGeoAnimHeader>,
-    pub animskin_list: EXGeoCommonArray<()>, // 0x60
-    pub script_list: EXGeoCommonArray<EXGeoScriptHeader>,
-    pub map_list: EXGeoCommonArray<EXGeoMapHeader>, // 0x70
-    pub animmode_list: EXGeoCommonArray<EXGeoAnimModeHeader>,
-    pub animset_list: EXGeoCommonArray<EXGeoAnimSetHeader>, // 0x80
-    pub particle_list: EXGeoCommonArray<EXGeoParticleHeader>,
-    pub swoosh_list: EXGeoCommonArray<EXGeoSwooshHeader>, // 0x90
-    pub spreadsheet_list: EXGeoCommonArray<EXGeoSpreadSheetHeader>,
-    pub font_list: EXGeoCommonArray<EXGeoFontHeader>, // 0xa0
-    pub forcefeedback_list: EXGeoCommonArray<()>,
-    pub material_list: EXGeoCommonArray<()>, // 0xb0
-    pub texture_list: EXGeoCommonArray<EXGeoTextureHeader>,
+    pub section_list: EXGeoHashArray<()>,
+    pub refpointer_list: EXGeoHashArray<EXGeoRefPointerHeader>,
+    pub entity_list: EXGeoHashArray<EXGeoEntityHeader>, // 0x50
+    pub anim_list: EXGeoHashArray<EXGeoAnimHeader>,
+    pub animskin_list: EXGeoHashArray<()>, // 0x60
+    pub script_list: EXGeoHashArray<EXGeoScriptHeader>,
+    pub map_list: EXGeoHashArray<EXGeoMapHeader>, // 0x70
+    pub animmode_list: EXGeoHashArray<EXGeoAnimModeHeader>,
+    pub animset_list: EXGeoHashArray<EXGeoAnimSetHeader>, // 0x80
+    pub particle_list: EXGeoHashArray<EXGeoParticleHeader>,
+    pub swoosh_list: EXGeoHashArray<EXGeoSwooshHeader>, // 0x90
+    pub spreadsheet_list: EXGeoHashArray<EXGeoSpreadSheetHeader>,
+    pub font_list: EXGeoHashArray<EXGeoFontHeader>, // 0xa0
+    pub forcefeedback_list: EXGeoHashArray<()>,
+    pub material_list: EXGeoHashArray<()>, // 0xb0
+    pub texture_list: EXGeoHashArray<EXGeoTextureHeader>,
 
-    pub unk_c0: EXGeoCommonArray<()>,
-    pub unk_c8: EXGeoCommonArray<()>,
-    pub unk_d0: EXGeoCommonArray<()>,
+    pub unk_c0: EXGeoHashArray<()>,
+    pub unk_c8: EXGeoHashArray<()>,
+    pub unk_d0: EXGeoHashArray<()>,
 }
 
 structure_size_tests!(EXGeoHeader = 936);
