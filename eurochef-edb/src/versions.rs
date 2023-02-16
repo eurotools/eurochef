@@ -16,6 +16,7 @@ pub enum Platform {
     Xbox360,
     GameCube,
     Wii,
+    WiiU,
     Ps2,
     Ps3,
     ThreeDS,
@@ -64,5 +65,19 @@ impl Platform {
                 return None;
             }
         })
+    }
+
+    pub fn endianness(&self) -> Endian {
+        match *self {
+            Platform::Pc => Endian::Little,
+            Platform::Xbox => Endian::Little,
+            Platform::Xbox360 => Endian::Big,
+            Platform::GameCube => Endian::Big,
+            Platform::Wii => Endian::Big,
+            Platform::WiiU => Endian::Big,
+            Platform::Ps2 => Endian::Little,
+            Platform::Ps3 => Endian::Big,
+            Platform::ThreeDS => Endian::Little,
+        }
     }
 }
