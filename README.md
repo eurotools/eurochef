@@ -6,7 +6,7 @@ Eurochef provides tools and Rust crates for working with Eurocom EngineX(T) file
 
 ## Features
 
-- [ ] Proper CLI Tool
+- [x] Proper CLI Tool
 - [ ] Intermediate representation of EDB files
 - [ ] Filelist re-packer
 - [ ] Filelist VFS
@@ -52,8 +52,8 @@ _Each field is formatted as R/W. For example, if a feature can be read, but not 
 | v7      | ✅   | ❌    |
 | v9      | ❌   | ❌    |
 | v10     | ❌   | ❌    |
-| v11     | ❔   | ❌    |
-| v12     | ❔   | ❌    |
+| v11     | ❌   | ❌    |
+| v12     | ❌   | ❌    |
 | v13     | ❌   | ❌    |
 
 _❔ indicates an untested feature_

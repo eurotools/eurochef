@@ -69,6 +69,7 @@ impl EXFileList5 {
     }
 }
 
+// TODO: Make a trait for filelists bundling both the read and from/into functions so that they can be used genericly
 impl Into<UXFileList> for EXFileList5 {
     fn into(self) -> UXFileList {
         UXFileList {
