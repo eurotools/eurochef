@@ -162,7 +162,10 @@ fn handle_filelist(cmd: FilelistCommand, args: Args) -> anyhow::Result<()> {
             for (i, (filename, info)) in filelist.files.iter().enumerate() {
                 let filename_fixed = filename.replace('\\', "/");
                 let fpath = Path::new(&filename_fixed);
-                println!("{} {:?} ({} bytes) ", i, fpath, info.length);
+                println!(
+                    "{} {:?} ({} bytes, hashcode {:08x}, version {}, flags 0x{:x}) ",
+                    i, fpath, info.length, info.hashcode, info.version, info.flags
+                );
 
                 scr_file.as_mut().map(|f| {
                     writeln!(f, "{}", filename).expect("Failed to write file name to .scr");
@@ -279,23 +282,35 @@ fn handle_filelist(cmd: FilelistCommand, args: Args) -> anyhow::Result<()> {
             let mut filelist_num = 0;
 
             // Virtual path, real path
-            for (vpath, rpath) in file_paths {
+            for (i, (vpath, rpath)) in file_paths.iter().enumerate() {
                 println!("Packing file {vpath}");
                 let mut filedata = vec![];
                 let mut infile = File::open(rpath)?;
                 infile.read_to_end(&mut filedata)?;
 
-                let (hashcode, version, flags) = if vpath.to_ascii_lowercase().ends_with(".edb")
-                    || vpath.to_ascii_lowercase().ends_with(".sfx")
-                {
+                let mut length = filedata.len() as u32;
+
+                let (hashcode, version, flags) = if vpath.to_ascii_lowercase().ends_with(".edb") {
+                    // Use base filesize instead of full filesize
+                    infile.seek(std::io::SeekFrom::Start(0x18))?;
+                    length = infile.read_type(endian)?;
+
+                    // TODO: Kind of inefficient to read from the file again instead of using the buffer
                     infile.seek(std::io::SeekFrom::Start(4))?;
                     (
                         infile.read_type(endian)?,
                         infile.read_type(endian)?,
                         infile.read_type(endian)?,
                     )
+                } else if vpath.to_ascii_lowercase().ends_with(".sfx") {
+                    infile.seek(std::io::SeekFrom::Start(4))?;
+                    (
+                        infile.read_le::<u32>()? | 0x21000000,
+                        infile.read_type::<u8>(endian)? as u32,
+                        0,
+                    )
                 } else {
-                    (0, 0, 0)
+                    (0x81000000 | i as u32, 0, 0)
                 };
 
                 if f_data.stream_position()? as usize + filedata.len() > split_size as usize {
@@ -307,11 +322,11 @@ fn handle_filelist(cmd: FilelistCommand, args: Args) -> anyhow::Result<()> {
                 }
 
                 files.push((
-                    vpath,
+                    vpath.clone(),
                     FileInfo5 {
                         version,
                         flags,
-                        length: filedata.len() as u32,
+                        length,
                         hashcode,
                         fileloc: vec![FileLoc5 {
                             addr: f_data.stream_position()? as u32,
