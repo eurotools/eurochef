@@ -74,7 +74,7 @@ enum FilelistCommand {
         output_folder: String,
     },
     /// Create a new filelist from a folder
-    Pack {
+    Create {
         /// Folder to read files from
         input_folder: String,
 
@@ -162,7 +162,7 @@ fn handle_filelist(cmd: FilelistCommand, args: Args) -> anyhow::Result<()> {
 
             Ok(())
         }
-        FilelistCommand::Pack {
+        FilelistCommand::Create {
             input_folder,
             output_folder,
             file_name,
