@@ -19,6 +19,7 @@ clap-num = "1"
 eurochef-edb = { path = "../eurochef-edb" }
 eurochef-elx = { path = "../eurochef-elx" }
 eurochef-filelist = { path = "../eurochef-filelist" }
+pathdiff = "0.2.1"
 image = "0.24"
 squish = "1.0"
 walkdir = "2.3"

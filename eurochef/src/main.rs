@@ -1,5 +1,5 @@
 use std::{
-    fs::{self, File, FileType},
+    fs::File,
     io::{Read, Seek, Write},
     path::Path,
 };
@@ -73,6 +73,10 @@ enum FilelistCommand {
         /// The folder to extract to (will be created if it doesnt exist)
         #[arg(default_value = "./")]
         output_folder: String,
+
+        /// Create a .scr file in the output folder
+        #[arg(short = 's', long)]
+        create_scr: bool,
     },
     /// Create a new filelist from a folder
     Create {
@@ -83,6 +87,7 @@ enum FilelistCommand {
         #[arg(default_value = "./")]
         output_folder: String,
 
+        // TODO: This should either be a flag or come before output_folder???
         /// The output filename
         #[arg(default_value = "Filelist")]
         file_name: String,
@@ -97,9 +102,13 @@ enum FilelistCommand {
         #[arg(value_enum, short, long)]
         platform: PlatformArg,
 
-        /// Maximum size per data file
-        #[arg(long, short, default_value_t = 0x80000000, value_parser = maybe_hex::<u32>)]
+        /// Maximum size per data file, might be overridden by a .scr file
+        #[arg(long, short = 'z', default_value_t = 0x80000000, value_parser = maybe_hex::<u32>)]
         split_size: u32,
+
+        /// .scr file to read options from (currently doesnt support wildcards)
+        #[arg(long, short)]
+        scr_file: Option<String>,
     },
 }
 
@@ -117,10 +126,28 @@ fn handle_filelist(cmd: FilelistCommand, args: Args) -> anyhow::Result<()> {
         FilelistCommand::Extract {
             filename,
             output_folder,
+            create_scr,
         } => {
             println!("Extracting {filename}");
             let mut f = File::open(&filename)?;
             let filelist = UXFileList::read(&mut f)?;
+
+            std::fs::create_dir_all(&output_folder)?;
+
+            let mut scr_file = create_scr.then_some(
+                File::create(Path::new(&output_folder).join("FileList.scr"))
+                    .expect("Failed to create .scr file"),
+            );
+
+            scr_file.as_mut().map(|f| {
+                writeln!(
+                    f,
+                    "[FileInfomation]
+
+[FileList]\n"
+                )
+                .expect("Failed to write scr file header");
+            });
 
             let file_base = &filename[..filename.len() - 3];
             let mut data_files = vec![];
@@ -136,6 +163,10 @@ fn handle_filelist(cmd: FilelistCommand, args: Args) -> anyhow::Result<()> {
                 let filename_fixed = filename.replace('\\', "/");
                 let fpath = Path::new(&filename_fixed);
                 println!("{} {:?} ({} bytes) ", i, fpath, info.length);
+
+                scr_file.as_mut().map(|f| {
+                    writeln!(f, "{}", filename).expect("Failed to write file name to .scr");
+                });
 
                 if fpath.to_string_lossy().is_empty() {
                     println!(
@@ -182,6 +213,7 @@ fn handle_filelist(cmd: FilelistCommand, args: Args) -> anyhow::Result<()> {
             version,
             platform,
             split_size,
+            scr_file,
         } => {
             // TODO: Make a trait for filelists bundling both the read and from/into functions so that they can be used genericly
             let platform: Platform = platform.into();
@@ -207,57 +239,92 @@ fn handle_filelist(cmd: FilelistCommand, args: Args) -> anyhow::Result<()> {
                 }
             }
 
-            let mut filelist_num = 0;
-            let mut filelist_size = 0;
-            for e in WalkDir::new(input_folder) {
-                let e = e?;
-                if e.file_type().is_file() {
-                    let fpath = e.path().to_string_lossy().replace('/', "\\");
-                    println!("{drive_letter}:\\{fpath}");
-                    let mut filedata = vec![];
-                    let mut infile = File::open(e.path())?;
-                    infile.read_to_end(&mut filedata)?;
+            let mut file_paths = vec![];
 
-                    let (hashcode, version, flags) = if fpath.to_ascii_lowercase().ends_with(".edb")
-                        || fpath.to_ascii_lowercase().ends_with(".sfx")
-                    {
-                        infile.seek(std::io::SeekFrom::Start(4))?;
-                        (
-                            infile.read_type(endian)?,
-                            infile.read_type(endian)?,
-                            infile.read_type(endian)?,
-                        )
-                    } else {
-                        (0, 0, 0)
-                    };
-
-                    if filelist_size + filedata.len() > split_size as usize {
-                        filelist_size = 0;
-                        filelist_num += 1;
-
-                        let fp_data = Path::new(&output_folder)
-                            .join(file_name.clone() + &format!(".{:03}", filelist_num));
-                        f_data = File::create(fp_data)?;
+            if let Some(scr_file) = scr_file {
+                println!("Reading files in SCR order");
+                let scr_files = parse_scr_filelist(scr_file);
+                for s in scr_files {
+                    if &s[1..=2] != ":\\" {
+                        panic!("Invalid path in scr file: {s}");
                     }
 
-                    filelist_size += filedata.len();
-
-                    files.push((
-                        format!("{drive_letter}:\\{fpath}"),
-                        FileInfo5 {
-                            version,
-                            flags,
-                            length: filedata.len() as u32,
-                            hashcode,
-                            fileloc: vec![FileLoc5 {
-                                addr: f_data.stream_position()? as u32,
-                                filelist_num,
-                            }],
-                        },
-                    ));
-
-                    f_data.write_all(&filedata)?;
+                    let path_on_disk = Path::new(&input_folder).join(&s[3..]);
+                    file_paths.push((
+                        s,
+                        path_on_disk
+                            .to_string_lossy()
+                            .to_string()
+                            .replace('\\', "/"),
+                    ))
                 }
+            } else {
+                println!("Reading files recursively");
+                for e in WalkDir::new(&input_folder) {
+                    let e = e?;
+                    if e.file_type().is_file() {
+                        let fpath = pathdiff::diff_paths(e.path(), &input_folder)
+                            .unwrap()
+                            .to_string_lossy()
+                            .replace('/', "\\");
+
+                        file_paths.push((
+                            format!("{drive_letter}:\\{fpath}"),
+                            e.path().to_string_lossy().to_string(),
+                        ))
+                    }
+                }
+            }
+
+            let mut filelist_num = 0;
+            let mut filelist_size = 0;
+
+            // Virtual path, real path
+            for (vpath, rpath) in file_paths {
+                println!("Packing file {vpath}");
+                let mut filedata = vec![];
+                let mut infile = File::open(rpath)?;
+                infile.read_to_end(&mut filedata)?;
+
+                let (hashcode, version, flags) = if vpath.to_ascii_lowercase().ends_with(".edb")
+                    || vpath.to_ascii_lowercase().ends_with(".sfx")
+                {
+                    infile.seek(std::io::SeekFrom::Start(4))?;
+                    (
+                        infile.read_type(endian)?,
+                        infile.read_type(endian)?,
+                        infile.read_type(endian)?,
+                    )
+                } else {
+                    (0, 0, 0)
+                };
+
+                if filelist_size + filedata.len() > split_size as usize {
+                    filelist_size = 0;
+                    filelist_num += 1;
+
+                    let fp_data = Path::new(&output_folder)
+                        .join(file_name.clone() + &format!(".{:03}", filelist_num));
+                    f_data = File::create(fp_data)?;
+                }
+
+                filelist_size += filedata.len();
+
+                files.push((
+                    vpath,
+                    FileInfo5 {
+                        version,
+                        flags,
+                        length: filedata.len() as u32,
+                        hashcode,
+                        fileloc: vec![FileLoc5 {
+                            addr: f_data.stream_position()? as u32,
+                            filelist_num,
+                        }],
+                    },
+                ));
+
+                f_data.write_all(&filedata)?;
             }
 
             let filelist = EXFileListHeader5 {
@@ -312,4 +379,30 @@ fn handle_filelist(cmd: FilelistCommand, args: Args) -> anyhow::Result<()> {
             Ok(())
         }
     }
+}
+
+// TODO: Proper parser for scr files
+fn parse_scr_filelist<P: AsRef<Path>>(path: P) -> Vec<String> {
+    let mut result = vec![];
+    let mut filebuf = String::new();
+
+    let mut f = File::open(path).expect("Failed to open SCR file");
+    f.read_to_string(&mut filebuf).unwrap();
+
+    let mut in_filesection = false;
+    for l in filebuf.lines() {
+        let line = l.trim();
+
+        if in_filesection && line.len() > 3 {
+            result.push(line.to_owned())
+        }
+
+        if line == "[FileList]" {
+            in_filesection = true;
+        } else if line.starts_with("[") {
+            in_filesection = false;
+        }
+    }
+
+    result
 }
