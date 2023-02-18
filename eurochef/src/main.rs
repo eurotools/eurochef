@@ -1,12 +1,20 @@
 use std::{
-    fs::File,
+    fs::{self, File, FileType},
     io::{Read, Seek, Write},
     path::Path,
 };
 
 use clap::{Parser, Subcommand};
-use eurochef_edb::{binrw::BinReaderExt, versions::Platform};
-use eurochef_filelist::UXFileList;
+use eurochef_edb::{
+    binrw::{BinReaderExt, BinWriterExt},
+    versions::Platform,
+};
+use eurochef_filelist::{
+    path,
+    structures::{EXFileListHeader5, FileInfo5, FileLoc5},
+    UXFileList,
+};
+use walkdir::WalkDir;
 
 #[derive(clap::ValueEnum, PartialEq, Debug, Clone)]
 enum PlatformArg {
@@ -37,10 +45,6 @@ impl Into<Platform> for PlatformArg {
 
 #[derive(Parser, Debug)]
 struct Args {
-    /// Override for platform detection
-    #[arg(value_enum, short, long)]
-    platform: Option<PlatformArg>,
-
     /// Decryption key used to decrypt content and filenames
     #[arg(short, long)]
     decryption_key: Option<String>,
@@ -58,12 +62,36 @@ enum Command {
     },
 }
 
-#[derive(Subcommand, Debug)]
+#[derive(Subcommand, Debug, Clone)]
 enum FilelistCommand {
-    /// Extract the given filelist
+    /// Extract a filelist
     Extract {
         /// .bin file to use
         filename: String,
+    },
+    /// Create a new filelist from a folder
+    Pack {
+        /// Folder to read files from
+        input_folder: String,
+
+        /// The folder to put the generated files in
+        #[arg(default_value = "./")]
+        output_folder: String,
+
+        /// The output filename
+        #[arg(default_value = "Filelist")]
+        file_name: String,
+
+        #[arg(long, short = 'l', default_value_t = 'x')]
+        drive_letter: char,
+        // #[arg(long)]
+        // split_size: u32,
+        /// Supported versions: 5, 6, 7
+        #[arg(long, short, default_value_t = 7)]
+        version: u32,
+
+        #[arg(value_enum, short, long)]
+        platform: PlatformArg,
     },
 }
 
@@ -71,12 +99,13 @@ pub fn main() -> anyhow::Result<()> {
     let args = Args::parse();
     println!("{args:?}");
 
-    match args.cmd {
-        Command::Filelist { subcommand } => handle_filelist(subcommand),
+    match &args.cmd {
+        Command::Filelist { subcommand } => handle_filelist(subcommand.clone(), args),
     }
 }
 
-fn handle_filelist(cmd: FilelistCommand) -> anyhow::Result<()> {
+// TODO: Split commands into separate files
+fn handle_filelist(cmd: FilelistCommand, args: Args) -> anyhow::Result<()> {
     match cmd {
         FilelistCommand::Extract { filename } => {
             println!("Extracting {filename}");
@@ -124,6 +153,116 @@ fn handle_filelist(cmd: FilelistCommand) -> anyhow::Result<()> {
                 std::fs::create_dir_all(fpath_noprefix.parent().unwrap())?;
                 File::create(fpath_noprefix)?.write(&data)?;
             }
+
+            Ok(())
+        }
+        FilelistCommand::Pack {
+            input_folder,
+            output_folder,
+            file_name,
+            drive_letter,
+            version,
+            platform,
+        } => {
+            // TODO: Make a trait for filelists bundling both the read and from/into functions so that they can be used genericly
+            let platform: Platform = platform.into();
+            let endian = platform.endianness();
+
+            if !(5..=7).contains(&version) {
+                panic!("Only version 5, 6 and 7 are supported for packing right now")
+            }
+
+            println!("Packing files from {input_folder} with drive letter {drive_letter}:");
+
+            let fp_data = Path::new(&output_folder).join(file_name.clone() + ".000");
+            let fp_info = Path::new(&output_folder).join(file_name.clone() + ".bin");
+            let mut f_data = File::create(fp_data)?;
+
+            let mut files: Vec<(String, FileInfo5)> = vec![];
+
+            // TODO: Handle absolute paths
+            {
+                let ifpath = Path::new(&input_folder);
+                if ifpath.is_absolute() {
+                    panic!("Absolute paths are not supported (yet)");
+                }
+            }
+
+            for e in WalkDir::new(input_folder) {
+                let e = e?;
+                if e.file_type().is_file() {
+                    let fpath = e.path().to_string_lossy().replace('/', "\\");
+                    println!("{drive_letter}:\\{fpath}");
+                    let mut filedata = vec![];
+                    let mut infile = File::open(e.path())?;
+                    infile.read_to_end(&mut filedata)?;
+
+                    infile.seek(std::io::SeekFrom::Start(4))?;
+                    let hashcode = infile.read_type(endian)?;
+                    let version = infile.read_type(endian)?;
+
+                    files.push((
+                        format!("{drive_letter}:\\{fpath}"),
+                        FileInfo5 {
+                            version,
+                            flags: 536870921, // ! Unhandled
+                            length: filedata.len() as u32,
+                            hashcode,
+                            fileloc: vec![FileLoc5 {
+                                addr: f_data.stream_position()? as u32,
+                                filelist_num: 0,
+                            }],
+                        },
+                    ));
+
+                    f_data.write_all(&filedata)?;
+                }
+            }
+
+            let filelist = EXFileListHeader5 {
+                version,
+                filesize: 0,
+                build_type: 1,
+                num_filelists: 0,
+                filename_list_offset: 0,
+                fileinfo: files.iter().map(|(_, v)| v.clone()).collect(),
+            };
+
+            let mut f_info = File::create(fp_info)?;
+            f_info.write_type(&filelist, endian)?;
+            let filename_offset = f_info.stream_position()?;
+
+            let filename_table_size = files.len() * 4;
+            let filename_data_offset = filename_offset + filename_table_size as u64;
+            let mut offset = filename_data_offset;
+            for (i, (v, _)) in files.iter().enumerate() {
+                let ptr_offset = filename_offset + i as u64 * 4;
+                f_info.write_type(&((offset - ptr_offset) as u32), endian)?;
+                offset += v.len() as u64 + 1;
+            }
+
+            f_info.seek(std::io::SeekFrom::Start(filename_data_offset))?;
+
+            for (i, (v, _)) in files.iter().enumerate() {
+                let mut path_buf = v.as_bytes().to_vec();
+                path_buf.push(0);
+
+                if version >= 7 {
+                    path::scramble_filename_v7(i as u32, &mut path_buf);
+                }
+
+                f_info.write_all(&path_buf)?;
+            }
+
+            let file_size = f_info.stream_position()?;
+
+            f_info.seek(std::io::SeekFrom::Start(4))?;
+            f_info.write_type(&(file_size as u32), endian)?;
+
+            f_info.seek(std::io::SeekFrom::Start(0x10))?;
+            f_info.write_type(&(filename_offset as u32 - 0x10), endian)?;
+
+            println!("Successfully packed {} files", files.len());
 
             Ok(())
         }

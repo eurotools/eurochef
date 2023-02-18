@@ -43,7 +43,7 @@ pub struct EXFileListHeader5 {
 }
 
 #[binrw]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct FileInfo5 {
     pub length: u32,
     pub hashcode: u32,
@@ -58,7 +58,7 @@ pub struct FileInfo5 {
 }
 
 #[binrw]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct FileLoc5 {
     pub addr: u32,
     pub filelist_num: u32,

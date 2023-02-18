@@ -7,8 +7,8 @@ Eurochef provides tools and Rust crates for working with Eurocom EngineX(T) file
 ## Features
 
 - [x] Proper CLI Tool
+- [x] Filelist re-packer
 - [ ] Intermediate representation of EDB files
-- [ ] Filelist re-packer
 - [ ] Filelist VFS
 - [ ] GUI tool (Tauri+WebGL(?))
 - [ ] And more?

@@ -1,7 +1,7 @@
 use std::io::{Read, Seek};
 
 use crate::path::unscramble_filename_v7;
-use crate::structures::EXFileListHeader5;
+use crate::structures::{EXFileListHeader5, FileInfo5};
 use crate::unified::{UXFileInfo, UXFileList};
 
 use anyhow::Result;
