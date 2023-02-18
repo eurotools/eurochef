@@ -277,7 +277,6 @@ fn handle_filelist(cmd: FilelistCommand, args: Args) -> anyhow::Result<()> {
             }
 
             let mut filelist_num = 0;
-            let mut filelist_size = 0;
 
             // Virtual path, real path
             for (vpath, rpath) in file_paths {
@@ -299,16 +298,13 @@ fn handle_filelist(cmd: FilelistCommand, args: Args) -> anyhow::Result<()> {
                     (0, 0, 0)
                 };
 
-                if filelist_size + filedata.len() > split_size as usize {
-                    filelist_size = 0;
+                if f_data.stream_position()? as usize + filedata.len() > split_size as usize {
                     filelist_num += 1;
 
                     let fp_data = Path::new(&output_folder)
                         .join(file_name.clone() + &format!(".{:03}", filelist_num));
                     f_data = File::create(fp_data)?;
                 }
-
-                filelist_size += filedata.len();
 
                 files.push((
                     vpath,
@@ -325,6 +321,14 @@ fn handle_filelist(cmd: FilelistCommand, args: Args) -> anyhow::Result<()> {
                 ));
 
                 f_data.write_all(&filedata)?;
+
+                let unaligned_pos = f_data.stream_position()?;
+                if unaligned_pos & 0x1f != 0 {
+                    let remainder = unaligned_pos % 32;
+                    let aligned_pos = unaligned_pos + (32 - remainder);
+                    println!("0x{unaligned_pos:x} -> 0x{aligned_pos:x}");
+                    f_data.seek(std::io::SeekFrom::Start(aligned_pos))?;
+                }
             }
 
             let filelist = EXFileListHeader5 {
