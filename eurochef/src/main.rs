@@ -68,6 +68,10 @@ enum FilelistCommand {
     Extract {
         /// .bin file to use
         filename: String,
+
+        /// The folder to extract to (will be created if it doesnt exist)
+        #[arg(default_value = "./")]
+        output_folder: String,
     },
     /// Create a new filelist from a folder
     Pack {
@@ -97,7 +101,6 @@ enum FilelistCommand {
 
 pub fn main() -> anyhow::Result<()> {
     let args = Args::parse();
-    println!("{args:?}");
 
     match &args.cmd {
         Command::Filelist { subcommand } => handle_filelist(subcommand.clone(), args),
@@ -107,7 +110,10 @@ pub fn main() -> anyhow::Result<()> {
 // TODO: Split commands into separate files
 fn handle_filelist(cmd: FilelistCommand, args: Args) -> anyhow::Result<()> {
     match cmd {
-        FilelistCommand::Extract { filename } => {
+        FilelistCommand::Extract {
+            filename,
+            output_folder,
+        } => {
             println!("Extracting {filename}");
             let mut f = File::open(&filename)?;
             let filelist = UXFileList::read(&mut f)?;
@@ -149,7 +155,7 @@ fn handle_filelist(cmd: FilelistCommand, args: Args) -> anyhow::Result<()> {
                 let mut data = vec![0u8; filesize as usize];
                 df.read(&mut data)?;
 
-                let fpath_noprefix = Path::new(&fpath.to_str().unwrap()[3..]);
+                let fpath_noprefix = Path::new(&output_folder).join(&fpath.to_str().unwrap()[3..]);
                 std::fs::create_dir_all(fpath_noprefix.parent().unwrap())?;
                 File::create(fpath_noprefix)?.write(&data)?;
             }
