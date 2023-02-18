@@ -132,10 +132,18 @@ fn handle_filelist(cmd: FilelistCommand, args: Args) -> anyhow::Result<()> {
                 data_files.push(File::open(format!("{}DAT", file_base))?);
             }
 
-            for (filename, info) in filelist.files.iter() {
+            for (i, (filename, info)) in filelist.files.iter().enumerate() {
                 let filename_fixed = filename.replace('\\', "/");
                 let fpath = Path::new(&filename_fixed);
-                println!("{:?} ({} bytes) ", fpath, info.length);
+                println!("{} {:?} ({} bytes) ", i, fpath, info.length);
+
+                if fpath.to_string_lossy().is_empty() {
+                    println!(
+                        "Skipping file {} with empty path (hashcode {:08x})",
+                        i, info.hashcode
+                    );
+                    continue;
+                }
 
                 let df = &mut data_files[info.filelist_num.unwrap_or(0) as usize];
 

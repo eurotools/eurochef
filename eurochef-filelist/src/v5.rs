@@ -44,6 +44,7 @@ impl EXFileList5 {
             filename_offsets.push(reader.read_type::<u32>(endian)? as u64 + base_offset + i * 4);
         }
 
+        filename_offsets.sort();
         // FIXME: If the strings arent encoded linearly this will be a bit inefficient
         for (i, (start, end)) in filename_offsets
             .iter()

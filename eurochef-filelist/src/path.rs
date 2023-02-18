@@ -11,6 +11,7 @@ pub fn unscramble_filename_v7(file_index: u32, bytes: &mut [u8]) {
     }
 }
 
+// TODO: This should take a string and output a Cow<[u8]> to ensure null-termination
 pub fn scramble_filename_v7(file_index: u32, bytes: &mut [u8]) {
     for i in 0..bytes.len() {
         bytes[i] = (bytes[i] as u32)
