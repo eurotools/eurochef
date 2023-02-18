@@ -218,9 +218,18 @@ fn handle_filelist(cmd: FilelistCommand, args: Args) -> anyhow::Result<()> {
                     let mut infile = File::open(e.path())?;
                     infile.read_to_end(&mut filedata)?;
 
-                    infile.seek(std::io::SeekFrom::Start(4))?;
-                    let hashcode = infile.read_type(endian)?;
-                    let version = infile.read_type(endian)?;
+                    let (hashcode, version, flags) = if fpath.to_ascii_lowercase().ends_with(".edb")
+                        || fpath.to_ascii_lowercase().ends_with(".sfx")
+                    {
+                        infile.seek(std::io::SeekFrom::Start(4))?;
+                        (
+                            infile.read_type(endian)?,
+                            infile.read_type(endian)?,
+                            infile.read_type(endian)?,
+                        )
+                    } else {
+                        (0, 0, 0)
+                    };
 
                     if filelist_size + filedata.len() > split_size as usize {
                         filelist_size = 0;
@@ -237,7 +246,7 @@ fn handle_filelist(cmd: FilelistCommand, args: Args) -> anyhow::Result<()> {
                         format!("{drive_letter}:\\{fpath}"),
                         FileInfo5 {
                             version,
-                            flags: 536870921, // ! Unhandled
+                            flags,
                             length: filedata.len() as u32,
                             hashcode,
                             fileloc: vec![FileLoc5 {
