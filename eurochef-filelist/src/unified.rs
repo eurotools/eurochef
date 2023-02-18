@@ -13,7 +13,7 @@ pub struct UXFileList {
     pub num_filelists: Option<u16>,
     pub build_type: Option<u16>,
     pub endian: Endian,
-    pub files: HashMap<String, UXFileInfo>,
+    pub files: Vec<(String, UXFileInfo)>,
 }
 
 pub struct UXFileInfo {
