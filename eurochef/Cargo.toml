@@ -15,6 +15,7 @@ edition = "2021"
 [dependencies]
 anyhow = "1"
 clap = { version = "4.1", features = ["derive", "color"] }
+clap-num = "1"
 eurochef-edb = { path = "../eurochef-edb" }
 eurochef-elx = { path = "../eurochef-elx" }
 eurochef-filelist = { path = "../eurochef-filelist" }

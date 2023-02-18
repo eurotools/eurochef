@@ -5,6 +5,7 @@ use std::{
 };
 
 use clap::{Parser, Subcommand};
+use clap_num::maybe_hex;
 use eurochef_edb::{
     binrw::{BinReaderExt, BinWriterExt},
     versions::Platform,
@@ -88,14 +89,17 @@ enum FilelistCommand {
 
         #[arg(long, short = 'l', default_value_t = 'x')]
         drive_letter: char,
-        // #[arg(long)]
-        // split_size: u32,
+
         /// Supported versions: 5, 6, 7
         #[arg(long, short, default_value_t = 7)]
         version: u32,
 
         #[arg(value_enum, short, long)]
         platform: PlatformArg,
+
+        /// Maximum size per data file
+        #[arg(long, short, default_value_t = 0x80000000, value_parser = maybe_hex::<u32>)]
+        split_size: u32,
     },
 }
 
@@ -169,6 +173,7 @@ fn handle_filelist(cmd: FilelistCommand, args: Args) -> anyhow::Result<()> {
             drive_letter,
             version,
             platform,
+            split_size,
         } => {
             // TODO: Make a trait for filelists bundling both the read and from/into functions so that they can be used genericly
             let platform: Platform = platform.into();
@@ -194,6 +199,8 @@ fn handle_filelist(cmd: FilelistCommand, args: Args) -> anyhow::Result<()> {
                 }
             }
 
+            let mut filelist_num = 0;
+            let mut filelist_size = 0;
             for e in WalkDir::new(input_folder) {
                 let e = e?;
                 if e.file_type().is_file() {
@@ -207,6 +214,17 @@ fn handle_filelist(cmd: FilelistCommand, args: Args) -> anyhow::Result<()> {
                     let hashcode = infile.read_type(endian)?;
                     let version = infile.read_type(endian)?;
 
+                    if filelist_size + filedata.len() > split_size as usize {
+                        filelist_size = 0;
+                        filelist_num += 1;
+
+                        let fp_data = Path::new(&output_folder)
+                            .join(file_name.clone() + &format!(".{:03}", filelist_num));
+                        f_data = File::create(fp_data)?;
+                    }
+
+                    filelist_size += filedata.len();
+
                     files.push((
                         format!("{drive_letter}:\\{fpath}"),
                         FileInfo5 {
@@ -216,7 +234,7 @@ fn handle_filelist(cmd: FilelistCommand, args: Args) -> anyhow::Result<()> {
                             hashcode,
                             fileloc: vec![FileLoc5 {
                                 addr: f_data.stream_position()? as u32,
-                                filelist_num: 0,
+                                filelist_num,
                             }],
                         },
                     ));
@@ -229,7 +247,7 @@ fn handle_filelist(cmd: FilelistCommand, args: Args) -> anyhow::Result<()> {
                 version,
                 filesize: 0,
                 build_type: 1,
-                num_filelists: 0,
+                num_filelists: filelist_num as u16,
                 filename_list_offset: 0,
                 fileinfo: files.iter().map(|(_, v)| v.clone()).collect(),
             };
@@ -268,7 +286,11 @@ fn handle_filelist(cmd: FilelistCommand, args: Args) -> anyhow::Result<()> {
             f_info.seek(std::io::SeekFrom::Start(0x10))?;
             f_info.write_type(&(filename_offset as u32 - 0x10), endian)?;
 
-            println!("Successfully packed {} files", files.len());
+            println!(
+                "Successfully packed {} files into {} data files",
+                files.len(),
+                filelist_num + 1
+            );
 
             Ok(())
         }
