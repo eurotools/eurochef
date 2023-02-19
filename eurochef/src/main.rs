@@ -333,10 +333,11 @@ fn handle_filelist(cmd: FilelistCommand, args: Args) -> anyhow::Result<()> {
 
                 f_data.write_all(&filedata)?;
 
+                // Pad next data to 2048 bytes
                 let unaligned_pos = f_data.stream_position()?;
-                if unaligned_pos & 0x1f != 0 {
-                    let remainder = unaligned_pos % 32;
-                    let aligned_pos = unaligned_pos + (32 - remainder);
+                if unaligned_pos & 0x7ff != 0 {
+                    let remainder = unaligned_pos % 2048;
+                    let aligned_pos = unaligned_pos + (2048 - remainder);
                     f_data.seek(std::io::SeekFrom::Start(aligned_pos))?;
                 }
             }
@@ -374,6 +375,14 @@ fn handle_filelist(cmd: FilelistCommand, args: Args) -> anyhow::Result<()> {
                 }
 
                 f_info.write_all(&path_buf)?;
+            }
+
+            // Pad the file to 32 bytes
+            f_info.seek(std::io::SeekFrom::End(0))?;
+            let unaligned_size = f_info.stream_position()?;
+            if unaligned_size & 0x1f != 0 {
+                let remainder = 32 - (unaligned_size % 32);
+                f_info.write_all(&vec![0u8; remainder as usize])?;
             }
 
             let file_size = f_info.stream_position()?;
