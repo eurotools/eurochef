@@ -84,13 +84,8 @@ enum FilelistCommand {
         input_folder: String,
 
         /// The folder to put the generated files in
-        #[arg(default_value = "./")]
-        output_folder: String,
-
-        // TODO: This should either be a flag or come before output_folder???
-        /// The output filename
-        #[arg(default_value = "Filelist")]
-        file_name: String,
+        #[arg(default_value = "./Filelist")]
+        output_file: String,
 
         #[arg(long, short = 'l', default_value_t = 'x')]
         drive_letter: char,
@@ -99,7 +94,7 @@ enum FilelistCommand {
         #[arg(long, short, default_value_t = 7)]
         version: u32,
 
-        #[arg(value_enum, short, long)]
+        #[arg(value_enum, short, long, ignore_case = true)]
         platform: PlatformArg,
 
         /// Maximum size per data file, might be overridden by a .scr file
@@ -210,8 +205,7 @@ fn handle_filelist(cmd: FilelistCommand, args: Args) -> anyhow::Result<()> {
         }
         FilelistCommand::Create {
             input_folder,
-            output_folder,
-            file_name,
+            output_file,
             drive_letter,
             version,
             platform,
@@ -228,8 +222,8 @@ fn handle_filelist(cmd: FilelistCommand, args: Args) -> anyhow::Result<()> {
 
             println!("Packing files from {input_folder} with drive letter {drive_letter}:");
 
-            let fp_data = Path::new(&output_folder).join(file_name.clone() + ".000");
-            let fp_info = Path::new(&output_folder).join(file_name.clone() + ".bin");
+            let fp_data = format!("{output_file}.000");
+            let fp_info = format!("{output_file}.bin");
             let mut f_data = File::create(fp_data)?;
 
             let mut files: Vec<(String, FileInfo5)> = vec![];
@@ -316,9 +310,8 @@ fn handle_filelist(cmd: FilelistCommand, args: Args) -> anyhow::Result<()> {
                 if f_data.stream_position()? as usize + filedata.len() > split_size as usize {
                     filelist_num += 1;
 
-                    let fp_data = Path::new(&output_folder)
-                        .join(file_name.clone() + &format!(".{:03}", filelist_num));
-                    f_data = File::create(fp_data)?;
+                    let fp_data = format!("{}.{:03}", output_file, filelist_num);
+                    f_data = File::create(&fp_data)?;
                 }
 
                 files.push((
@@ -341,7 +334,6 @@ fn handle_filelist(cmd: FilelistCommand, args: Args) -> anyhow::Result<()> {
                 if unaligned_pos & 0x1f != 0 {
                     let remainder = unaligned_pos % 32;
                     let aligned_pos = unaligned_pos + (32 - remainder);
-                    println!("0x{unaligned_pos:x} -> 0x{aligned_pos:x}");
                     f_data.seek(std::io::SeekFrom::Start(aligned_pos))?;
                 }
             }
