@@ -1,3 +1,4 @@
+mod edb;
 mod filelist;
 
 use clap::{Parser, Subcommand};
@@ -35,10 +36,6 @@ impl Into<Platform> for PlatformArg {
 
 #[derive(Parser, Debug)]
 struct Args {
-    /// Decryption key used to decrypt content and filenames
-    #[arg(short, long)]
-    decryption_key: Option<String>,
-
     #[command(subcommand)]
     cmd: Command,
 }
@@ -49,6 +46,19 @@ enum Command {
     Filelist {
         #[command(subcommand)]
         subcommand: FilelistCommand,
+    },
+    Edb {
+        #[command(subcommand)]
+        subcommand: EdbCommand,
+    },
+}
+
+#[derive(Subcommand, Debug, Clone)]
+enum EdbCommand {
+    /// Extract spreadsheets
+    Spreadsheets {
+        /// .edb file to read
+        filename: String,
     },
 }
 
@@ -101,6 +111,13 @@ pub fn main() -> anyhow::Result<()> {
 
     match &args.cmd {
         Command::Filelist { subcommand } => handle_filelist(subcommand.clone()),
+        Command::Edb { subcommand } => handle_edb(subcommand.clone()),
+    }
+}
+
+fn handle_edb(cmd: EdbCommand) -> anyhow::Result<()> {
+    match cmd {
+        EdbCommand::Spreadsheets { filename } => edb::spreadsheets::execute_command(filename),
     }
 }
 

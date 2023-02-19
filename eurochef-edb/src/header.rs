@@ -10,7 +10,7 @@ use crate::{
     },
     structure_size_tests,
     texture::EXGeoTextureHeader,
-    versions::{EDB_VERSION_BOND, EDB_VERSION_GFORCE, EDB_VERSION_ICEAGE3},
+    // versions::{EDB_VERSION_BOND, EDB_VERSION_GFORCE, EDB_VERSION_ICEAGE3},
 };
 
 pub type EXGeoMapHeader = EXGeoCommonArrayElement;
@@ -26,7 +26,7 @@ pub type EXGeoFontHeader = EXGeoCommonArrayElement;
 pub struct EXGeoHeader {
     pub hashcode: u32,
 
-    #[brw(assert(version.eq(&EDB_VERSION_GFORCE) || version.eq(&EDB_VERSION_BOND) || version.eq(&EDB_VERSION_ICEAGE3), "Unsupported version {version}"))]
+    #[brw(assert(version.ge(&252) || version.le(&263), "Unsupported version {version}"))]
     pub version: u32,
 
     pub flags: u32,
