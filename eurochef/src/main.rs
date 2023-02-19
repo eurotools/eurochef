@@ -367,7 +367,7 @@ fn handle_filelist(cmd: FilelistCommand, args: Args) -> anyhow::Result<()> {
             f_info.seek(std::io::SeekFrom::Start(filename_data_offset))?;
 
             for (i, (v, _)) in files.iter().enumerate() {
-                let mut path_buf = v.as_bytes().to_vec();
+                let mut path_buf = v.to_lowercase().as_bytes().to_vec();
                 path_buf.push(0);
 
                 if version >= 7 {
