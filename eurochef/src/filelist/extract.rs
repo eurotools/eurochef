@@ -6,13 +6,16 @@ use std::{
 
 use eurochef_edb::binrw::BinReaderExt;
 use eurochef_filelist::UXFileList;
+use indicatif::{ProgressBar, ProgressIterator, ProgressStyle};
+
+use crate::filelist::TICK_STRINGS;
 
 pub fn execute_command(
     filename: String,
     output_folder: String,
     create_scr: bool,
 ) -> anyhow::Result<()> {
-    println!("Extracting {filename}");
+    println!("Extracting {filename} to {output_folder}");
     let mut f = File::open(&filename)?;
     let filelist = UXFileList::read(&mut f)?;
 
@@ -43,13 +46,20 @@ pub fn execute_command(
         data_files.push(File::open(format!("{}DAT", file_base))?);
     }
 
-    for (i, (filename, info)) in filelist.files.iter().enumerate() {
+    let pb = ProgressBar::new(filelist.files.len() as u64);
+    pb.set_style(
+        ProgressStyle::with_template(
+            "{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {msg} ({pos}/{len})",
+        )
+        .unwrap()
+        .progress_chars("##-")
+        .tick_chars(&TICK_STRINGS),
+    );
+    pb.set_message("Extracting files");
+
+    for (i, (filename, info)) in filelist.files.iter().enumerate().progress_with(pb) {
         let filename_fixed = filename.replace('\\', "/");
         let fpath = Path::new(&filename_fixed);
-        println!(
-            "{} {:?} ({} bytes, hashcode {:08x}, version {}, flags 0x{:x}) ",
-            i, fpath, info.length, info.hashcode, info.version, info.flags
-        );
 
         scr_file.as_mut().map(|f| {
             writeln!(f, "{}", filename).expect("Failed to write file name to .scr");
@@ -89,6 +99,8 @@ pub fn execute_command(
         std::fs::create_dir_all(fpath_noprefix.parent().unwrap())?;
         File::create(fpath_noprefix)?.write(&data)?;
     }
+
+    println!("Successfully extracted {} files", filelist.files.len());
 
     Ok(())
 }

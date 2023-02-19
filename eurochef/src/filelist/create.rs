@@ -4,6 +4,7 @@ use eurochef_filelist::{
     path,
     structures::{EXFileListHeader5, FileInfo5, FileLoc5},
 };
+use indicatif::{ProgressBar, ProgressIterator, ProgressStyle};
 use std::{
     fs::File,
     io::{Read, Seek, Write},
@@ -11,6 +12,7 @@ use std::{
 };
 use walkdir::WalkDir;
 
+use crate::filelist::TICK_STRINGS;
 use crate::PlatformArg;
 
 pub fn execute_command(
@@ -66,9 +68,19 @@ pub fn execute_command(
                     .replace('\\', "/"),
             ))
         }
+        println!("Loaded {} paths from SCR", file_paths.len());
     } else {
-        println!("Reading files recursively");
+        let pb = ProgressBar::new(0);
+        pb.set_style(
+            ProgressStyle::with_template("{spinner:.green} [{elapsed_precise}] {msg}")
+                .unwrap()
+                .progress_chars("##-")
+                .tick_chars(&TICK_STRINGS),
+        );
+        pb.set_message("Locating files");
+
         for e in WalkDir::new(&input_folder) {
+            pb.tick();
             let e = e?;
             if e.file_type().is_file() {
                 let fpath = pathdiff::diff_paths(e.path(), &input_folder)
@@ -82,13 +94,28 @@ pub fn execute_command(
                 ))
             }
         }
+
+        pb.finish_and_clear();
+        println!("Located {} files", file_paths.len());
     }
 
     let mut filelist_num = 0;
 
+    let pb =
+        ProgressBar::new(file_paths.len() as u64).with_finish(indicatif::ProgressFinish::AndLeave);
+    pb.set_style(
+        ProgressStyle::with_template(
+            "{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {msg} ({pos}/{len})",
+        )
+        .unwrap()
+        .progress_chars("##-")
+        .tick_chars(&TICK_STRINGS),
+    );
+    pb.set_message("Packing files");
+
     // Virtual path, real path
-    for (i, (vpath, rpath)) in file_paths.iter().enumerate() {
-        println!("Packing file {vpath}");
+    for (i, (vpath, rpath)) in file_paths.iter().enumerate().progress_with(pb) {
+        // println!("Packing file {vpath}");
         let mut filedata = vec![];
         let mut infile = File::open(rpath)?;
         infile.read_to_end(&mut filedata)?;

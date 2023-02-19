@@ -1,7 +1,4 @@
-use std::{
-    collections::HashMap,
-    io::{Read, Seek},
-};
+use std::io::{Read, Seek};
 
 use anyhow::Result;
 use binrw::{BinReaderExt, Endian};
