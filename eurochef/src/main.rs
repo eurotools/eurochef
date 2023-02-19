@@ -20,10 +20,12 @@ use walkdir::WalkDir;
 #[derive(clap::ValueEnum, PartialEq, Debug, Clone)]
 enum PlatformArg {
     Pc,
+    Xb,
     Xbox,
     Xbox360,
     Ps2,
     Ps3,
+    Gc,
     Gamecube,
     Wii,
     WiiU,
@@ -33,11 +35,11 @@ impl Into<Platform> for PlatformArg {
     fn into(self) -> Platform {
         match self {
             PlatformArg::Pc => Platform::Pc,
-            PlatformArg::Xbox => Platform::Xbox,
+            PlatformArg::Xbox | PlatformArg::Xb => Platform::Xbox,
             PlatformArg::Xbox360 => Platform::Xbox360,
             PlatformArg::Ps2 => Platform::Ps2,
             PlatformArg::Ps3 => Platform::Ps3,
-            PlatformArg::Gamecube => Platform::GameCube,
+            PlatformArg::Gamecube | PlatformArg::Gc => Platform::GameCube,
             PlatformArg::Wii => Platform::Wii,
             PlatformArg::WiiU => Platform::WiiU,
         }
@@ -83,7 +85,7 @@ enum FilelistCommand {
         /// Folder to read files from
         input_folder: String,
 
-        /// The folder to put the generated files in
+        /// Where to place the generated filelist
         #[arg(default_value = "./Filelist")]
         output_file: String,
 
