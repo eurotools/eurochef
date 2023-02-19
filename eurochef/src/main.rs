@@ -230,7 +230,8 @@ fn handle_filelist(cmd: FilelistCommand, args: Args) -> anyhow::Result<()> {
 
             let mut files: Vec<(String, FileInfo5)> = vec![];
 
-            // TODO: Handle absolute paths
+            // TODO: Handle absolute paths on unix
+            #[cfg(not(target_os = "windows"))]
             {
                 let ifpath = Path::new(&input_folder);
                 if ifpath.is_absolute() {
