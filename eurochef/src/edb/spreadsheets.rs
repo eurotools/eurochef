@@ -18,7 +18,7 @@ pub fn execute_command(filename: String) -> anyhow::Result<()> {
     let header = file
         .read_type::<EXGeoHeader>(endian)
         .expect("Failed to read header");
-    println!("Read header: {header:#?}");
+    // println!("Read header: {header:#?}");
 
     for s in &header.spreadsheet_list {
         if s.m_type != 1 {
@@ -35,14 +35,8 @@ pub fn execute_command(filename: String) -> anyhow::Result<()> {
 
             file.seek(std::io::SeekFrom::Start(refpointer.address as u64))?;
 
-            // Header format is slightly larger for Spyro
-            let text_count = if [213, 236, 221, 240].contains(&header.version) {
-                file.seek(std::io::SeekFrom::Current(20))?;
-                file.read_type::<u32>(endian).unwrap()
-            } else {
-                file.seek(std::io::SeekFrom::Current(4))?; // Skip commonobject
-                file.read_type::<u32>(endian).unwrap()
-            };
+            file.seek(std::io::SeekFrom::Current(4))?; // Skip commonobject
+            let text_count = file.read_type::<u32>(endian).unwrap();
             println!("{} strings @ 0x{:x}", text_count, refpointer.address);
             for i in 0..text_count {
                 let item = file
