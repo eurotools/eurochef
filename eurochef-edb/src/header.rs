@@ -3,7 +3,7 @@ use std::io::SeekFrom;
 use binrw::binrw;
 
 use crate::{
-    array::{EXGeoCommonArrayElement, EXGeoHashArray},
+    array::{EXGeoCommonArrayElement, EXGeoHashArray, EXRelArray},
     common::{
         EXGeoAnimHeader, EXGeoAnimModeHeader, EXGeoAnimSetHeader, EXGeoEntityHeader,
         EXGeoSpreadSheetHeader,
@@ -26,7 +26,7 @@ pub type EXGeoFontHeader = EXGeoCommonArrayElement;
 pub struct EXGeoHeader {
     pub hashcode: u32,
 
-    #[brw(assert(version.ge(&252) || version.le(&263), "Unsupported version {version}"))]
+    #[brw(assert(version.ge(&182) || version.le(&263), "Unsupported version {version}"))]
     pub version: u32,
 
     pub flags: u32,
@@ -35,7 +35,7 @@ pub struct EXGeoHeader {
     pub base_file_size: u32,
 
     // pub versions: [u32; 6],
-    #[brw(seek_before = SeekFrom::Start(0x40))]
+    #[brw(seek_before = SeekFrom::Start(if version.lt(&248) { 0x54 } else { 0x40 } ))]
     pub section_list: EXGeoHashArray<()>,
     pub refpointer_list: EXGeoHashArray<EXGeoRefPointerHeader>,
     pub entity_list: EXGeoHashArray<EXGeoEntityHeader>, // 0x50
@@ -49,13 +49,15 @@ pub struct EXGeoHeader {
     pub swoosh_list: EXGeoHashArray<EXGeoSwooshHeader>, // 0x90
     pub spreadsheet_list: EXGeoHashArray<EXGeoSpreadSheetHeader>,
     pub font_list: EXGeoHashArray<EXGeoFontHeader>, // 0xa0
+
+    #[brw(if(version.ge(&248)))]
     pub forcefeedback_list: EXGeoHashArray<()>,
+    #[brw(if(version.ge(&248)))]
     pub material_list: EXGeoHashArray<()>, // 0xb0
+
     pub texture_list: EXGeoHashArray<EXGeoTextureHeader>,
 
-    pub unk_c0: EXGeoHashArray<()>,
-    pub unk_c8: EXGeoHashArray<()>,
-    pub unk_d0: EXGeoHashArray<()>,
+    pub unk_c0: EXRelArray<()>,
 }
 
 structure_size_tests!(EXGeoHeader = 936);

@@ -79,6 +79,17 @@ impl<T: BinRead + Debug> Debug for EXGeoHashArray<T> {
     }
 }
 
+impl<T: BinRead> Default for EXGeoHashArray<T> {
+    fn default() -> Self {
+        Self {
+            rel_offset: EXRelPtr::new(()),
+            array_size: 0,
+            hash_size: 0,
+            data: vec![],
+        }
+    }
+}
+
 pub struct EXRelArray<T: BinRead + 'static> {
     pub array_size: i32,
 

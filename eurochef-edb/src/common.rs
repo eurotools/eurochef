@@ -78,6 +78,17 @@ impl<T: BinRead + Debug, const OFFSET: i64> Debug for EXRelPtr<T, OFFSET> {
     }
 }
 
+impl<T: BinRead + Debug> EXRelPtr<T> {
+    /// This method is only meant as a hack for Default implementations
+    pub fn new(v: T) -> Self {
+        Self {
+            data: v,
+            offset: 0,
+            offset_absolute: 0,
+        }
+    }
+}
+
 #[binrw]
 #[derive(Debug)]
 pub struct EXGeoSpreadSheetHeader {
