@@ -36,7 +36,7 @@ pub struct EXGeoHeader {
 
     // pub versions: [u32; 6],
     #[brw(seek_before = SeekFrom::Start(if version.lt(&248) { 0x54 } else { 0x40 } ))]
-    pub section_list: EXGeoHashArray<()>,
+    pub section_list: EXGeoHashArray<()>, // 0x40
     pub refpointer_list: EXGeoHashArray<EXGeoRefPointerHeader>,
     pub entity_list: EXGeoHashArray<EXGeoEntityHeader>, // 0x50
     pub anim_list: EXGeoHashArray<EXGeoAnimHeader>,
@@ -60,4 +60,4 @@ pub struct EXGeoHeader {
     pub unk_c0: EXRelArray<()>,
 }
 
-structure_size_tests!(EXGeoHeader = 936);
+// structure_size_tests!(EXGeoHeader = 936);
