@@ -18,6 +18,7 @@ pub fn execute_command(
     filename: String,
     platform: Option<PlatformArg>,
     output_folder: Option<String>,
+    file_format: String,
 ) -> anyhow::Result<()> {
     let output_folder = output_folder.unwrap_or(format!(
         "./textures/{}/",
@@ -93,7 +94,10 @@ pub fn execute_command(
                 println!("Failed to read texture {:x}: {}", t.common.hashcode, e);
             }
 
-            let filename = output_folder.join(format!("{:08x}_frame{}.tga", t.common.hashcode, i));
+            let filename = output_folder.join(format!(
+                "{:08x}_frame{}.{}",
+                t.common.hashcode, i, file_format
+            ));
 
             texture_decoder.decode(
                 &data,
@@ -107,7 +111,7 @@ pub fn execute_command(
             let img = image::RgbaImage::from_raw(tex.width as u32, tex.height as u32, output)
                 .expect("Failed to load decompressed texture data");
 
-            img.save(filename).expect("Failed to write image file");
+            img.save(filename)?;
         }
     }
 

@@ -72,6 +72,10 @@ enum EdbCommand {
         /// Override for platform detection
         #[arg(value_enum, short, long, ignore_case = true)]
         platform: Option<PlatformArg>,
+
+        /// Output file format to use
+        #[arg(short, long, default_value("tga"))]
+        format: String,
     },
 }
 
@@ -135,7 +139,8 @@ fn handle_edb(cmd: EdbCommand) -> anyhow::Result<()> {
             filename,
             platform,
             output_folder,
-        } => edb::textures::execute_command(filename, platform, output_folder),
+            format,
+        } => edb::textures::execute_command(filename, platform, output_folder, format),
     }
 }
 
