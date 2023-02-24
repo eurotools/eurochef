@@ -1,9 +1,10 @@
 use std::{
     fs::File,
-    io::{Read, Seek},
+    io::{Read, Seek, Write},
     path::Path,
 };
 
+use anyhow::Context;
 use eurochef_edb::{
     binrw::{BinReaderExt, Endian},
     header::EXGeoHeader,
@@ -94,11 +95,6 @@ pub fn execute_command(
                 println!("Failed to read texture {:x}: {}", t.common.hashcode, e);
             }
 
-            let filename = output_folder.join(format!(
-                "{:08x}_frame{}.{}",
-                t.common.hashcode, i, file_format
-            ));
-
             texture_decoder.decode(
                 &data,
                 &mut output,
@@ -108,10 +104,26 @@ pub fn execute_command(
                 tex.format,
             )?;
 
-            let img = image::RgbaImage::from_raw(tex.width as u32, tex.height as u32, output)
-                .expect("Failed to load decompressed texture data");
+            let filename = output_folder.join(format!(
+                "{:08x}_frame{}.{}",
+                t.common.hashcode, i, file_format
+            ));
+            match file_format.as_str() {
+                "qoi" => {
+                    let filedata =
+                        qoi::encode_to_vec(&output, tex.width as u32, tex.height as u32)?;
+                    let mut imgfile =
+                        File::create(filename).context("Failed to create output image")?;
+                    imgfile.write_all(&filedata)?;
+                }
+                f => {
+                    let img =
+                        image::RgbaImage::from_raw(tex.width as u32, tex.height as u32, output)
+                            .expect("Failed to load decompressed texture data");
 
-            img.save(filename)?;
+                    img.save(filename)?;
+                }
+            }
         }
     }
 
