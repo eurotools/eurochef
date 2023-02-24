@@ -23,25 +23,6 @@ pub enum Platform {
 }
 
 impl Platform {
-    // ? This is more an educated "guess" on what the platform is
-    pub fn from_flags(flags: u32, endianness: Endian) -> Self {
-        match endianness {
-            Endian::Little => match flags & 0xff000000 {
-                0x20000000 => Platform::Pc, // ! This matches on both PC and XBOX
-                0x10000000 => Platform::Ps2,
-                _ => panic!(
-                    "Couldn't find platform for endianness/flags pair {endianness}/0x{flags:x}"
-                ),
-            },
-            Endian::Big => match flags & 0xff000000 {
-                0x20000000 => Platform::GameCube, // ! Matched by X360 as well
-                _ => panic!(
-                    "Couldn't find platform for endianness/flags pair {endianness}/0x{flags:x}"
-                ),
-            },
-        }
-    }
-
     pub fn from_path<P>(path: P) -> Option<Self>
     where
         P: AsRef<Path>,
