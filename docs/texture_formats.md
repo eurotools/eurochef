@@ -61,6 +61,8 @@ Additionally, EngineX has a table for CLUT formats for the PS2 platform, named `
 
 ### EXTexFmt
 
+:warning: [Some formats are swizzled.](https://github.com/Cxbx-Reloaded/Cxbx-Reloaded/blob/master/src/core/hle/D3D8/XbD3D8Types.h#L116)
+
 | # | Format                                 | Internal ID |
 |---|----------------------------------------|-------------|
 | 0 | R5G6B5                                 | 0x5         |
@@ -72,16 +74,15 @@ Additionally, EngineX has a table for CLUT formats for the PS2 platform, named `
 | 6 | A8R8G8B8                               | 0x6         |
 | 7 | PAL8D3DFMT_A1R5G5B5D3DFMT_LIN_A8R8G8B8 | 0xb         |
 
-With Ice Age 2: The Meltdown, support for 5 more formats was added (todo: might have been batman begins?)
+With Ice Age 2: The Meltdown, support for 5 more formats was added
 
-| #  | Format              | Internal ID |
-|----|---------------------|-------------|
-| 8  | D3DFMT_A1R5G5B5     | 0x2         |
-| 9  | D3DFMT_LIN_A8R8G8B8 | 0x12        |
-| 10 | DXT3                | 0xe         |
-| 11 | DXT4                | 0xf         |
-| 12 | DXT5                | 0xf         |
-
+| #  | Format            | Internal ID |
+|----|-------------------|-------------|
+| 8  | D3DFMT_A1R5G5B5   | 0x2         |
+| 9  | A8R8G8B8 (Linear) | 0x12        |
+| 10 | DXT3              | 0xe         |
+| 11 | DXT4              | 0xf         |
+| 12 | DXT5              | 0xf         |
 
 ## PC
 

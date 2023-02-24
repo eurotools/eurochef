@@ -1,5 +1,6 @@
 mod edb;
 mod filelist;
+mod platform;
 
 use clap::{Parser, Subcommand};
 use clap_num::maybe_hex;
@@ -60,6 +61,18 @@ enum EdbCommand {
         /// .edb file to read
         filename: String,
     },
+    /// Extract textures
+    Textures {
+        /// .edb file to read
+        filename: String,
+
+        /// Output folder for textures (default: "./textures/{filename}/")
+        output_folder: Option<String>,
+
+        /// Override for platform detection
+        #[arg(value_enum, short, long, ignore_case = true)]
+        platform: Option<PlatformArg>,
+    },
 }
 
 #[derive(Subcommand, Debug, Clone)]
@@ -118,6 +131,11 @@ pub fn main() -> anyhow::Result<()> {
 fn handle_edb(cmd: EdbCommand) -> anyhow::Result<()> {
     match cmd {
         EdbCommand::Spreadsheets { filename } => edb::spreadsheets::execute_command(filename),
+        EdbCommand::Textures {
+            filename,
+            platform,
+            output_folder,
+        } => edb::textures::execute_command(filename, platform, output_folder),
     }
 }
 

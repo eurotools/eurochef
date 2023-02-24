@@ -20,6 +20,7 @@ pub type EXGeoScriptHeader = EXGeoCommonArrayElement;
 pub type EXGeoSwooshHeader = EXGeoCommonArrayElement;
 pub type EXGeoFontHeader = EXGeoCommonArrayElement;
 
+// TODO: This whole system might need a rework
 #[binrw]
 #[brw(magic = 0x47454F4Du32)]
 #[derive(Debug)]
@@ -54,6 +55,10 @@ pub struct EXGeoHeader {
     pub forcefeedback_list: EXGeoHashArray<()>,
     #[brw(if(version.ge(&248)))]
     pub material_list: EXGeoHashArray<()>, // 0xb0
+
+    // ! Spyro Hack
+    #[brw(if(version.eq(&240)))]
+    spyrohack: u64,
 
     pub texture_list: EXGeoHashArray<EXGeoTextureHeader>,
 
