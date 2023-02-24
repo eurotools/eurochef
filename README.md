@@ -61,8 +61,8 @@ _Each field is formatted as R/W. For example, if a feature can be read, but not 
 | v5      | ✅    | ✅     |
 | v6      | ✅    | ✅     |
 | v7      | ✅    | ✅     |
-| v9      | ❌    | ❌     |
-| v10     | ❌    | ❌     |
+| v9      | ✅    | ❌     |
+| v10     | ✅    | ❌     |
 | v11     | ❌    | ❌     |
 | v12     | ❌    | ❌     |
 | v13     | ❌    | ❌     |

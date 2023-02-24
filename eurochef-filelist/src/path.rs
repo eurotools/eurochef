@@ -21,6 +21,19 @@ pub fn scramble_filename_v7(file_index: u32, bytes: &mut [u8]) {
     }
 }
 
+pub fn unscramble_filename_v10(file_index: u32, bytes: &mut [u8]) {
+    for i in 0..bytes.len() {
+        bytes[i] = (bytes[i] as u32)
+            .wrapping_sub(0x6a)
+            .wrapping_sub(file_index * 4)
+            .wrapping_sub(i as u32 * 4) as u8;
+
+        if bytes[i] == 0 {
+            break;
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

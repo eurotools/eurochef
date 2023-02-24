@@ -4,6 +4,7 @@ use std::{
     path::Path,
 };
 
+use anyhow::Context;
 use eurochef_edb::binrw::BinReaderExt;
 use eurochef_filelist::UXFileList;
 use indicatif::{ProgressBar, ProgressIterator, ProgressStyle};
@@ -16,14 +17,14 @@ pub fn execute_command(
     create_scr: bool,
 ) -> anyhow::Result<()> {
     println!("Extracting {filename} to {output_folder}");
-    let mut f = File::open(&filename)?;
+    let mut f = File::open(&filename).context("Failed to open filelist header")?;
     let filelist = UXFileList::read(&mut f)?;
 
     std::fs::create_dir_all(&output_folder)?;
 
     let mut scr_file = create_scr.then_some(
         File::create(Path::new(&output_folder).join("FileList.scr"))
-            .expect("Failed to create .scr file"),
+            .context("Failed to create .scr file")?,
     );
 
     scr_file.as_mut().map(|f| {
@@ -40,7 +41,10 @@ pub fn execute_command(
     let mut data_files = vec![];
     if let Some(num_filelists) = filelist.num_filelists {
         for i in 0..(num_filelists + 1) {
-            data_files.push(File::open(format!("{}{:03}", file_base, i))?);
+            data_files.push(
+                File::open(format!("{}{:03}", file_base, i))
+                    .context(format!("Failed to open {}{:03}", file_base, i))?,
+            );
         }
     } else {
         data_files.push(File::open(format!("{}DAT", file_base))?);
@@ -97,7 +101,9 @@ pub fn execute_command(
 
         let fpath_noprefix = Path::new(&output_folder).join(&fpath.to_str().unwrap()[3..]);
         std::fs::create_dir_all(fpath_noprefix.parent().unwrap())?;
-        File::create(fpath_noprefix)?.write(&data)?;
+        File::create(&fpath_noprefix)
+            .context(format!("Failed to create output file {fpath_noprefix:?}"))?
+            .write(&data)?;
     }
 
     println!("Successfully extracted {} files", filelist.files.len());

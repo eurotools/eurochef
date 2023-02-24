@@ -3,7 +3,7 @@ use std::io::{Read, Seek};
 use anyhow::Result;
 use binrw::{BinReaderExt, Endian};
 
-use crate::{EXFileList4, EXFileList5};
+use crate::{EXFileList4, EXFileList5, EXFileList9};
 
 pub struct UXFileList {
     /// `None` when using a single '.dat' file
@@ -51,6 +51,7 @@ impl UXFileList {
         Ok(match version {
             4 => EXFileList4::read(reader)?.into(),
             5..=7 => EXFileList5::read(reader)?.into(),
+            9..=10 => EXFileList9::read(reader)?.into(),
             v => return Err(anyhow::anyhow!("Unsupported filelist version {}", v)),
         })
     }
