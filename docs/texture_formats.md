@@ -41,21 +41,22 @@ Additionally, EngineX has a table for CLUT formats for the PS2 platform, named `
 
 ### EXTexFmt
 
+
 :warning: GameCube and Wii don't encode texture data linearly. Instead, they use a [block format](https://wiki.tockdom.com/wiki/Image_Formats#Blocks)
+
+:information_source: There are more formats than the ones listed below. Eurochef relies on an extra header containing the raw GX format ID instead.
 
 [Texture format documentation](https://wiki.tockdom.com/wiki/Image_Formats)
 
+
 | # | Format | Internal ID |
 |---|--------|-------------|
-| 0 | I4     | 0x0         |
-| 1 | I8     | 0x1         |
-| 2 | A8     | 0x1         |
-| 3 | IA4    | 0x2         |
-| 4 | IA8    | 0x3         |
-| 5 | RGB565 | 0x4         |
-| 6 | RGB5A3 | 0x5         |
-| 7 | RGBA8  | 0x6         |
-| 8 | CMPR   | 0xe         |
+| 0 | CMPR   | 0xe         |
+| 1 | RGBA8  | 0x6         |
+| 3 | RGB5A3 | 0x5         |
+| 4 | I4     | 0x0         |
+| 7 | IA4    | 0x2         |
+| 8 | IA8    | 0x3         |
 
 ## Xbox
 

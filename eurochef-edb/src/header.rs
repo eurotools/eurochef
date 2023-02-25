@@ -8,7 +8,6 @@ use crate::{
         EXGeoAnimHeader, EXGeoAnimModeHeader, EXGeoAnimSetHeader, EXGeoEntityHeader,
         EXGeoSpreadSheetHeader,
     },
-    structure_size_tests,
     texture::EXGeoTextureHeader,
     // versions::{EDB_VERSION_BOND, EDB_VERSION_GFORCE, EDB_VERSION_ICEAGE3},
 };

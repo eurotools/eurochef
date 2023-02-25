@@ -38,7 +38,7 @@ pub fn execute_command(filename: String) -> anyhow::Result<()> {
             file.seek(std::io::SeekFrom::Current(4))?; // Skip commonobject
             let text_count = file.read_type::<u32>(endian).unwrap();
             println!("{} strings @ 0x{:x}", text_count, refpointer.address);
-            for i in 0..text_count {
+            for _i in 0..text_count {
                 let item = file
                     .read_type::<EXGeoTextItem>(endian)
                     .expect("Failed to read textitem");

@@ -11,6 +11,7 @@ use eurochef_edb::{
     texture::EXGeoTexture,
     versions::Platform,
 };
+use image::RgbaImage;
 use indicatif::{ProgressBar, ProgressIterator, ProgressStyle};
 
 use crate::{edb::TICK_STRINGS, platform::texture, PlatformArg};
@@ -68,26 +69,37 @@ pub fn execute_command(
         file.seek(std::io::SeekFrom::Start(t.common.address as u64))?;
 
         let tex = file
-            .read_type_args::<EXGeoTexture>(endian, (header.version,))
-            .expect("Failed to read basetexture");
+            .read_type_args::<EXGeoTexture>(endian, (header.version, platform))
+            .context("Failed to read basetexture")?;
 
         // println!("{:x} {:?}", t.common.hashcode, tex);
 
-        let calculated_size = texture_decoder
-            .get_data_size(tex.width, tex.height, tex.depth, tex.format)
-            .expect("Invalid texture format?");
+        let calculated_size = texture_decoder.get_data_size(
+            tex.width as u32,
+            tex.height as u32,
+            tex.depth as u32,
+            tex.format,
+        );
+
+        if let Err(e) = calculated_size {
+            println!("Failed to extract texture {:x}: {}", t.common.hashcode, e);
+            continue;
+        }
 
         data.clear();
         data.resize(
-            tex.data_size.map(|v| v as usize).unwrap_or(calculated_size),
+            tex.data_size
+                .map(|v| v as usize)
+                .unwrap_or(calculated_size.unwrap()),
             0u8,
         );
 
         std::fs::create_dir_all(output_folder)?;
 
         for (i, frame_offset) in tex.frame_offsets.iter().enumerate() {
-            let mut output =
-                vec![0u8; tex.width as usize * tex.height as usize * tex.depth as usize * 4];
+            // let mut output =
+            //     vec![0u8; tex.width as usize * tex.height as usize * tex.depth as usize * 4];
+            let mut output = RgbaImage::new(tex.width as u32, tex.height as u32);
 
             file.seek(std::io::SeekFrom::Start(frame_offset.offset_absolute()))?;
 
@@ -95,14 +107,17 @@ pub fn execute_command(
                 println!("Failed to read texture {:x}: {}", t.common.hashcode, e);
             }
 
-            texture_decoder.decode(
+            if let Err(e) = texture_decoder.decode(
                 &data,
                 &mut output,
-                tex.width,
-                tex.height,
-                tex.depth,
+                tex.width as u32,
+                tex.height as u32,
+                tex.depth as u32,
                 tex.format,
-            )?;
+            ) {
+                println!("Texture {:08x} failed to decode: {}", t.common.hashcode, e);
+                continue;
+            }
 
             let filename = output_folder.join(format!(
                 "{:08x}_frame{}.{}",
@@ -111,17 +126,13 @@ pub fn execute_command(
             match file_format.as_str() {
                 "qoi" => {
                     let filedata =
-                        qoi::encode_to_vec(&output, tex.width as u32, tex.height as u32)?;
+                        qoi::encode_to_vec(output.as_raw(), tex.width as u32, tex.height as u32)?;
                     let mut imgfile =
                         File::create(filename).context("Failed to create output image")?;
                     imgfile.write_all(&filedata)?;
                 }
-                f => {
-                    let img =
-                        image::RgbaImage::from_raw(tex.width as u32, tex.height as u32, output)
-                            .expect("Failed to load decompressed texture data");
-
-                    img.save(filename)?;
+                _ => {
+                    output.save(filename)?;
                 }
             }
         }

@@ -1,24 +1,34 @@
+use anyhow::Context;
 use enumn::N;
+use image::RgbaImage;
 
 use super::TextureDecoder;
 
 pub struct PcTextureDecoder;
 
 impl TextureDecoder for PcTextureDecoder {
-    fn get_data_size(&self, width: u16, height: u16, depth: u16, format: u8) -> Option<usize> {
-        let bits =
-            (width as usize * height as usize * depth as usize) * InternalFormat::n(format)?.bpp();
+    fn get_data_size(
+        &self,
+        width: u32,
+        height: u32,
+        depth: u32,
+        format: u8,
+    ) -> anyhow::Result<usize> {
+        let bits = (width as usize * height as usize * depth as usize)
+            * InternalFormat::n(format)
+                .context(format!("Invalid format 0x{format:x}"))?
+                .bpp();
 
-        Some((bits + 7) / 8)
+        Ok((bits + 7) / 8)
     }
 
     fn decode(
         &self,
         input: &[u8],
-        output: &mut [u8],
-        width: u16,
-        height: u16,
-        depth: u16,
+        output: &mut RgbaImage,
+        width: u32,
+        height: u32,
+        depth: u32,
         format: u8,
     ) -> anyhow::Result<()> {
         let fmt = InternalFormat::n(format)
@@ -46,22 +56,23 @@ impl TextureDecoder for PcTextureDecoder {
             }
             InternalFormat::ARGB8 => {
                 for (i, bytes) in input.chunks_exact(4).enumerate() {
-                    output[i * 4 + 0] = bytes[2]; // Alpha
-                    output[i * 4 + 1] = bytes[1];
-                    output[i * 4 + 2] = bytes[0];
-                    output[i * 4 + 3] = bytes[3];
+                    let (x, y) = (i as u32 % width, i as u32 / width);
+                    output[(x, y)] = [bytes[2], bytes[1], bytes[0], bytes[3]].into();
                 }
             }
             InternalFormat::RGB565 => {
-                // ? Does the `image` crate support RGB565?
                 for (i, byte) in input.chunks_exact(2).enumerate() {
                     // TODO: Endianness. We're gonna need to move all of this anyways
                     let value = u16::from_le_bytes([byte[0], byte[1]]);
+                    let (x, y) = (i as u32 % width, i as u32 / width);
                     // RRRRRGGGGGGBBBBB
-                    output[i * 4 + 0] = ((value >> 11) as u8 & 0b11111) * 8;
-                    output[i * 4 + 1] = ((value >> 5) as u8 & 0b111111) * 4;
-                    output[i * 4 + 2] = (value as u8 & 0b11111) * 8;
-                    output[i * 4 + 3] = 0xff;
+                    output[(x, y)] = [
+                        ((value >> 11) as u8 & 0b11111) * 8,
+                        ((value >> 5) as u8 & 0b111111) * 4,
+                        (value as u8 & 0b11111) * 8,
+                        0xff,
+                    ]
+                    .into();
                 }
             }
             _ => {
