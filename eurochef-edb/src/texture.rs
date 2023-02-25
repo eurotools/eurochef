@@ -35,14 +35,14 @@ pub struct EXGeoTexture {
     pub unk_14: u32,       // 0x14
     pub color: u32,        // 0x18
 
-    _pad1: [u8; 8], // 0x1c
+    _pad1: [u32; 2], // 0x1c
 
-    #[brw(if(platform != Platform::GameCube && platform != Platform::Wii))]
+    #[brw(if(platform != Platform::GameCube))]
     _pad2: u32, // 0x24
 
     /// Newer games calculate data size from other parameters.
     /// For general usage it is not recommended to rely on this field for data size.
-    #[brw(if(version <= 252 && (version != 240 || (platform == Platform::GameCube || platform == Platform::Wii))))]
+    #[brw(if((version <= 252 && version != 240) || (platform == Platform::GameCube || platform == Platform::Wii)))]
     pub data_size: Option<u32>,
 
     #[br(count = frame_count)]
