@@ -41,6 +41,7 @@ impl Platform {
             "ps2" => Platform::Ps2,
             "xb" => Platform::Xbox,
             "xe" => Platform::Xbox360,
+            "wii" => Platform::Wii,
             _ => {
                 println!("Platform path prefix found, but can't match it to any known platform! ({path_bin})");
                 return None;
