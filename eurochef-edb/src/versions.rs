@@ -22,6 +22,10 @@ pub enum Platform {
     ThreeDS,
 }
 
+pub fn transform_windows_path<P: AsRef<str>>(path: P) -> String {
+    path.as_ref().replace("\\", "/")
+}
+
 impl Platform {
     pub fn from_path<P>(path: P) -> Option<Self>
     where
@@ -36,12 +40,12 @@ impl Platform {
             .to_owned();
 
         Some(match path_bin.get(5..)? {
-            "gc" => Platform::GameCube,
-            "pc" => Platform::Pc,
-            "ps2" => Platform::Ps2,
-            "xb" => Platform::Xbox,
-            "xe" => Platform::Xbox360,
-            "wii" => Platform::Wii,
+            "gc" => Self::GameCube,
+            "pc" => Self::Pc,
+            "ps2" => Self::Ps2,
+            "xb" => Self::Xbox,
+            "xe" => Self::Xbox360,
+            "wii" => Self::Wii,
             _ => {
                 println!("Platform path prefix found, but can't match it to any known platform! ({path_bin})");
                 return None;
@@ -49,17 +53,31 @@ impl Platform {
         })
     }
 
+    pub fn shorthand(&self) -> &'static str {
+        match self {
+            Self::Pc => "pc",
+            Self::Xbox => "xb",
+            Self::Xbox360 => "xe",
+            Self::GameCube => "gc",
+            Self::Wii => "wii",
+            Self::WiiU => "wiiu", // TODO: check
+            Self::Ps2 => "ps2",
+            Self::Ps3 => "ps3", // TODO: check?
+            Self::ThreeDS => "3ds",
+        }
+    }
+
     pub fn endianness(&self) -> Endian {
         match *self {
-            Platform::Pc => Endian::Little,
-            Platform::Xbox => Endian::Little,
-            Platform::Xbox360 => Endian::Big,
-            Platform::GameCube => Endian::Big,
-            Platform::Wii => Endian::Big,
-            Platform::WiiU => Endian::Big,
-            Platform::Ps2 => Endian::Little,
-            Platform::Ps3 => Endian::Big,
-            Platform::ThreeDS => Endian::Little,
+            Self::Pc => Endian::Little,
+            Self::Xbox => Endian::Little,
+            Self::Xbox360 => Endian::Big,
+            Self::GameCube => Endian::Big,
+            Self::Wii => Endian::Big,
+            Self::WiiU => Endian::Big,
+            Self::Ps2 => Endian::Little,
+            Self::Ps3 => Endian::Big,
+            Self::ThreeDS => Endian::Little,
         }
     }
 }

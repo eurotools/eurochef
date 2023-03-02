@@ -5,7 +5,10 @@ use std::{
 };
 
 use anyhow::Context;
-use eurochef_edb::binrw::BinReaderExt;
+use eurochef_edb::{
+    binrw::BinReaderExt,
+    versions::{transform_windows_path, Platform},
+};
 use eurochef_filelist::UXFileList;
 use indicatif::{ProgressBar, ProgressIterator, ProgressStyle};
 
@@ -22,9 +25,28 @@ pub fn execute_command(
 
     std::fs::create_dir_all(&output_folder)?;
 
+    let platform = {
+        if let Some((path_with_platform, _)) = filelist
+            .files
+            .iter()
+            .find(|(k, _)| k.to_lowercase().contains("_bin_"))
+        {
+            Platform::from_path(transform_windows_path(path_with_platform))
+        } else {
+            None
+        }
+    };
+
+    if let Some(p) = platform {
+        println!("Detected platform {:?}", p);
+    }
+
     let mut scr_file = create_scr.then_some(
-        File::create(Path::new(&output_folder).join("FileList.scr"))
-            .context("Failed to create .scr file")?,
+        File::create(Path::new(&output_folder).join(format!(
+            "FileList{}.scr",
+            platform.map(|p| p.shorthand().to_uppercase()).unwrap_or(String::new())
+        )))
+        .context("Failed to create .scr file")?,
     );
 
     scr_file.as_mut().map(|f| {
