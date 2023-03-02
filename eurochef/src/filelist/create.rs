@@ -1,5 +1,6 @@
+use anyhow::Context;
 use eurochef_edb::binrw::{BinReaderExt, BinWriterExt};
-use eurochef_edb::versions::Platform;
+use eurochef_edb::versions::{transform_windows_path, Platform};
 use eurochef_filelist::{
     path,
     structures::{EXFileListHeader5, FileInfo5, FileLoc5},
@@ -36,7 +37,7 @@ pub fn execute_command(
 
     let fp_data = format!("{output_file}.000");
     let fp_info = format!("{output_file}.bin");
-    let mut f_data = File::create(fp_data)?;
+    let mut f_data = File::create(fp_data).context("Failed to create output file")?;
 
     let mut files: Vec<(String, FileInfo5)> = vec![];
 
@@ -53,22 +54,56 @@ pub fn execute_command(
 
     if let Some(scr_file) = scr_file {
         println!("Reading files in SCR order");
-        let scr_files = parse_scr_filelist(scr_file);
+        let scr_files = parse_scr_filelist(scr_file).context("Failed to read SCR file")?;
+        let mut file_paths_temp = vec![];
         for s in scr_files {
             if &s[1..=2] != ":\\" {
                 panic!("Invalid path in scr file: {s}");
             }
 
-            let path_on_disk = Path::new(&input_folder).join(&s[3..]);
-            file_paths.push((
-                s,
-                path_on_disk
-                    .to_string_lossy()
-                    .to_string()
-                    .replace('\\', "/"),
-            ))
+            file_paths_temp.push(s)
         }
-        println!("Loaded {} paths from SCR", file_paths.len());
+        println!("Loaded {} paths from SCR", file_paths_temp.len());
+        let pb = ProgressBar::new(0);
+        pb.set_style(
+            ProgressStyle::with_template("{spinner:.green} [{elapsed_precise}] {msg}")
+                .unwrap()
+                .progress_chars("##-")
+                .tick_chars(&TICK_STRINGS),
+        );
+        pb.set_message("Locating files");
+
+        for p in &file_paths_temp {
+            // Join path to root folder and change globbing pattern to be `glob`-compatible
+            let path_on_disk =
+                Path::new(&input_folder).join(transform_windows_path(&p[3..].replace("#", "?")));
+
+            let mut found_files = false;
+            #[allow(for_loops_over_fallibles)]
+            for entry in glob::glob(&path_on_disk.to_string_lossy())
+                .context("Failed to parse SCR glob pattern, report to cohae")?
+            {
+                let entry = entry?;
+                if std::fs::metadata(&entry)?.is_file() {
+                    let fpath = pathdiff::diff_paths(&entry, &input_folder)
+                        .unwrap()
+                        .to_string_lossy()
+                        .replace('/', "\\");
+
+                    file_paths.push((
+                        format!("{drive_letter}:\\{fpath}"),
+                        entry.to_string_lossy().to_string(),
+                    ))
+                }
+
+                found_files = true;
+            }
+
+            if !found_files {
+                // TODO: log crate when?
+                println!("Warning: SCR path {p} yielded no results")
+            }
+        }
     } else {
         let pb = ProgressBar::new(0);
         pb.set_style(
@@ -115,7 +150,6 @@ pub fn execute_command(
 
     // Virtual path, real path
     for (i, (vpath, rpath)) in file_paths.iter().enumerate().progress_with(pb) {
-        // println!("Packing file {vpath}");
         let mut filedata = vec![];
         let mut infile = File::open(rpath)?;
         infile.read_to_end(&mut filedata)?;
@@ -238,12 +272,12 @@ pub fn execute_command(
 }
 
 // TODO: Proper parser for scr files
-fn parse_scr_filelist<P: AsRef<Path>>(path: P) -> Vec<String> {
+fn parse_scr_filelist<P: AsRef<Path>>(path: P) -> anyhow::Result<Vec<String>> {
     let mut result = vec![];
     let mut filebuf = String::new();
 
     let mut f = File::open(path).expect("Failed to open SCR file");
-    f.read_to_string(&mut filebuf).unwrap();
+    f.read_to_string(&mut filebuf)?;
 
     let mut in_filesection = false;
     for l in filebuf.lines() {
@@ -260,5 +294,5 @@ fn parse_scr_filelist<P: AsRef<Path>>(path: P) -> Vec<String> {
         }
     }
 
-    result
+    Ok(result)
 }
