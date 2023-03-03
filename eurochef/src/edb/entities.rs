@@ -84,6 +84,7 @@ pub fn execute_command(
             endian,
             header.version,
             &mut file,
+            4,
         )?;
 
         let mut outbuf = vec![];
@@ -123,10 +124,23 @@ fn process_entity<R: Read + Seek>(
     endian: Endian,
     version: u32,
     data: &mut R,
+    depth_limit: u32,
 ) -> anyhow::Result<()> {
+    if depth_limit == 0 {
+        anyhow::bail!("Entity recursion limit reached!");
+    }
+
     if ent.object_type == 0x603 {
         for e in ent.split_entity.as_ref().unwrap().entities.iter() {
-            process_entity(&e.data, vertex_data, faces, endian, version, data)?;
+            process_entity(
+                &e.data,
+                vertex_data,
+                faces,
+                endian,
+                version,
+                data,
+                depth_limit - 1,
+            )?;
         }
     } else if ent.object_type == 0x601 {
         let index_offset = vertex_data.len() as u32;
