@@ -107,7 +107,7 @@ pub fn execute_command(
 
             file.seek(std::io::SeekFrom::Start(nent.index_data.offset_absolute()))?;
             let indices: Vec<u16> = (0..nent.index_count)
-                .map(|_| file.read_type(endian).unwrap())
+                .map(|_| file.read_type::<u16>(endian).unwrap())
                 .collect();
 
             let mut tristrips: Vec<(u32, i32)> = vec![];
