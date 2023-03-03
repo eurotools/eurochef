@@ -30,18 +30,19 @@ impl<T: BinRead, OT: BinRead + NumCast, const OFFSET: i64> EXRelPtr<T, OT, OFFSE
     }
 }
 
-impl<T: BinRead, OT: BinRead + NumCast, const OFFSET: i64> BinRead for EXRelPtr<T, OT, OFFSET>
+impl<'a, T: BinRead, OT: BinRead + NumCast, const OFFSET: i64> BinRead for EXRelPtr<T, OT, OFFSET>
 where
-    <OT as BinRead>::Args: Default,
+    <OT as BinRead>::Args<'a>: Default + Clone,
+    T: 'static,
 {
-    type Args = T::Args;
+    type Args<'b> = T::Args<'b>;
 
     fn read_options<R: std::io::Read + std::io::Seek>(
         reader: &mut R,
-        options: &binrw::ReadOptions,
-        args: Self::Args,
+        endian: binrw::Endian,
+        args: Self::Args<'_>,
     ) -> binrw::BinResult<Self> {
-        let offset: OT = reader.read_type(options.endian())?;
+        let offset: OT = reader.read_type(endian)?;
         let offset_absolute =
             (reader.stream_position()? as i64 + offset.to_i64().unwrap() + OFFSET) as u64 - 4;
 
@@ -49,13 +50,13 @@ where
             let pos_saved = reader.stream_position()?;
             reader.seek(std::io::SeekFrom::Start(offset_absolute))?;
 
-            let inner = T::read_options(reader, options, args.clone())?;
+            let inner = T::read_options(reader, endian, args)?;
             reader.seek(std::io::SeekFrom::Start(pos_saved))?;
 
             inner
         } else {
             // Hack to return () (no-op)
-            T::read_options(reader, options, args)?
+            T::read_options(reader, endian, args)?
         };
 
         binrw::BinResult::Ok(Self {
@@ -67,13 +68,13 @@ where
 }
 
 impl<T: BinRead, OT: BinRead + NumCast, const OFFSET: i64> BinWrite for EXRelPtr<T, OT, OFFSET> {
-    type Args = ();
+    type Args<'a> = ();
 
     fn write_options<W: std::io::Write + std::io::Seek>(
         &self,
         _writer: &mut W,
-        _options: &binrw::WriteOptions,
-        _args: Self::Args,
+        _endian: binrw::Endian,
+        _args: Self::Args<'_>,
     ) -> binrw::BinResult<()> {
         todo!()
     }
@@ -102,6 +103,8 @@ impl<T: BinRead + Debug> EXRelPtr<T> {
 
 impl<T: BinRead + Serialize, OT: BinRead + NumCast, const OFFSET: i64> Serialize
     for EXRelPtr<T, OT, OFFSET>
+where
+    T: 'static,
 {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where

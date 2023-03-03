@@ -21,17 +21,20 @@ impl<T: BinRead> EXGeoHashArray<T> {
     }
 }
 
-impl<T: BinRead> BinRead for EXGeoHashArray<T> {
-    type Args = T::Args;
+impl<T: BinRead> BinRead for EXGeoHashArray<T>
+where
+    for<'a> <T as BinRead>::Args<'a>: Clone,
+{
+    type Args<'a> = T::Args<'a>;
     fn read_options<R: std::io::Read + std::io::Seek>(
         reader: &mut R,
-        options: &binrw::ReadOptions,
-        args: Self::Args,
+        endian: binrw::Endian,
+        args: Self::Args<'_>,
     ) -> binrw::BinResult<Self> {
         let mut array = EXGeoHashArray {
-            array_size: BinRead::read_options(reader, options, ())?,
-            hash_size: BinRead::read_options(reader, options, ())?,
-            rel_offset: BinRead::read_options(reader, options, ())?,
+            array_size: BinRead::read_options(reader, endian, ())?,
+            hash_size: BinRead::read_options(reader, endian, ())?,
+            rel_offset: BinRead::read_options(reader, endian, ())?,
             data: vec![],
         };
 
@@ -42,7 +45,7 @@ impl<T: BinRead> BinRead for EXGeoHashArray<T> {
             for _ in 0..array.array_size {
                 array
                     .data
-                    .push(T::read_options(reader, options, args.clone())?)
+                    .push(T::read_options(reader, endian, args.clone())?)
             }
 
             reader.seek(std::io::SeekFrom::Start(pos_saved))?;
@@ -53,12 +56,12 @@ impl<T: BinRead> BinRead for EXGeoHashArray<T> {
 }
 
 impl<T: BinRead> BinWrite for EXGeoHashArray<T> {
-    type Args = ();
+    type Args<'a> = ();
     fn write_options<W: std::io::Write + std::io::Seek>(
         &self,
         _writer: &mut W,
-        _options: &binrw::WriteOptions,
-        _args: Self::Args,
+        _endian: binrw::Endian,
+        _args: Self::Args<'_>,
     ) -> binrw::BinResult<()> {
         todo!()
     }
@@ -114,16 +117,19 @@ impl<T: BinRead> EXRelArray<T> {
     }
 }
 
-impl<T: BinRead> BinRead for EXRelArray<T> {
-    type Args = T::Args;
+impl<T: BinRead> BinRead for EXRelArray<T>
+where
+    for<'a> T::Args<'a>: Clone,
+{
+    type Args<'a> = T::Args<'a>;
     fn read_options<R: std::io::Read + std::io::Seek>(
         reader: &mut R,
-        options: &binrw::ReadOptions,
-        args: Self::Args,
+        endian: binrw::Endian,
+        args: Self::Args<'_>,
     ) -> binrw::BinResult<Self> {
         let mut array = EXRelArray {
-            array_size: BinRead::read_options(reader, options, ())?,
-            rel_offset: BinRead::read_options(reader, options, ())?,
+            array_size: BinRead::read_options(reader, endian, ())?,
+            rel_offset: BinRead::read_options(reader, endian, ())?,
             data: vec![],
         };
 
@@ -134,7 +140,7 @@ impl<T: BinRead> BinRead for EXRelArray<T> {
             for _ in 0..array.array_size {
                 array
                     .data
-                    .push(T::read_options(reader, options, args.clone())?)
+                    .push(T::read_options(reader, endian, args.clone())?)
             }
 
             reader.seek(std::io::SeekFrom::Start(pos_saved))?;
@@ -145,12 +151,12 @@ impl<T: BinRead> BinRead for EXRelArray<T> {
 }
 
 impl<T: BinRead> BinWrite for EXRelArray<T> {
-    type Args = ();
+    type Args<'a> = ();
     fn write_options<W: std::io::Write + std::io::Seek>(
         &self,
         _writer: &mut W,
-        _options: &binrw::WriteOptions,
-        _args: Self::Args,
+        _endian: binrw::Endian,
+        _args: Self::Args<'_>,
     ) -> binrw::BinResult<()> {
         todo!()
     }
