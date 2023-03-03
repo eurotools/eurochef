@@ -1,6 +1,6 @@
 use std::{
     fs::File,
-    io::{Seek, Write},
+    io::{Read, Seek, Write},
     path::Path,
 };
 
@@ -48,9 +48,9 @@ pub fn execute_command(
         .or(Platform::from_path(&filename))
         .expect("Failed to detect platform");
 
-    // if platform != Platform::Pc && platform != Platform::Xbox && platform != Platform::Xbox360 {
-    //     anyhow::bail!("Entity extraction is only supported for PC, Xbox and X360 (for now)")
-    // }
+    if platform != Platform::Pc && platform != Platform::Xbox && platform != Platform::Xbox360 {
+        anyhow::bail!("Entity extraction is only supported for PC, Xbox and X360 (for now)")
+    }
 
     println!("Selected platform {platform:?}");
 
@@ -73,87 +73,18 @@ pub fn execute_command(
         let ent = file
             .read_type_args::<EXGeoBaseEntity>(endian, (header.version,))
             .context("Failed to read entity")?;
-        println!("{:x} {:?}", e.common.hashcode, e);
-
-        let esplit = ent.split_entity.as_ref();
-        let nents = if ent.object_type == 1537 {
-            vec![ent.normal_entity.as_ref().unwrap()]
-        } else {
-            esplit
-                .unwrap()
-                .entities
-                .iter()
-                .map(|r| r.data.normal_entity.as_ref().unwrap())
-                .collect()
-        };
 
         let mut vertex_data = vec![];
         let mut faces: Vec<(u32, u32, u32)> = vec![];
-        let mut index_offset = 0;
 
-        for nent in nents {
-            file.seek(std::io::SeekFrom::Start(nent.vertex_data.offset_absolute()))?;
-            for _ in 0..nent.vertex_count {
-                match header.version {
-                    252 | 250 | 240 => {
-                        let d = file.read_type::<(EXVector3, u32, EXVector2)>(endian)?;
-                        vertex_data.push((d.0, [0f32, 0f32, 0f32], d.2));
-                    }
-                    _ => {
-                        vertex_data
-                            .push(file.read_type::<(EXVector3, EXVector3, EXVector2)>(endian)?);
-                    }
-                }
-            }
-
-            file.seek(std::io::SeekFrom::Start(nent.index_data.offset_absolute()))?;
-            let indices: Vec<u16> = (0..nent.index_count)
-                .map(|_| file.read_type::<u16>(endian).unwrap())
-                .collect();
-
-            let mut tristrips: Vec<(u32, i32)> = vec![];
-            for i in 0..nent.tristrip_count {
-                if header.version <= 252 {
-                    file.seek(std::io::SeekFrom::Start(
-                        nent.tristrip_data.offset_absolute() + i as u64 * 20,
-                    ))?;
-                } else {
-                    file.seek(std::io::SeekFrom::Start(
-                        nent.tristrip_data.offset_absolute() + i as u64 * 16,
-                    ))?;
-                }
-
-                tristrips.push(file.read_type(endian)?);
-            }
-
-            let mut index_offset_local = 0;
-            for (tricount, _texture) in tristrips {
-                if tricount < 2 {
-                    // panic!("Invalid tristrips found with only {tricount} indices")
-                    continue;
-                }
-                // println!("{} / {}", tricount, indices.len());
-                for i in (index_offset_local as usize)..(index_offset_local + tricount) as usize {
-                    if (i - index_offset_local as usize) % 2 == 0 {
-                        faces.push((
-                            index_offset + indices[i + 2] as u32,
-                            index_offset + indices[i + 1] as u32,
-                            index_offset + indices[i] as u32,
-                        ))
-                    } else {
-                        faces.push((
-                            index_offset + indices[i] as u32,
-                            index_offset + indices[i + 1] as u32,
-                            index_offset + indices[i + 2] as u32,
-                        ))
-                    }
-                }
-
-                index_offset_local += tricount;
-            }
-
-            index_offset = vertex_data.len() as u32;
-        }
+        process_entity(
+            &ent,
+            &mut vertex_data,
+            &mut faces,
+            endian,
+            header.version,
+            &mut file,
+        )?;
 
         let mut outbuf = vec![];
         writeln!(&mut outbuf, "o obj_{:x}", e.common.hashcode)?;
@@ -180,6 +111,86 @@ pub fn execute_command(
 
         let mut outfile = File::create(output_folder.join(format!("{:x}.obj", e.common.hashcode)))?;
         outfile.write_all(&outbuf)?;
+    }
+
+    Ok(())
+}
+
+fn process_entity<R: Read + Seek>(
+    ent: &EXGeoBaseEntity,
+    vertex_data: &mut Vec<(EXVector3, EXVector3, EXVector2)>,
+    faces: &mut Vec<(u32, u32, u32)>,
+    endian: Endian,
+    version: u32,
+    data: &mut R,
+) -> anyhow::Result<()> {
+    if ent.object_type == 0x603 {
+        for e in ent.split_entity.as_ref().unwrap().entities.iter() {
+            process_entity(&e.data, vertex_data, faces, endian, version, data)?;
+        }
+    } else if ent.object_type == 0x601 {
+        let index_offset = vertex_data.len() as u32;
+        let nent = ent.normal_entity.as_ref().unwrap();
+        data.seek(std::io::SeekFrom::Start(nent.vertex_data.offset_absolute()))?;
+        for _ in 0..nent.vertex_count {
+            match version {
+                252 | 250 | 240 => {
+                    let d = data.read_type::<(EXVector3, u32, EXVector2)>(endian)?;
+                    vertex_data.push((d.0, [0f32, 0f32, 0f32], d.2));
+                }
+                _ => {
+                    vertex_data.push(data.read_type::<(EXVector3, EXVector3, EXVector2)>(endian)?);
+                }
+            }
+        }
+
+        data.seek(std::io::SeekFrom::Start(nent.index_data.offset_absolute()))?;
+        let indices: Vec<u16> = (0..nent.index_count)
+            .map(|_| data.read_type::<u16>(endian).unwrap())
+            .collect();
+
+        let mut tristrips: Vec<(u32, i32)> = vec![];
+        for i in 0..nent.tristrip_count {
+            if version <= 252 {
+                data.seek(std::io::SeekFrom::Start(
+                    nent.tristrip_data.offset_absolute() + i as u64 * 20,
+                ))?;
+            } else {
+                data.seek(std::io::SeekFrom::Start(
+                    nent.tristrip_data.offset_absolute() + i as u64 * 16,
+                ))?;
+            }
+
+            tristrips.push(data.read_type(endian)?);
+        }
+
+        let mut index_offset_local = 0;
+        for (tricount, _texture) in tristrips {
+            if tricount < 2 {
+                // panic!("Invalid tristrips found with only {tricount} indices")
+                continue;
+            }
+            // println!("{} / {}", tricount, indices.len());
+            for i in (index_offset_local as usize)..(index_offset_local + tricount) as usize {
+                if (i - index_offset_local as usize) % 2 == 0 {
+                    faces.push((
+                        index_offset + indices[i + 2] as u32,
+                        index_offset + indices[i + 1] as u32,
+                        index_offset + indices[i] as u32,
+                    ))
+                } else {
+                    faces.push((
+                        index_offset + indices[i] as u32,
+                        index_offset + indices[i + 1] as u32,
+                        index_offset + indices[i + 2] as u32,
+                    ))
+                }
+            }
+
+            index_offset_local += tricount;
+        }
+    } else {
+        anyhow::bail!("Invalid obj type 0x{:x}", ent.object_type)
     }
 
     Ok(())
