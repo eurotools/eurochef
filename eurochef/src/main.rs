@@ -2,6 +2,7 @@ mod edb;
 mod filelist;
 mod platform;
 
+use anyhow::Context;
 use clap::{Parser, Subcommand};
 use clap_num::maybe_hex;
 use eurochef_edb::versions::Platform;
@@ -56,11 +57,32 @@ enum Command {
 
 #[derive(Subcommand, Debug, Clone)]
 enum EdbCommand {
+    /// Extract entities
+    Entities {
+        /// .edb file to read
+        filename: String,
+
+        /// Output folder for textures (default: "./entities/{filename}/")
+        output_folder: Option<String>,
+
+        /// Override for platform detection
+        #[arg(value_enum, short, long, ignore_case = true)]
+        platform: Option<PlatformArg>,
+    },
     /// Extract spreadsheets
     Spreadsheets {
         /// .edb file to read
         filename: String,
     },
+    // /// Extract maps
+    // Maps {
+    //     /// .edb file to read
+    //     filename: String,
+
+    //     /// Override for platform detection
+    //     #[arg(value_enum, short, long, ignore_case = true)]
+    //     platform: Option<PlatformArg>,
+    // },
     /// Extract textures
     Textures {
         /// .edb file to read
@@ -134,6 +156,12 @@ pub fn main() -> anyhow::Result<()> {
 
 fn handle_edb(cmd: EdbCommand) -> anyhow::Result<()> {
     match cmd {
+        EdbCommand::Entities {
+            filename,
+            output_folder,
+            platform,
+        } => edb::entities::execute_command(filename, platform, output_folder),
+        // EdbCommand::Maps { filename, platform } => edb::maps::execute_command(filename, platform),
         EdbCommand::Spreadsheets { filename } => edb::spreadsheets::execute_command(filename),
         EdbCommand::Textures {
             filename,
@@ -150,7 +178,8 @@ fn handle_filelist(cmd: FilelistCommand) -> anyhow::Result<()> {
             filename,
             output_folder,
             create_scr,
-        } => filelist::extract::execute_command(filename, output_folder, create_scr),
+        } => filelist::extract::execute_command(filename, output_folder, create_scr)
+            .context("Failed to extract filelist"),
         FilelistCommand::Create {
             input_folder,
             output_file,
@@ -167,6 +196,7 @@ fn handle_filelist(cmd: FilelistCommand) -> anyhow::Result<()> {
             platform,
             split_size,
             scr_file,
-        ),
+        )
+        .context("Failed to create filelist"),
     }
 }

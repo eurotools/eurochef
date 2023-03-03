@@ -96,11 +96,8 @@ pub fn execute_command(
 
         std::fs::create_dir_all(output_folder)?;
 
+        let mut output = RgbaImage::new(tex.width as u32, tex.height as u32);
         for (i, frame_offset) in tex.frame_offsets.iter().enumerate() {
-            // let mut output =
-            //     vec![0u8; tex.width as usize * tex.height as usize * tex.depth as usize * 4];
-            let mut output = RgbaImage::new(tex.width as u32, tex.height as u32);
-
             file.seek(std::io::SeekFrom::Start(frame_offset.offset_absolute()))?;
 
             if let Err(e) = file.read_exact(&mut data) {

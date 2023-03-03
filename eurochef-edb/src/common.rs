@@ -1,18 +1,20 @@
 use std::{any::TypeId, fmt::Debug};
 
-use binrw::{binrw, BinRead, BinWrite};
+use binrw::{binrw, BinRead, BinReaderExt, BinWrite};
+use num::NumCast;
+use serde::Serialize;
 
 use crate::{array::EXGeoCommonArrayElement, structure_size_tests};
 
 // TODO: RelPtr16 generic
-pub struct EXRelPtr<T: BinRead = (), const OFFSET: i64 = 0> {
-    pub offset: i32,
+pub struct EXRelPtr<T: BinRead = (), OT: BinRead + NumCast = i32, const OFFSET: i64 = 0> {
+    pub offset: OT,
     pub offset_absolute: u64,
 
     pub data: T,
 }
 
-impl<T: BinRead, const OFFSET: i64> EXRelPtr<T, OFFSET> {
+impl<T: BinRead, OT: BinRead + NumCast, const OFFSET: i64> EXRelPtr<T, OT, OFFSET> {
     /// Returns the offset relative to the start of the file
     pub fn offset_absolute(&self) -> u64 {
         self.offset_absolute
@@ -20,11 +22,14 @@ impl<T: BinRead, const OFFSET: i64> EXRelPtr<T, OFFSET> {
 
     /// Returns the offset to the data relative to the start of the pointer
     pub fn offset_relative(&self) -> i32 {
-        self.offset
+        self.offset.to_i32().unwrap()
     }
 }
 
-impl<T: BinRead, const OFFSET: i64> BinRead for EXRelPtr<T, OFFSET> {
+impl<T: BinRead, OT: BinRead + NumCast, const OFFSET: i64> BinRead for EXRelPtr<T, OT, OFFSET>
+where
+    <OT as BinRead>::Args: Default,
+{
     type Args = T::Args;
 
     fn read_options<R: std::io::Read + std::io::Seek>(
@@ -32,9 +37,9 @@ impl<T: BinRead, const OFFSET: i64> BinRead for EXRelPtr<T, OFFSET> {
         options: &binrw::ReadOptions,
         args: Self::Args,
     ) -> binrw::BinResult<Self> {
-        let offset = i32::read_options(reader, options, ())?;
+        let offset: OT = reader.read_type(options.endian())?;
         let offset_absolute =
-            (reader.stream_position()? as i64 + offset as i64 + OFFSET) as u64 - 4;
+            (reader.stream_position()? as i64 + offset.to_i64().unwrap() + OFFSET) as u64 - 4;
 
         let data = if TypeId::of::<T>() != TypeId::of::<()>() {
             let pos_saved = reader.stream_position()?;
@@ -57,7 +62,7 @@ impl<T: BinRead, const OFFSET: i64> BinRead for EXRelPtr<T, OFFSET> {
     }
 }
 
-impl<T: BinRead, const OFFSET: i64> BinWrite for EXRelPtr<T, OFFSET> {
+impl<T: BinRead, OT: BinRead + NumCast, const OFFSET: i64> BinWrite for EXRelPtr<T, OT, OFFSET> {
     type Args = ();
 
     fn write_options<W: std::io::Write + std::io::Seek>(
@@ -70,7 +75,9 @@ impl<T: BinRead, const OFFSET: i64> BinWrite for EXRelPtr<T, OFFSET> {
     }
 }
 
-impl<T: BinRead + Debug, const OFFSET: i64> Debug for EXRelPtr<T, OFFSET> {
+impl<T: BinRead + Debug, OT: BinRead + NumCast, const OFFSET: i64> Debug
+    for EXRelPtr<T, OT, OFFSET>
+{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str("EXRelPtr(")?;
         self.data.fmt(f)?;
@@ -85,6 +92,23 @@ impl<T: BinRead + Debug> EXRelPtr<T> {
             data: v,
             offset: 0,
             offset_absolute: 0,
+        }
+    }
+}
+
+impl<T: BinRead + Serialize, OT: BinRead + NumCast, const OFFSET: i64> Serialize
+    for EXRelPtr<T, OT, OFFSET>
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        // If using unit type, serialize the absolute address instead.
+        if TypeId::of::<T>() == TypeId::of::<()>() {
+            let addr_repr = format!("relptr(0x{:x})", self.offset_absolute);
+            addr_repr.serialize(serializer)
+        } else {
+            self.data.serialize(serializer)
         }
     }
 }

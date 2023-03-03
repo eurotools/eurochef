@@ -40,16 +40,16 @@ _Each field is formatted as R/W. For example, if a feature can be read, but not 
 
 ### Platforms
 
-| Platform      | Endian | Textures          | Sounds |
-|---------------|--------|-------------------|--------|
-| PC            | LE     | ✅<sup>[2]</sup>/❌ | ❌      |
-| Xbox          | LE     | ✅<sup>[2]</sup>/❌ | ❌      |
-| Xbox 360      | BE     | ❌                 | ❌      |
-| GameCube      | BE     | ✅<sup>[2]</sup/❌  | ❌      |
-| Wii           | BE     | ✅<sup>[2]</sup/❌  | ❌      |
-| Wii U         | BE     | ❌                 | ❌      |
-| Playstation 2 | LE     | ❌                 | ❌      |
-| Playstation 3 | BE     | ❌                 | ❌      |
+| Platform      | Endian | Textures          | Sounds | Entities |
+|---------------|--------|-------------------|--------|----------|
+| PC            | LE     | ✅<sup>[2]</sup>/❌ | ❌      | ✅/❌      |
+| Xbox          | LE     | ✅<sup>[2]</sup>/❌ | ❌      | ✅/❌      |
+| Xbox 360      | BE     | ❌                 | ❌      | ❌        |
+| GameCube      | BE     | ✅<sup>[2]</sup/❌  | ❌      | ❌        |
+| Wii           | BE     | ✅<sup>[2]</sup/❌  | ❌      | ❌        |
+| Wii U         | BE     | ❌                 | ❌      | ❌        |
+| Playstation 2 | LE     | ❌                 | ❌      | ❌        |
+| Playstation 3 | BE     | ❌                 | ❌      | ❌        |
 
 <sup>[2]</sup> The most significant formats have been implemented, no games using the remaining formats are currently known
 

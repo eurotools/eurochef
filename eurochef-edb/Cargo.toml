@@ -7,3 +7,5 @@ edition = "2021"
 
 [dependencies]
 binrw = "0.10.0"
+num = "0.4"
+serde = { version = "1", features = ["derive"] }

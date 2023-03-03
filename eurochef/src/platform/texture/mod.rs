@@ -6,6 +6,7 @@ pub mod xbox;
 use eurochef_edb::versions::Platform;
 use image::RgbaImage;
 
+// TODO: Extract to a crate and add better errors
 pub trait TextureDecoder {
     /// Returns `None` if the format is invalid
     fn get_data_size(

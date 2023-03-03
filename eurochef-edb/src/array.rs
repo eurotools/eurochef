@@ -1,5 +1,6 @@
 use binrw::{binrw, BinRead, BinWrite};
-use std::{fmt::Debug, slice::Iter};
+use serde::Serialize;
+use std::{fmt::Debug, mem::size_of, slice::Iter};
 
 use crate::{common::EXRelPtr, structure_size_tests};
 
@@ -34,7 +35,7 @@ impl<T: BinRead> BinRead for EXGeoHashArray<T> {
             data: vec![],
         };
 
-        if array.array_size > 0 {
+        if array.array_size > 0 && size_of::<T>() != 0 {
             let pos_saved = reader.stream_position()?;
             reader.seek(std::io::SeekFrom::Start(array.rel_offset.offset_absolute()))?;
 
@@ -90,6 +91,15 @@ impl<T: BinRead> Default for EXGeoHashArray<T> {
     }
 }
 
+impl<T: BinRead + Serialize> Serialize for EXGeoHashArray<T> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        self.data.serialize(serializer)
+    }
+}
+
 pub struct EXRelArray<T: BinRead + 'static> {
     pub array_size: i32,
 
@@ -117,7 +127,7 @@ impl<T: BinRead> BinRead for EXRelArray<T> {
             data: vec![],
         };
 
-        if array.array_size > 0 {
+        if array.array_size > 0 && size_of::<T>() != 0 {
             let pos_saved = reader.stream_position()?;
             reader.seek(std::io::SeekFrom::Start(array.rel_offset.offset_absolute()))?;
 
@@ -160,6 +170,15 @@ impl<T: BinRead + Debug> Debug for EXRelArray<T> {
         f.write_str("EXGeoHashArray(")?;
         f.debug_list().entries(self.data.iter()).finish()?;
         f.write_str(")")
+    }
+}
+
+impl<T: BinRead + Serialize> Serialize for EXRelArray<T> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        self.data.serialize(serializer)
     }
 }
 
