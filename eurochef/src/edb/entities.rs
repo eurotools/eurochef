@@ -48,9 +48,9 @@ pub fn execute_command(
         .or(Platform::from_path(&filename))
         .expect("Failed to detect platform");
 
-    if platform != Platform::Pc && platform != Platform::Xbox {
-        anyhow::bail!("Entity extraction is only supported for PC and Xbox (for now)")
-    }
+    // if platform != Platform::Pc && platform != Platform::Xbox && platform != Platform::Xbox360 {
+    //     anyhow::bail!("Entity extraction is only supported for PC, Xbox and X360 (for now)")
+    // }
 
     println!("Selected platform {platform:?}");
 
@@ -73,6 +73,7 @@ pub fn execute_command(
         let ent = file
             .read_type_args::<EXGeoBaseEntity>(endian, (header.version,))
             .context("Failed to read entity")?;
+        println!("{:x} {:?}", e.common.hashcode, e);
 
         let esplit = ent.split_entity.as_ref();
         let nents = if ent.object_type == 1537 {
@@ -135,15 +136,15 @@ pub fn execute_command(
                 for i in (index_offset_local as usize)..(index_offset_local + tricount) as usize {
                     if (i - index_offset_local as usize) % 2 == 0 {
                         faces.push((
-                            index_offset + indices[i] as u32,
-                            index_offset + indices[i + 1] as u32,
                             index_offset + indices[i + 2] as u32,
+                            index_offset + indices[i + 1] as u32,
+                            index_offset + indices[i] as u32,
                         ))
                     } else {
                         faces.push((
-                            index_offset + indices[i + 2] as u32,
-                            index_offset + indices[i + 1] as u32,
                             index_offset + indices[i] as u32,
+                            index_offset + indices[i + 1] as u32,
+                            index_offset + indices[i + 2] as u32,
                         ))
                     }
                 }
