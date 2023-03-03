@@ -2,7 +2,7 @@
 use binrw::binrw;
 use serde::Serialize;
 
-use crate::{common::EXRelPtr, map::EXVector};
+use crate::common::{EXRelPtr, EXVector};
 
 #[binrw]
 #[derive(Debug, Serialize)]

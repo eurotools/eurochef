@@ -6,6 +6,10 @@ use serde::Serialize;
 
 use crate::{array::EXGeoCommonArrayElement, structure_size_tests};
 
+pub type EXVector3 = [f32; 3]; // TODO: Replace with structs
+pub type EXVector = [f32; 4];
+pub type EXVector2 = [f32; 2];
+
 // TODO: RelPtr16 generic
 pub struct EXRelPtr<T: BinRead = (), OT: BinRead + NumCast = i32, const OFFSET: i64 = 0> {
     pub offset: OT,

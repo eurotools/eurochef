@@ -7,9 +7,9 @@ use std::{
 use anyhow::Context;
 use eurochef_edb::{
     binrw::{BinReaderExt, Endian},
+    common::{EXVector2, EXVector3},
     entity::EXGeoBaseEntity,
     header::EXGeoHeader,
-    map::{EXVector2, EXVector3},
     versions::Platform,
 };
 use indicatif::{ProgressBar, ProgressIterator, ProgressStyle};
