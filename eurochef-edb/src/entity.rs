@@ -59,12 +59,9 @@ pub struct EXGeoSplitEntity {
     // pub base: EXGeoBaseEntity, // 0x0
     #[brw(assert(entity_count.le(&32)))]
     pub entity_count: u32, // 0x54
-    #[brw(if(version <= 221))]
     _unk58: u32,
 
-    // // Make sure all sub entities are normal entities
-    // #[brw(assert(entities.iter().find(|e| e.data.object_type != 0x601).is_none()))]
-    #[br(count = entity_count)]
+    #[br(count = entity_count, args { inner: (version,) })]
     pub entities: Vec<EXRelPtr<EXGeoBaseEntity>>, // 0x5c
 }
 

@@ -72,7 +72,14 @@ pub fn execute_command(
 
         let ent = file
             .read_type_args::<EXGeoBaseEntity>(endian, (header.version,))
-            .context("Failed to read entity")?;
+            .context("Failed to read entity");
+
+        if let Err(err) = ent {
+            println!("Failed to read entity {:x} {:?}", e.common.hashcode, err);
+            continue;
+        }
+
+        let ent = ent.unwrap();
 
         let mut vertex_data = vec![];
         let mut faces: Vec<(u32, u32, u32)> = vec![];
