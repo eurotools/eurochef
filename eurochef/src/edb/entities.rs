@@ -209,7 +209,7 @@ fn process_entity<R: Read + Seek>(
                 }
             }
 
-            index_offset_local += tricount;
+            index_offset_local += tricount + 2;
         }
     } else {
         anyhow::bail!("Invalid obj type 0x{:x}", ent.object_type)
