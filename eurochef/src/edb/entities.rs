@@ -14,7 +14,15 @@ use eurochef_edb::{
 };
 use indicatif::{ProgressBar, ProgressIterator, ProgressStyle};
 
-use crate::{edb::TICK_STRINGS, PlatformArg};
+use crate::{
+    edb::{
+        gltf_export::{self, dump_single_mesh_to_scene},
+        TICK_STRINGS,
+    },
+    PlatformArg,
+};
+
+use super::gltf_export::UXVertex;
 
 pub fn execute_command(
     filename: String,
@@ -82,9 +90,9 @@ pub fn execute_command(
         let ent = ent.unwrap();
 
         let mut vertex_data = vec![];
-        let mut faces: Vec<(u32, u32, u32)> = vec![];
+        let mut faces: Vec<u32> = vec![];
 
-        process_entity(
+        read_entity(
             &ent,
             &mut vertex_data,
             &mut faces,
@@ -94,40 +102,29 @@ pub fn execute_command(
             4,
         )?;
 
-        let mut outbuf = vec![];
-        writeln!(&mut outbuf, "o obj_{:x}", e.common.hashcode)?;
-        for (xyz, normal, uv) in vertex_data {
-            writeln!(&mut outbuf, "v {} {} {}", -xyz[0], xyz[1], xyz[2])?;
-            writeln!(&mut outbuf, "vn {} {} {}", normal[0], normal[1], normal[2])?;
-            writeln!(&mut outbuf, "vt {} {}", uv[0], 1. - uv[1])?;
+        // Process vertex data (flipping vertex data and UVs)
+        for v in &mut vertex_data {
+            v.pos[0] = -v.pos[0];
+            v.uv[1] = 1. - v.uv[1];
         }
 
-        for (v0, v1, v2) in faces {
-            // Skip face if it's a degenerate
-            if v0 == v1 || v1 == v2 || v2 == v0 {
-                continue;
-            }
+        let gltf = dump_single_mesh_to_scene(&vertex_data, &faces);
+        let mut outfile =
+            File::create(output_folder.join(format!("{:x}.gltf", e.common.hashcode)))?;
 
-            writeln!(
-                &mut outbuf,
-                "f {0}/{0}/{0} {1}/{1}/{1} {2}/{2}/{2}",
-                v0 + 1,
-                v1 + 1,
-                v2 + 1
-            )?;
-        }
+        let json_string =
+            gltf::json::serialize::to_string(&gltf).context("glTF serialization error")?;
 
-        let mut outfile = File::create(output_folder.join(format!("{:x}.obj", e.common.hashcode)))?;
-        outfile.write_all(&outbuf)?;
+        outfile.write_all(json_string.as_bytes())?;
     }
 
     Ok(())
 }
 
-fn process_entity<R: Read + Seek>(
+fn read_entity<R: Read + Seek>(
     ent: &EXGeoBaseEntity,
-    vertex_data: &mut Vec<(EXVector3, EXVector3, EXVector2)>,
-    faces: &mut Vec<(u32, u32, u32)>,
+    vertex_data: &mut Vec<UXVertex>,
+    faces: &mut Vec<u32>,
     endian: Endian,
     version: u32,
     data: &mut R,
@@ -139,7 +136,7 @@ fn process_entity<R: Read + Seek>(
 
     if ent.object_type == 0x603 {
         for e in ent.split_entity.as_ref().unwrap().entities.iter() {
-            process_entity(
+            read_entity(
                 &e.data,
                 vertex_data,
                 faces,
@@ -152,16 +149,25 @@ fn process_entity<R: Read + Seek>(
     } else if ent.object_type == 0x601 {
         let index_offset = vertex_data.len() as u32;
         let nent = ent.normal_entity.as_ref().unwrap();
+
         data.seek(std::io::SeekFrom::Start(nent.vertex_data.offset_absolute()))?;
         // TODO: Should probably not fall back to 3-3-2 but raise an error instead?
         for _ in 0..nent.vertex_count {
             match version {
                 252 | 250 | 240 | 221 => {
                     let d = data.read_type::<(EXVector3, u32, EXVector2)>(endian)?;
-                    vertex_data.push((d.0, [0f32, 0f32, 0f32], d.2));
+                    vertex_data.push(UXVertex {
+                        pos: d.0,
+                        norm: [0f32, 0f32, 0f32],
+                        uv: d.2,
+                    });
                 }
                 _ => {
-                    vertex_data.push(data.read_type::<(EXVector3, EXVector3, EXVector2)>(endian)?);
+                    vertex_data.push(UXVertex {
+                        pos: data.read_type(endian)?,
+                        norm: data.read_type(endian)?,
+                        uv: data.read_type(endian)?,
+                    });
                 }
             }
         }
@@ -195,17 +201,13 @@ fn process_entity<R: Read + Seek>(
             // println!("{} / {}", tricount, indices.len());
             for i in (index_offset_local as usize)..(index_offset_local + tricount) as usize {
                 if (i - index_offset_local as usize) % 2 == 0 {
-                    faces.push((
-                        index_offset + indices[i + 2] as u32,
-                        index_offset + indices[i + 1] as u32,
-                        index_offset + indices[i] as u32,
-                    ))
+                    faces.push(index_offset + indices[i + 2] as u32);
+                    faces.push(index_offset + indices[i + 1] as u32);
+                    faces.push(index_offset + indices[i] as u32);
                 } else {
-                    faces.push((
-                        index_offset + indices[i] as u32,
-                        index_offset + indices[i + 1] as u32,
-                        index_offset + indices[i + 2] as u32,
-                    ))
+                    faces.push(index_offset + indices[i] as u32);
+                    faces.push(index_offset + indices[i + 1] as u32);
+                    faces.push(index_offset + indices[i + 2] as u32);
                 }
             }
 
