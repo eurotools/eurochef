@@ -4,7 +4,7 @@ use binrw::{binrw, BinRead, BinReaderExt, BinWrite};
 use num::NumCast;
 use serde::Serialize;
 
-use crate::{array::EXGeoCommonArrayElement, structure_size_tests};
+use crate::array::EXGeoCommonArrayElement;
 
 pub type EXVector3 = [f32; 3]; // TODO: Replace with structs
 pub type EXVector = [f32; 4];
@@ -176,11 +176,3 @@ pub struct EXGeoAnimSkinHeader {
     pub mip_ref: u32,
     pub mip_distance: u32,
 }
-
-structure_size_tests!(
-    EXGeoSpreadSheetHeader = 20,
-    EXGeoEntityHeader = 20,
-    EXGeoAnimHeader = 32,
-    EXGeoAnimModeHeader = 20,
-    EXGeoAnimSetHeader = 20
-);

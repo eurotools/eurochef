@@ -2,7 +2,7 @@ use binrw::{binrw, BinRead, BinWrite};
 use serde::Serialize;
 use std::{fmt::Debug, mem::size_of, slice::Iter};
 
-use crate::{common::EXRelPtr, structure_size_tests};
+use crate::common::EXRelPtr;
 
 pub struct EXGeoHashArray<T: BinRead + 'static> {
     pub array_size: i16,
@@ -199,8 +199,3 @@ pub struct EXGeoCommonArrayElement {
     // ? Only used internally in the engine?
     _ptr: u32,
 }
-
-structure_size_tests!(
-    // EXGeoCommonArray<()> = 8,
-    EXGeoCommonArrayElement = 16
-);

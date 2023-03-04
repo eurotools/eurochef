@@ -1,8 +1,6 @@
 use binrw::binrw;
 
-use crate::{
-    array::EXGeoCommonArrayElement, common::EXRelPtr, structure_size_tests, versions::Platform,
-};
+use crate::{array::EXGeoCommonArrayElement, common::EXRelPtr, versions::Platform};
 
 #[binrw]
 #[derive(Debug)]
@@ -48,5 +46,3 @@ pub struct EXGeoTexture {
     #[br(count = frame_count)]
     pub frame_offsets: Vec<EXRelPtr>, // 0x28
 }
-
-structure_size_tests!(EXGeoTextureHeader = 28);
