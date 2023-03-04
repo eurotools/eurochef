@@ -8,21 +8,18 @@ use anyhow::Context;
 use eurochef_edb::{
     binrw::{BinReaderExt, Endian},
     common::{EXVector2, EXVector3},
-    entity::EXGeoBaseEntity,
+    entity::{EXGeoBaseEntity, EXGeoEntity_TriStrip},
     header::EXGeoHeader,
     versions::Platform,
 };
 use indicatif::{ProgressBar, ProgressIterator, ProgressStyle};
 
 use crate::{
-    edb::{
-        gltf_export::{self, dump_single_mesh_to_scene},
-        TICK_STRINGS,
-    },
+    edb::{gltf_export::dump_single_mesh_to_scene, TICK_STRINGS},
     PlatformArg,
 };
 
-use super::gltf_export::UXVertex;
+use super::gltf_export::{TriStrip, UXVertex};
 
 pub fn execute_command(
     filename: String,
@@ -90,12 +87,14 @@ pub fn execute_command(
         let ent = ent.unwrap();
 
         let mut vertex_data = vec![];
-        let mut faces: Vec<u32> = vec![];
+        let mut indices = vec![];
+        let mut strips = vec![];
 
         read_entity(
             &ent,
             &mut vertex_data,
-            &mut faces,
+            &mut indices,
+            &mut strips,
             endian,
             header.version,
             &mut file,
@@ -105,10 +104,23 @@ pub fn execute_command(
         // Process vertex data (flipping vertex data and UVs)
         for v in &mut vertex_data {
             v.pos[0] = -v.pos[0];
-            v.uv[1] = 1. - v.uv[1];
         }
 
-        let gltf = dump_single_mesh_to_scene(&vertex_data, &faces);
+        // Look up texture hashcodes
+        for t in &mut strips {
+            if t.texture_hash != u32::MAX {
+                t.texture_hash = header.texture_list.data[t.texture_hash as usize]
+                    .common
+                    .hashcode;
+            }
+        }
+
+        let gltf = dump_single_mesh_to_scene(
+            &vertex_data,
+            &indices,
+            &strips,
+            [252, 250, 240, 221].contains(&header.version),
+        );
         let mut outfile =
             File::create(output_folder.join(format!("{:x}.gltf", e.common.hashcode)))?;
 
@@ -124,7 +136,8 @@ pub fn execute_command(
 fn read_entity<R: Read + Seek>(
     ent: &EXGeoBaseEntity,
     vertex_data: &mut Vec<UXVertex>,
-    faces: &mut Vec<u32>,
+    indices: &mut Vec<u32>,
+    strips: &mut Vec<TriStrip>,
     endian: Endian,
     version: u32,
     data: &mut R,
@@ -139,7 +152,8 @@ fn read_entity<R: Read + Seek>(
             read_entity(
                 &e.data,
                 vertex_data,
-                faces,
+                indices,
+                strips,
                 endian,
                 version,
                 data,
@@ -147,7 +161,8 @@ fn read_entity<R: Read + Seek>(
             )?;
         }
     } else if ent.object_type == 0x601 {
-        let index_offset = vertex_data.len() as u32;
+        let vertex_offset = vertex_data.len() as u32;
+        let index_offset = indices.len() as u32; // vertex_data.len() as u32;
         let nent = ent.normal_entity.as_ref().unwrap();
 
         data.seek(std::io::SeekFrom::Start(nent.vertex_data.offset_absolute()))?;
@@ -173,45 +188,41 @@ fn read_entity<R: Read + Seek>(
         }
 
         data.seek(std::io::SeekFrom::Start(nent.index_data.offset_absolute()))?;
-        let indices: Vec<u16> = (0..nent.index_count)
-            .map(|_| data.read_type::<u16>(endian).unwrap())
+        let new_indices: Vec<u32> = (0..nent.index_count)
+            .map(|_| data.read_type::<u16>(endian).unwrap() as u32 + vertex_offset)
             .collect();
 
-        let mut tristrips: Vec<(u32, i32)> = vec![];
-        for i in 0..nent.tristrip_count {
-            if version <= 252 {
-                data.seek(std::io::SeekFrom::Start(
-                    nent.tristrip_data.offset_absolute() + i as u64 * 20,
-                ))?;
-            } else {
-                data.seek(std::io::SeekFrom::Start(
-                    nent.tristrip_data.offset_absolute() + i as u64 * 16,
-                ))?;
-            }
+        indices.extend(&new_indices);
 
-            tristrips.push(data.read_type(endian)?);
+        let mut tristrips: Vec<EXGeoEntity_TriStrip> = vec![];
+        data.seek(std::io::SeekFrom::Start(
+            nent.tristrip_data.offset_absolute(),
+        ))?;
+        for _ in 0..nent.tristrip_count {
+            tristrips.push(data.read_type_args(endian, (version,))?);
         }
 
         let mut index_offset_local = 0;
-        for (tricount, _texture) in tristrips {
-            if tricount < 2 {
-                // panic!("Invalid tristrips found with only {tricount} indices")
+        for t in tristrips {
+            if t.tricount < 1 {
                 continue;
             }
-            // println!("{} / {}", tricount, indices.len());
-            for i in (index_offset_local as usize)..(index_offset_local + tricount) as usize {
-                if (i - index_offset_local as usize) % 2 == 0 {
-                    faces.push(index_offset + indices[i + 2] as u32);
-                    faces.push(index_offset + indices[i + 1] as u32);
-                    faces.push(index_offset + indices[i] as u32);
-                } else {
-                    faces.push(index_offset + indices[i] as u32);
-                    faces.push(index_offset + indices[i + 1] as u32);
-                    faces.push(index_offset + indices[i + 2] as u32);
-                }
-            }
 
-            index_offset_local += tricount + 2;
+            strips.push(TriStrip {
+                start_index: index_offset + index_offset_local,
+                index_count: t.tricount + 2,
+                texture_hash: t.texture_index as u32,
+            });
+
+            // HACK: Swap the first 2 indices to change the winding order
+            // Pleasing the glTF god is no easy feat
+            // TODO: Doesnt seem to work?
+            // let offset = (index_offset + index_offset_local) as usize;
+            // let i0 = indices[offset];
+            // indices[offset] = indices[offset + 1];
+            // indices[offset + 1] = i0;
+
+            index_offset_local += t.tricount + 2;
         }
     } else {
         anyhow::bail!("Invalid obj type 0x{:x}", ent.object_type)

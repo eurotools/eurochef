@@ -77,4 +77,18 @@ pub struct EXGeoEntity_TextureList {
 
 #[binrw]
 #[derive(Debug, Serialize)]
+#[brw(import(version: u32))]
+pub struct EXGeoEntity_TriStrip {
+    pub tricount: u32,
+    pub texture_index: i32,
+    pub min_index: u16,
+    pub num_indices: u16,
+    pub flags: u16,
+    pub trans_type: u16,
+    #[brw(if(version <= 252))]
+    _unk10: u32,
+}
+
+#[binrw]
+#[derive(Debug, Serialize)]
 pub struct EXGeoEntity_VtxData {}
