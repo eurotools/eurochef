@@ -72,8 +72,6 @@ pub fn execute_command(
             .read_type_args::<EXGeoTexture>(endian, (header.version, platform))
             .context("Failed to read basetexture")?;
 
-        // println!("{:x} {:?}", t.common.hashcode, tex);
-
         let calculated_size = texture_decoder.get_data_size(
             tex.width as u32,
             tex.height as u32,
@@ -82,7 +80,7 @@ pub fn execute_command(
         );
 
         if let Err(e) = calculated_size {
-            println!("Failed to extract texture {:x}: {}", t.common.hashcode, e);
+            println!("Failed to extract texture {:x}: {:?}", t.common.hashcode, e);
             continue;
         }
 

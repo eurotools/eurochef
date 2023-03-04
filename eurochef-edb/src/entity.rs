@@ -18,9 +18,11 @@ pub struct EXGeoBaseEntity {
     _pad0: u8, // 0xb
     pub surface_area: f32, // 0xc
     pub bounds_box: [EXVector; 2], // 0x10
-    _unk30: [u32; 8],     // 0x30
-    pub gdi_count: u16,   // 0x50
-    pub gdi_index: u16,   // 0x52
+    _unk30: [u32; 4],     // 0x30
+    #[brw(if(version > 221))]
+    _unk40: [u32; 4],
+    pub gdi_count: u16, // 0x50
+    pub gdi_index: u16, // 0x52
 
     #[brw(if(object_type.eq(&0x601)))]
     #[brw(args(version))]
@@ -52,11 +54,12 @@ pub struct EXGeoEntity {
 
 #[binrw]
 #[derive(Debug, Serialize)]
-#[brw(import(_version: u32))]
+#[brw(import(version: u32))]
 pub struct EXGeoSplitEntity {
     // pub base: EXGeoBaseEntity, // 0x0
     #[brw(assert(entity_count.le(&32)))]
     pub entity_count: u32, // 0x54
+    #[brw(if(version <= 221))]
     _unk58: u32,
 
     // // Make sure all sub entities are normal entities

@@ -146,9 +146,10 @@ fn process_entity<R: Read + Seek>(
         let index_offset = vertex_data.len() as u32;
         let nent = ent.normal_entity.as_ref().unwrap();
         data.seek(std::io::SeekFrom::Start(nent.vertex_data.offset_absolute()))?;
+        // TODO: Should probably not fall back to 3-3-2 but raise an error instead?
         for _ in 0..nent.vertex_count {
             match version {
-                252 | 250 | 240 => {
+                252 | 250 | 240 | 221 => {
                     let d = data.read_type::<(EXVector3, u32, EXVector2)>(endian)?;
                     vertex_data.push((d.0, [0f32, 0f32, 0f32], d.2));
                 }

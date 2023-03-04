@@ -129,9 +129,19 @@ pub struct EXGeoSpreadSheetHeader {
 
 #[binrw]
 #[derive(Debug)]
+#[br(import(version: u32))]
 pub struct EXGeoEntityHeader {
     pub common: EXGeoCommonArrayElement,
     pub unk_4: u32,
+    #[br(if(version <= 221))]
+    pub ext: Option<EntityHeaderExt>,
+}
+
+#[binrw]
+#[derive(Debug)]
+pub struct EntityHeaderExt {
+    pub mip_ref: f32,
+    pub mip_distance: [f32; 3],
 }
 
 #[binrw]

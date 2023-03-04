@@ -38,6 +38,7 @@ pub struct EXGeoHeader {
     #[brw(seek_before = SeekFrom::Start(if version.lt(&248) { 0x54 } else { 0x40 } ))]
     pub section_list: EXGeoHashArray<()>, // 0x40
     pub refpointer_list: EXGeoHashArray<EXGeoRefPointerHeader>,
+    #[br(args(version))]
     pub entity_list: EXGeoHashArray<EXGeoEntityHeader>, // 0x50
     pub anim_list: EXGeoHashArray<EXGeoAnimHeader>,
     pub animskin_list: EXGeoHashArray<()>, // 0x60
