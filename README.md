@@ -8,7 +8,7 @@ Eurochef provides tools and Rust crates for working with Eurocom EngineX(T) file
 
 * [x] Easy to use CLI Tool
 * [x] Texture extractor
-  * Supported output formats [can be found here](https://github.com/image-rs/image/blob/master/README.md#supported-image-formats)
+  * Supported output formats: png, qoi, tga
 * [x] Filelist re-packer
 * [ ] Filelist VFS
 * [ ] Intermediate representation of EDB files

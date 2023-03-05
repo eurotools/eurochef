@@ -14,7 +14,6 @@ bytemuck = { version = "1.13", features = ["derive"] }
 clap = { version = "4.1", features = ["derive", "color"] }
 clap-num = "1"
 enumn = "0.1"
-image = "0.24"
 indicatif = "0.17.3"
 glob = "0.3"
 gltf = { version = "1.1.0", default-features = false }
@@ -23,3 +22,8 @@ qoi = "0.4.1"
 serde_json = "1"
 squish = "1.0"
 walkdir = "2.3"
+
+[dependencies.image]
+version = "0.24"
+default-features = false
+features = ["png", "tga"]

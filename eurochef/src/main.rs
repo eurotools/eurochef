@@ -99,7 +99,7 @@ enum EdbCommand {
         #[arg(value_enum, short, long, ignore_case = true)]
         platform: Option<PlatformArg>,
 
-        /// Output file format to use
+        /// Output file format to use (supported: tga, png, qoi)
         #[arg(short, long, default_value("tga"))]
         format: String,
     },
