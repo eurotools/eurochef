@@ -175,7 +175,7 @@ pub fn dump_single_mesh_to_scene(
                 extensions: None,
                 extras: Default::default(),
                 mime_type: None,
-                name: None,
+                name: Some(format!("{:08x}.png", t.texture_hash)),
             });
 
             root.textures.push(gjson::Texture {

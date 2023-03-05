@@ -335,10 +335,22 @@ fn read_entity<R: Read + Seek>(
             //     texture_hash: t.texture_index as u32,
             // });
 
+            let texture_index = if ent.flags & 0x1 != 0 {
+                // Index from texture list instead of the "global" array
+                if t.texture_index < nent.texture_list.data.textures.len() as i32 {
+                    nent.texture_list.data.textures[t.texture_index as usize] as i32
+                } else {
+                    println!("Warning: tried to get texture #{} from texture list, but list only has {} elements!", t.texture_index, nent.texture_list.data.textures.len());
+                    -1
+                }
+            } else {
+                t.texture_index
+            };
+
             strips.push(TriStrip {
                 start_index: indices.len() as u32,
                 index_count: t.tricount * 3,
-                texture_hash: t.texture_index as u32,
+                texture_hash: texture_index as u32,
             });
 
             for i in (index_offset_local as usize)..(index_offset_local + t.tricount) as usize {
