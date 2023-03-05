@@ -9,6 +9,8 @@ Eurochef provides tools and Rust crates for working with Eurocom EngineX(T) file
 * [x] Easy to use CLI Tool
 * [x] Texture extractor
   * Supported output formats: png, qoi, tga
+* [x] Entity extractor
+* [ ] Map extractor
 * [x] Filelist re-packer
 * [ ] Filelist VFS
 * [ ] Intermediate representation of EDB files
@@ -25,13 +27,13 @@ _(Priority currently lies with G-Force)_
 | Game (version)                                 | Textures <sup>[1]</sup> | Maps | Scripts | Entities | Animations | Particles | Spreadsheets |
 |------------------------------------------------|-------------------------|------|---------|----------|------------|-----------|--------------|
 | Sphinx and the Cursed Mummy (182)              | ❔/❌                     | ❌    | ❌       | ❌        | ❌          | ❌         | ✅/❌          |
-| Spyro: A Hero's Tail (240)                     | ✅/❌                     | ❌    | ❌       | ❌        | ❌          | ❌         | ✅/❌          |
-| Robots (248)                                   | ✅/❌                     | ❌    | ❌       | ❌        | ❌          | ❌         | ✅/❌          |
-| Ice Age 2: The Meltdown (252)                  | ✅/❌                     | ❌    | ❌       | ❌        | ❌          | ❌         | ✅/❌          |
-| Predator: Concrete Jungle (250)                | ✅/❌                     | ❌    | ❌       | ❌        | ❌          | ❌         | ✅/❌          |
+| Spyro: A Hero's Tail (240)                     | ✅/❌                     | ❌    | ❌       | ✅/❌      | ❌          | ❌         | ✅/❌          |
+| Robots (248)                                   | ✅/❌                     | ❌    | ❌       | ❔/❌      | ❌          | ❌         | ✅/❌          |
+| Ice Age 2: The Meltdown (252)                  | ✅/❌                     | ❌    | ❌       | ✅/❌      | ❌          | ❌         | ✅/❌          |
+| Predator: Concrete Jungle (250)                | ✅/❌                     | ❌    | ❌       | ✅/❌      | ❌          | ❌         | ✅/❌          |
 | Pirates of the Caribbean: At World's End (252) | ❔/❌                     | ❌    | ❌       | ❌        | ❌          | ❌         | ✅/❌          |
-| Ice Age: Dawn of the Dinosaurs (258/260)       | ✅/❌                     | ❌    | ❌       | ❌        | ❌          | ❌         | ✅/❌          |
-| G-Force (259)                                  | ✅/❌                     | ❌    | ❌       | ❌        | ❌          | ❌         | ✅/❌          |
+| Ice Age: Dawn of the Dinosaurs (258/260)       | ✅/❌                     | ❌    | ❌       | ❔/❌      | ❌          | ❌         | ✅/❌          |
+| G-Force (259)                                  | ✅/❌                     | ❌    | ❌       | ✅/❌      | ❌          | ❌         | ✅/❌          |
 | GoldenEye 007 (263)                            | ✅/❌                     | ❌    | ❌       | ❌        | ❌          | ❌         | ✅/❌          |
 
 <sup>[1]</sup> Texture support only indicates the ability to read texture headers and frame data. See the platform matrix for texture encoding/decoding support
