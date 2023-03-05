@@ -68,6 +68,10 @@ enum EdbCommand {
         /// Override for platform detection
         #[arg(value_enum, short, long, ignore_case = true)]
         platform: Option<PlatformArg>,
+
+        /// Don't embed textures into the output file
+        #[arg(short = 'e', long)]
+        no_embed: bool,
     },
     /// Extract spreadsheets
     Spreadsheets {
@@ -160,7 +164,8 @@ fn handle_edb(cmd: EdbCommand) -> anyhow::Result<()> {
             filename,
             output_folder,
             platform,
-        } => edb::entities::execute_command(filename, platform, output_folder),
+            no_embed,
+        } => edb::entities::execute_command(filename, platform, output_folder, no_embed),
         // EdbCommand::Maps { filename, platform } => edb::maps::execute_command(filename, platform),
         EdbCommand::Spreadsheets { filename } => edb::spreadsheets::execute_command(filename),
         EdbCommand::Textures {

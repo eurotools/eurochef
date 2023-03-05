@@ -192,8 +192,6 @@ pub fn dump_single_mesh_to_scene(
                     }),
                     ..Default::default()
                 },
-                // TODO: Fix winding order
-                double_sided: true,
                 ..Default::default()
             });
 
@@ -256,7 +254,7 @@ pub fn dump_single_mesh_to_scene(
             extras: Default::default(),
             indices: Some(gjson::Index::new(root.accessors.len() as u32 - 1)),
             material: Some(gjson::Index::new(*material_id)),
-            mode: Checked::Valid(gjson::mesh::Mode::TriangleStrip),
+            mode: Checked::Valid(gjson::mesh::Mode::Triangles),
             targets: None,
         };
 

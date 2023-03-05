@@ -263,7 +263,7 @@ fn read_entity<R: Read + Seek>(
         }
     } else if ent.object_type == 0x601 {
         let vertex_offset = vertex_data.len() as u32;
-        let index_offset = indices.len() as u32;
+        // let index_offset = indices.len() as u32;
         let nent = ent.normal_entity.as_ref().unwrap();
 
         data.seek(std::io::SeekFrom::Start(nent.vertex_data.offset_absolute()))?;
@@ -290,10 +290,10 @@ fn read_entity<R: Read + Seek>(
 
         data.seek(std::io::SeekFrom::Start(nent.index_data.offset_absolute()))?;
         let new_indices: Vec<u32> = (0..nent.index_count)
-            .map(|_| data.read_type::<u16>(endian).unwrap() as u32 + vertex_offset)
+            .map(|_| data.read_type::<u16>(endian).unwrap() as u32)
             .collect();
 
-        indices.extend(&new_indices);
+        // indices.extend(&new_indices);
 
         let mut tristrips: Vec<EXGeoEntity_TriStrip> = vec![];
         data.seek(std::io::SeekFrom::Start(
@@ -309,11 +309,33 @@ fn read_entity<R: Read + Seek>(
                 continue;
             }
 
+            // strips.push(TriStrip {
+            //     start_index: index_offset + index_offset_local,
+            //     index_count: t.tricount + 2,
+            //     texture_hash: t.texture_index as u32,
+            // });
+
             strips.push(TriStrip {
-                start_index: index_offset + index_offset_local,
-                index_count: t.tricount + 2,
+                start_index: indices.len() as u32,
+                index_count: t.tricount * 3,
                 texture_hash: t.texture_index as u32,
             });
+
+            for i in (index_offset_local as usize)..(index_offset_local + t.tricount) as usize {
+                if (i - index_offset_local as usize) % 2 == 0 {
+                    indices.extend([
+                        vertex_offset + new_indices[i + 2] as u32,
+                        vertex_offset + new_indices[i + 1] as u32,
+                        vertex_offset + new_indices[i] as u32,
+                    ])
+                } else {
+                    indices.extend([
+                        vertex_offset + new_indices[i] as u32,
+                        vertex_offset + new_indices[i + 1] as u32,
+                        vertex_offset + new_indices[i + 2] as u32,
+                    ])
+                }
+            }
             index_offset_local += t.tricount + 2;
         }
     } else {
