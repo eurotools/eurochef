@@ -1,21 +1,26 @@
 use std::{
+    collections::HashMap,
     fs::File,
-    io::{Read, Seek, Write},
+    io::{Cursor, Read, Seek, Write},
     path::Path,
 };
 
 use anyhow::Context;
+use base64::Engine;
 use eurochef_edb::{
     binrw::{BinReaderExt, Endian},
     common::{EXVector2, EXVector3},
     entity::{EXGeoBaseEntity, EXGeoEntity_TriStrip},
     header::EXGeoHeader,
+    texture::EXGeoTexture,
     versions::Platform,
 };
+use image::{EncodableLayout, ImageOutputFormat, RgbaImage};
 use indicatif::{ProgressBar, ProgressIterator, ProgressStyle};
 
 use crate::{
     edb::{gltf_export::dump_single_mesh_to_scene, TICK_STRINGS},
+    platform::texture,
     PlatformArg,
 };
 
@@ -25,6 +30,7 @@ pub fn execute_command(
     filename: String,
     platform: Option<PlatformArg>,
     output_folder: Option<String>,
+    dont_embed_textures: bool,
 ) -> anyhow::Result<()> {
     let output_folder = output_folder.unwrap_or(format!(
         "./entities/{}/",
@@ -58,6 +64,100 @@ pub fn execute_command(
     }
 
     println!("Selected platform {platform:?}");
+
+    let mut texture_uri_map: HashMap<u32, String> = HashMap::new();
+    if dont_embed_textures {
+        for t in &header.texture_list.data {
+            texture_uri_map.insert(
+                t.common.hashcode,
+                format!("{:08x}_frame0.png", t.common.hashcode),
+            );
+        }
+    } else {
+        let pb = ProgressBar::new(header.texture_list.data.len() as u64)
+            .with_finish(indicatif::ProgressFinish::AndLeave);
+        pb.set_style(
+            ProgressStyle::with_template(
+                "{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {msg} ({pos}/{len})",
+            )
+            .unwrap()
+            .progress_chars("##-")
+            .tick_chars(&TICK_STRINGS),
+        );
+        pb.set_message("Extracting textures");
+
+        // TODO: Library needs to do this and whatnot
+        let mut data = vec![];
+        let texture_decoder = texture::create_for_platform(platform);
+        for t in header.texture_list.data.iter().progress_with(pb) {
+            file.seek(std::io::SeekFrom::Start(t.common.address as u64))?;
+            let uri = format!("{:08x}_frame0.png", t.common.hashcode);
+
+            let tex = file
+                .read_type_args::<EXGeoTexture>(endian, (header.version, platform))
+                .context("Failed to read basetexture")?;
+
+            let calculated_size = texture_decoder.get_data_size(
+                tex.width as u32,
+                tex.height as u32,
+                tex.depth as u32,
+                tex.format,
+            );
+
+            if let Err(e) = calculated_size {
+                println!("Failed to extract texture {:x}: {:?}", t.common.hashcode, e);
+                texture_uri_map.insert(t.common.hashcode, uri);
+                continue;
+            }
+
+            data.clear();
+            data.resize(
+                tex.data_size
+                    .map(|v| v as usize)
+                    .unwrap_or(calculated_size.unwrap()),
+                0u8,
+            );
+
+            std::fs::create_dir_all(output_folder)?;
+
+            let mut output = RgbaImage::new(tex.width as u32, tex.height as u32);
+            file.seek(std::io::SeekFrom::Start(
+                tex.frame_offsets[0].offset_absolute(),
+            ))?;
+
+            if let Err(e) = file.read_exact(&mut data) {
+                println!("Failed to read texture {:x}: {}", t.common.hashcode, e);
+                texture_uri_map.insert(t.common.hashcode, uri);
+                continue;
+            }
+
+            if let Err(e) = texture_decoder.decode(
+                &data,
+                &mut output,
+                tex.width as u32,
+                tex.height as u32,
+                tex.depth as u32,
+                tex.format,
+            ) {
+                println!("Texture {:08x} failed to decode: {}", t.common.hashcode, e);
+                texture_uri_map.insert(t.common.hashcode, uri);
+                continue;
+            }
+
+            let mut cur = Cursor::new(Vec::new());
+            image::write_buffer_with_format(
+                &mut cur,
+                output.as_bytes(),
+                output.width(),
+                output.height(),
+                image::ColorType::Rgba8,
+                ImageOutputFormat::Png,
+            )?;
+            let mut uri = "data:image/png;base64,".to_string();
+            base64::engine::general_purpose::STANDARD.encode_string(&cur.into_inner(), &mut uri);
+            texture_uri_map.insert(t.common.hashcode, uri);
+        }
+    }
 
     let pb = ProgressBar::new(header.entity_list.data.len() as u64)
         .with_finish(indicatif::ProgressFinish::AndLeave);
@@ -119,7 +219,8 @@ pub fn execute_command(
             &vertex_data,
             &indices,
             &strips,
-            [252, 250, 240, 221].contains(&header.version),
+            ![252, 250, 240, 221].contains(&header.version),
+            &texture_uri_map,
         );
         let mut outfile =
             File::create(output_folder.join(format!("{:x}.gltf", e.common.hashcode)))?;
@@ -162,7 +263,7 @@ fn read_entity<R: Read + Seek>(
         }
     } else if ent.object_type == 0x601 {
         let vertex_offset = vertex_data.len() as u32;
-        let index_offset = indices.len() as u32; // vertex_data.len() as u32;
+        let index_offset = indices.len() as u32;
         let nent = ent.normal_entity.as_ref().unwrap();
 
         data.seek(std::io::SeekFrom::Start(nent.vertex_data.offset_absolute()))?;
@@ -213,15 +314,6 @@ fn read_entity<R: Read + Seek>(
                 index_count: t.tricount + 2,
                 texture_hash: t.texture_index as u32,
             });
-
-            // HACK: Swap the first 2 indices to change the winding order
-            // Pleasing the glTF god is no easy feat
-            // TODO: Doesnt seem to work?
-            // let offset = (index_offset + index_offset_local) as usize;
-            // let i0 = indices[offset];
-            // indices[offset] = indices[offset + 1];
-            // indices[offset + 1] = i0;
-
             index_offset_local += t.tricount + 2;
         }
     } else {

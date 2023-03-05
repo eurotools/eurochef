@@ -37,6 +37,7 @@ pub fn dump_single_mesh_to_scene(
     indices: &[u32],
     strips: &[TriStrip],
     use_normals: bool,
+    texture_map: &HashMap<u32, String>,
 ) -> gjson::Root {
     let vdata: &[u8] = bytemuck::cast_slice(vertices);
     let idata: &[u8] = bytemuck::cast_slice(indices);
@@ -147,6 +148,10 @@ pub fn dump_single_mesh_to_scene(
             // name: None,
             nodes: vec![gjson::Index::new(0)],
         }],
+        asset: gjson::Asset {
+            generator: Some("Eurochef".to_string()),
+            ..Default::default()
+        },
         ..Default::default()
     };
 
@@ -161,8 +166,9 @@ pub fn dump_single_mesh_to_scene(
     let mut material_map: HashMap<u32, u32> = HashMap::new();
     for t in strips {
         if !material_map.contains_key(&t.texture_hash) {
+            let img_uri = texture_map.get(&t.texture_hash).map(|v| v.clone());
             root.images.push(gjson::Image {
-                uri: Some(format!("{:08x}_frame0.tga", t.texture_hash)),
+                uri: Some(img_uri.unwrap_or(format!("{:08x}_frame0.png", t.texture_hash))),
                 buffer_view: None,
                 extensions: None,
                 extras: Default::default(),
@@ -201,7 +207,7 @@ pub fn dump_single_mesh_to_scene(
             buffer: gjson::Index::new(1),
             byte_length: t.index_count * std::mem::size_of::<u32>() as u32,
             byte_offset: Some(t.start_index * std::mem::size_of::<u32>() as u32),
-            byte_stride: Some(std::mem::size_of::<u32>() as u32),
+            byte_stride: None,
             extensions: Default::default(),
             extras: Default::default(),
             // name: None,
