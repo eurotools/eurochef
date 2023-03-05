@@ -57,7 +57,7 @@ pub struct EXGeoEntity {
 #[brw(import(version: u32))]
 pub struct EXGeoSplitEntity {
     // pub base: EXGeoBaseEntity, // 0x0
-    #[brw(assert(entity_count.le(&32)))]
+    #[brw(assert(entity_count.le(&64)))]
     pub entity_count: u32, // 0x54
     _unk58: u32,
 
