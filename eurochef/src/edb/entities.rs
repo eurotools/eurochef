@@ -31,6 +31,7 @@ pub fn execute_command(
     platform: Option<PlatformArg>,
     output_folder: Option<String>,
     dont_embed_textures: bool,
+    remove_transparent: bool,
 ) -> anyhow::Result<()> {
     let output_folder = output_folder.unwrap_or(format!(
         "./entities/{}/",
@@ -59,8 +60,8 @@ pub fn execute_command(
         .or(Platform::from_path(&filename))
         .expect("Failed to detect platform");
 
-    if platform != Platform::Pc && platform != Platform::Xbox && platform != Platform::Xbox360 {
-        anyhow::bail!("Entity extraction is only supported for PC, Xbox and X360 (for now)")
+    if platform != Platform::Pc && platform != Platform::Xbox {
+        anyhow::bail!("Entity extraction is only supported for PC and Xbox (for now)")
     }
 
     println!("Selected platform {platform:?}");
@@ -199,6 +200,7 @@ pub fn execute_command(
             header.version,
             &mut file,
             4,
+            remove_transparent,
         )?;
 
         // Process vertex data (flipping vertex data and UVs)
@@ -221,6 +223,7 @@ pub fn execute_command(
             &strips,
             ![252, 250, 240, 221].contains(&header.version),
             &texture_uri_map,
+            e.common.hashcode,
         );
         let mut outfile =
             File::create(output_folder.join(format!("{:x}.gltf", e.common.hashcode)))?;
@@ -243,6 +246,7 @@ fn read_entity<R: Read + Seek>(
     version: u32,
     data: &mut R,
     depth_limit: u32,
+    remove_transparent: bool,
 ) -> anyhow::Result<()> {
     if depth_limit == 0 {
         anyhow::bail!("Entity recursion limit reached!");
@@ -259,6 +263,7 @@ fn read_entity<R: Read + Seek>(
                 version,
                 data,
                 depth_limit - 1,
+                remove_transparent,
             )?;
         }
     } else if ent.object_type == 0x601 {
@@ -306,6 +311,11 @@ fn read_entity<R: Read + Seek>(
         let mut index_offset_local = 0;
         for t in tristrips {
             if t.tricount < 1 {
+                break;
+            }
+
+            if remove_transparent && t.trans_type != 0 {
+                index_offset_local += t.tricount + 2;
                 continue;
             }
 

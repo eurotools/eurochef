@@ -26,6 +26,7 @@ use std::collections::HashMap;
 //     *n = (*n + 3) & !3;
 // }
 
+#[derive(Debug)]
 pub struct TriStrip {
     pub start_index: u32,
     pub index_count: u32,
@@ -38,6 +39,7 @@ pub fn dump_single_mesh_to_scene(
     strips: &[TriStrip],
     use_normals: bool,
     texture_map: &HashMap<u32, String>,
+    hashcode: u32,
 ) -> gjson::Root {
     let vdata: &[u8] = bytemuck::cast_slice(vertices);
     let idata: &[u8] = bytemuck::cast_slice(indices);
@@ -47,7 +49,7 @@ pub fn dump_single_mesh_to_scene(
         byte_length: vdata.len() as u32,
         extensions: Default::default(),
         extras: Default::default(),
-        // name: None,
+        name: None,
         uri: Some(create_data_uri(vdata)),
     };
 
@@ -58,14 +60,14 @@ pub fn dump_single_mesh_to_scene(
         byte_stride: Some(std::mem::size_of::<UXVertex>() as u32),
         extensions: Default::default(),
         extras: Default::default(),
-        // name: None,
+        name: None,
         target: Some(Checked::Valid(gjson::buffer::Target::ArrayBuffer)),
     };
     let index_buffer = gjson::Buffer {
         byte_length: idata.len() as u32,
         extensions: Default::default(),
         extras: Default::default(),
-        // name: None,
+        name: None,
         uri: Some(create_data_uri(idata)),
     };
 
@@ -81,7 +83,7 @@ pub fn dump_single_mesh_to_scene(
         type_: Checked::Valid(gjson::accessor::Type::Vec3),
         min: Some(gjson::Value::from(Vec::from(min))),
         max: Some(gjson::Value::from(Vec::from(max))),
-        // name: None,
+        name: None,
         normalized: false,
         sparse: None,
     };
@@ -97,7 +99,7 @@ pub fn dump_single_mesh_to_scene(
         type_: Checked::Valid(gjson::accessor::Type::Vec3),
         min: None,
         max: None,
-        // name: None,
+        name: None,
         normalized: false,
         sparse: None,
     };
@@ -113,7 +115,7 @@ pub fn dump_single_mesh_to_scene(
         type_: Checked::Valid(gjson::accessor::Type::Vec2),
         min: None,
         max: None,
-        // name: None,
+        name: None,
         normalized: false,
         sparse: None,
     };
@@ -127,7 +129,7 @@ pub fn dump_single_mesh_to_scene(
         extras: Default::default(),
         matrix: None,
         mesh: Some(gjson::Index::new(0)),
-        // name: None,
+        name: Some(format!("ent_{hashcode:x}")),
         rotation: None,
         scale: None,
         translation: None,
@@ -145,7 +147,7 @@ pub fn dump_single_mesh_to_scene(
         scenes: vec![gjson::Scene {
             extensions: Default::default(),
             extras: Default::default(),
-            // name: None,
+            name: None,
             nodes: vec![gjson::Index::new(0)],
         }],
         asset: gjson::Asset {
@@ -158,7 +160,7 @@ pub fn dump_single_mesh_to_scene(
     let mut mesh = gjson::Mesh {
         extensions: Default::default(),
         extras: Default::default(),
-        // name: None,
+        name: None,
         primitives: vec![],
         weights: None,
     };
@@ -173,6 +175,7 @@ pub fn dump_single_mesh_to_scene(
                 extensions: None,
                 extras: Default::default(),
                 mime_type: None,
+                name: None,
             });
 
             root.textures.push(gjson::Texture {
@@ -180,10 +183,13 @@ pub fn dump_single_mesh_to_scene(
                 extensions: None,
                 extras: Default::default(),
                 source: gjson::Index::new(root.images.len() as u32 - 1),
+                name: None,
             });
 
             root.materials.push(gjson::Material {
                 pbr_metallic_roughness: gjson::material::PbrMetallicRoughness {
+                    metallic_factor: gjson::material::StrengthFactor(0.),
+                    roughness_factor: gjson::material::StrengthFactor(1.),
                     base_color_texture: Some(gjson::texture::Info {
                         index: gjson::Index::new(root.textures.len() as u32 - 1),
                         tex_coord: 0,
@@ -192,6 +198,7 @@ pub fn dump_single_mesh_to_scene(
                     }),
                     ..Default::default()
                 },
+                name: Some(format!("{:08x}.png", t.texture_hash)),
                 ..Default::default()
             });
 
@@ -208,7 +215,7 @@ pub fn dump_single_mesh_to_scene(
             byte_stride: None,
             extensions: Default::default(),
             extras: Default::default(),
-            // name: None,
+            name: None,
             target: Some(Checked::Valid(gjson::buffer::Target::ElementArrayBuffer)),
         };
         root.buffer_views.push(index_buffer_view);
@@ -225,7 +232,7 @@ pub fn dump_single_mesh_to_scene(
             type_: Checked::Valid(gjson::accessor::Type::Scalar),
             min: None,
             max: None,
-            // name: None,
+            name: None,
             normalized: false,
             sparse: None,
         };

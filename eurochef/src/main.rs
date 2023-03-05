@@ -72,6 +72,10 @@ enum EdbCommand {
         /// Don't embed textures into the output file
         #[arg(short = 'e', long)]
         no_embed: bool,
+
+        /// Remove transparent surfaces
+        #[arg(short = 't', long)]
+        no_transparent: bool,
     },
     /// Extract spreadsheets
     Spreadsheets {
@@ -165,7 +169,14 @@ fn handle_edb(cmd: EdbCommand) -> anyhow::Result<()> {
             output_folder,
             platform,
             no_embed,
-        } => edb::entities::execute_command(filename, platform, output_folder, no_embed),
+            no_transparent,
+        } => edb::entities::execute_command(
+            filename,
+            platform,
+            output_folder,
+            no_embed,
+            no_transparent,
+        ),
         // EdbCommand::Maps { filename, platform } => edb::maps::execute_command(filename, platform),
         EdbCommand::Spreadsheets { filename } => edb::spreadsheets::execute_command(filename),
         EdbCommand::Textures {
