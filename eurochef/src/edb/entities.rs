@@ -217,6 +217,16 @@ pub fn execute_command(
             }
         }
 
+        if strips.len() <= 0 {
+            println!(
+                "Skipping entity {:x} because it doesnt have any tristrips (v={}/i={})",
+                e.common.hashcode,
+                vertex_data.len(),
+                indices.len()
+            );
+            continue;
+        }
+
         let gltf = dump_single_mesh_to_scene(
             &vertex_data,
             &indices,
