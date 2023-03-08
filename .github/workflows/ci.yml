@@ -44,3 +44,4 @@ jobs:
         with:
           name: eurochef-win-${{ env.GITHUB_SHA_SHORT }}
           path: ./target/release/eurochef.exe
+          path: ./target/release/eurochef-cli.exe
