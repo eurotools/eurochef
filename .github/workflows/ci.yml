@@ -43,6 +43,4 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: eurochef-win-${{ env.GITHUB_SHA_SHORT }}
-          path: 
-            - ./target/release/eurochef.exe
-            - ./target/release/eurochef-cli.exe
+          path: ./target/release/*.exe
