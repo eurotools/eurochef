@@ -1,6 +1,6 @@
 use std::{
     fs::File,
-    io::{Read, Seek, Write},
+    io::{BufReader, Read, Seek, Write},
     path::Path,
 };
 
@@ -20,8 +20,9 @@ pub fn execute_command(
     create_scr: bool,
 ) -> anyhow::Result<()> {
     println!("Extracting {filename} to {output_folder}");
-    let mut f = File::open(&filename).context("Failed to open filelist header")?;
-    let filelist = UXFileList::read(&mut f)?;
+    let mut file = File::open(&filename).context("Failed to open filelist header")?;
+    let mut reader = BufReader::new(&mut file);
+    let filelist = UXFileList::read(&mut reader)?;
 
     std::fs::create_dir_all(&output_folder)?;
 

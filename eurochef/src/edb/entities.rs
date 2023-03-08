@@ -1,7 +1,7 @@
 use std::{
     collections::HashMap,
     fs::File,
-    io::{Cursor, Read, Seek, Write},
+    io::{BufReader, Cursor, Read, Seek, Write},
     path::Path,
 };
 
@@ -44,14 +44,15 @@ pub fn execute_command(
     let output_folder = Path::new(&output_folder);
 
     let mut file = File::open(&filename)?;
-    let endian = if file.read_ne::<u8>().unwrap() == 0x47 {
+    let mut reader = BufReader::new(&mut file);
+    let endian = if reader.read_ne::<u8>().unwrap() == 0x47 {
         Endian::Big
     } else {
         Endian::Little
     };
-    file.seek(std::io::SeekFrom::Start(0))?;
+    reader.seek(std::io::SeekFrom::Start(0))?;
 
-    let header = file
+    let header = reader
         .read_type::<EXGeoHeader>(endian)
         .expect("Failed to read header");
 
@@ -91,10 +92,10 @@ pub fn execute_command(
         let mut data = vec![];
         let texture_decoder = texture::create_for_platform(platform);
         for t in header.texture_list.data.iter().progress_with(pb) {
-            file.seek(std::io::SeekFrom::Start(t.common.address as u64))?;
+            reader.seek(std::io::SeekFrom::Start(t.common.address as u64))?;
             let uri = format!("{:08x}_frame0.png", t.common.hashcode);
 
-            let tex = file
+            let tex = reader
                 .read_type_args::<EXGeoTexture>(endian, (header.version, platform))
                 .context("Failed to read basetexture")?;
 
@@ -122,11 +123,11 @@ pub fn execute_command(
             std::fs::create_dir_all(output_folder)?;
 
             let mut output = RgbaImage::new(tex.width as u32, tex.height as u32);
-            file.seek(std::io::SeekFrom::Start(
+            reader.seek(std::io::SeekFrom::Start(
                 tex.frame_offsets[0].offset_absolute(),
             ))?;
 
-            if let Err(e) = file.read_exact(&mut data) {
+            if let Err(e) = reader.read_exact(&mut data) {
                 println!("Failed to read texture {:x}: {}", t.common.hashcode, e);
                 texture_uri_map.insert(t.common.hashcode, uri);
                 continue;
@@ -174,9 +175,9 @@ pub fn execute_command(
 
     std::fs::create_dir_all(output_folder)?;
     for e in header.entity_list.data.iter().progress_with(pb) {
-        file.seek(std::io::SeekFrom::Start(e.common.address as u64))?;
+        reader.seek(std::io::SeekFrom::Start(e.common.address as u64))?;
 
-        let ent = file
+        let ent = reader
             .read_type_args::<EXGeoBaseEntity>(endian, (header.version,))
             .context("Failed to read entity");
 
@@ -198,7 +199,7 @@ pub fn execute_command(
             &mut strips,
             endian,
             header.version,
-            &mut file,
+            &mut reader,
             4,
             remove_transparent,
         )?;
