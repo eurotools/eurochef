@@ -1,0 +1,31 @@
+[package]
+name = "eurochef-cli"
+version = "0.1.0"
+authors = ["cohaereo <cohaereo@protonmail.com>"]
+edition = "2021"
+rust-version = "1.65"
+
+[[bin]]
+name = "eurochef-cli"
+path = "src/main.rs"
+
+[dependencies]
+eurochef-edb = { path = "../../eurochef-edb" }
+eurochef-filelist = { path = "../../eurochef-filelist" }
+eurochef-shared = { path = "../shared" }
+
+anyhow = { version = "1", features = ["backtrace"] }
+base64 = "0.21.0"
+bytemuck = { version = "1.13", features = ["derive"] }
+clap = { version = "4.1", features = ["derive", "color"] }
+clap-num = "1"
+enumn = "0.1"
+indicatif = "0.17.3"
+image = { version = "0.24", default-features = false, features = ["png", "tga"] }
+glob = "0.3"
+gltf = { version = "1.1.0", default-features = false, features = ["names"] }
+pathdiff = "0.2.1"
+qoi = "0.4.1"
+serde_json = "1"
+tracing = "0.1.37"
+walkdir = "2.3"

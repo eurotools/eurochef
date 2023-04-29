@@ -37,6 +37,7 @@ jobs:
         # relatively as eframe_template/favicon.ico. if we skip public-url option, the href paths will instead request username.github.io/favicon.ico which
         # will obviously return error 404 not found.
         run: ./trunk build --release --public-url "${GITHUB_REPOSITORY#*/}"
+      # TODO: Use a module bundler, otherwise there's (gonna be) a lot of loose snippets
       - name: Deploy
         uses: JamesIves/github-pages-deploy-action@v4
         with:

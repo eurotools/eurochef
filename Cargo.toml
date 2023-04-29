@@ -1,6 +1,8 @@
 [workspace]
 members = [
-  "eurochef",
+  "eurochef/cli",
+  "eurochef/gui",
+  "eurochef/shared",
   "eurochef-edb",
   "eurochef-elx",
   "eurochef-filelist"
