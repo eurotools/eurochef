@@ -79,7 +79,11 @@ impl TextureList {
                         let frame_time = (1. / t.framerate as f32) * frametime_scale;
 
                         let frames = &self.egui_textures[&t.hashcode];
-                        let current = if frames.len() > 0 {
+                        if frames.len() == 0 {
+                            continue;
+                        }
+
+                        let current = if frames.len() > 1 {
                             &frames[(time / frame_time) as usize % frames.len()]
                         } else {
                             &frames[0]

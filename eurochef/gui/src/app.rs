@@ -72,6 +72,11 @@ impl eframe::App for EurochefApp {
                             .add_filter("Eurocom DB", &["edb"])
                             .pick_file()
                         {
+                            *current_panel = Panel::FileInfo;
+                            *spreadsheetlist = None;
+                            *fileinfo = None;
+                            *textures = None;
+
                             let mut file = std::fs::File::open(path).unwrap();
                             *fileinfo = Some(fileinfo::FileInfoPanel::new(
                                 fileinfo::read_from_file(&mut file),
@@ -88,6 +93,8 @@ impl eframe::App for EurochefApp {
                             )));
 
                             textures.as_mut().unwrap().load_textures(ctx);
+
+                            ui.close_menu()
                         }
                     }
                 });
@@ -166,11 +173,11 @@ impl eframe::App for EurochefApp {
                     ui.selectable_value(current_panel, Panel::FileInfo, "File info");
                 }
 
-                if textures.is_some() {
+                if spreadsheetlist.is_some() {
                     ui.selectable_value(current_panel, Panel::Spreadsheets, "Spreadsheets");
                 }
 
-                if spreadsheetlist.is_some() {
+                if textures.is_some() {
                     ui.selectable_value(current_panel, Panel::Textures, "Textures");
                 }
             });

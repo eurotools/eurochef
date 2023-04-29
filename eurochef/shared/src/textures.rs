@@ -5,6 +5,7 @@ use eurochef_edb::{
     binrw::BinReaderExt, header::EXGeoHeader, texture::EXGeoTexture, versions::Platform,
 };
 use image::RgbaImage;
+use tracing::error;
 
 use crate::platform::texture;
 
@@ -58,7 +59,7 @@ impl UXGeoTexture {
             );
 
             if let Err(e) = calculated_size {
-                println!("Failed to extract texture {:x}: {:?}", t.common.hashcode, e);
+                error!("Failed to extract texture {:x}: {:?}", t.common.hashcode, e);
                 continue;
             }
 
@@ -88,9 +89,7 @@ impl UXGeoTexture {
                 reader.seek(std::io::SeekFrom::Start(frame_offset.offset_absolute()))?;
 
                 if let Err(e) = reader.read_exact(&mut data) {
-                    // TODO: this function is kind of supposed to be headless, having prints wouldnt be that nice
-                    // TODO: or `log` or `tracing` (probably tracing for profiling)
-                    println!("Failed to read texture {:x}: {}", t.common.hashcode, e);
+                    error!("Failed to read texture {:x}: {}", t.common.hashcode, e);
                 }
 
                 if let Err(e) = texture_decoder.decode(
@@ -101,7 +100,7 @@ impl UXGeoTexture {
                     tex.depth as u32,
                     tex.format,
                 ) {
-                    println!("Texture {:08x} failed to decode: {}", t.common.hashcode, e);
+                    error!("Texture {:08x} failed to decode: {}", t.common.hashcode, e);
                     continue;
                 }
 

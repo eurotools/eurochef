@@ -14,3 +14,4 @@ bytemuck = { version = "1.13", features = ["derive"] }
 enumn = "0.1"
 image = { version = "0.24", default-features = false, features = ["png", "tga"] }
 squish = "1.0"
+tracing = "0.1.37"

@@ -827,6 +827,7 @@ dependencies = [
  "eurochef-filelist",
  "image",
  "squish",
+ "tracing",
 ]
 
 [[package]]
