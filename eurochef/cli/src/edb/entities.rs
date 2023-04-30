@@ -177,7 +177,6 @@ pub fn execute_command(
     for e in header.entity_list.data.iter().progress_with(pb) {
         reader.seek(std::io::SeekFrom::Start(e.common.address as u64))?;
 
-        println!("{:x}", e.common.address);
         let ent = reader
             .read_type_args::<EXGeoBaseEntity>(endian, (header.version,))
             .context("Failed to read entity");
@@ -193,7 +192,7 @@ pub fn execute_command(
         let mut indices = vec![];
         let mut strips = vec![];
 
-        read_entity(
+        if let Err(err) = read_entity(
             &ent,
             &mut vertex_data,
             &mut indices,
@@ -203,7 +202,10 @@ pub fn execute_command(
             &mut reader,
             4,
             remove_transparent,
-        )?;
+        ) {
+            error!("Failed to extract entity {:x}: {err}", e.common.hashcode);
+            continue;
+        }
 
         // Process vertex data (flipping vertex data and UVs)
         for v in &mut vertex_data {
@@ -293,6 +295,13 @@ fn read_entity<R: Read + Seek>(
                         uv: d.2,
                     });
                 }
+                248 | 259 => {
+                    vertex_data.push(UXVertex {
+                        pos: data.read_type(endian)?,
+                        norm: data.read_type(endian)?,
+                        uv: data.read_type(endian)?,
+                    });
+                }
                 _ => {
                     panic!(
                         "Vertex format for version {version} is not known yet, report to cohae!"
@@ -363,6 +372,10 @@ fn read_entity<R: Read + Seek>(
             index_offset_local += t.tricount + 2;
         }
     } else {
+        if (0x600..0x700).contains(&ent.object_type) {
+            anyhow::bail!("Unsupported object type 0x{:x}", ent.object_type)
+        }
+
         anyhow::bail!("Invalid obj type 0x{:x}", ent.object_type)
     }
 
