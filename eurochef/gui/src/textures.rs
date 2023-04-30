@@ -18,7 +18,9 @@ pub struct TextureList {
 
     start_time: Instant,
 
+    // Options/filters
     zoom: f32,
+    filter_animated: bool,
 
     enlarged_texture: Option<(usize, u32)>,
 }
@@ -29,7 +31,9 @@ impl TextureList {
             textures,
             egui_textures: FnvHashMap::default(),
             start_time: Instant::now(),
+
             zoom: 1.0,
+            filter_animated: false,
 
             enlarged_texture: None,
         }
@@ -62,6 +66,8 @@ impl TextureList {
             egui::Slider::new(&mut self.zoom, 0.25..=3.0)
                 .show_value(true)
                 .ui(ui);
+
+            egui::Checkbox::new(&mut self.filter_animated, "Animated only").ui(ui);
         });
 
         ui.separator();
@@ -74,6 +80,10 @@ impl TextureList {
                 ui.horizontal_wrapped(|ui| {
                     ui.spacing_mut().item_spacing = [4.; 2].into();
                     for (i, t) in self.textures.iter().enumerate() {
+                        if self.filter_animated && self.textures[i].frame_count <= 1 {
+                            continue;
+                        }
+
                         let time = self.start_time.elapsed().as_secs_f32();
                         let frametime_scale = t.frame_count as f32 / t.frames.len() as f32;
                         let frame_time = (1. / t.framerate as f32) * frametime_scale;
