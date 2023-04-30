@@ -110,8 +110,13 @@ enum EdbCommand {
         platform: Option<PlatformArg>,
 
         /// Output file format to use (supported: tga, png, qoi)
+        /// Selecting PNG will export animated textures as APNGs (unless disabled)
         #[arg(short, long, default_value("tga"))]
         format: String,
+
+        /// Don't export APNGs when using PNG as output format
+        #[arg(long)]
+        no_apngs: bool,
     },
 }
 
@@ -193,7 +198,8 @@ fn handle_edb(cmd: EdbCommand) -> anyhow::Result<()> {
             platform,
             output_folder,
             format,
-        } => edb::textures::execute_command(filename, platform, output_folder, format),
+            no_apngs,
+        } => edb::textures::execute_command(filename, platform, output_folder, format, no_apngs),
     }
 }
 

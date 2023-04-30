@@ -104,6 +104,17 @@ impl UXGeoTexture {
                     continue;
                 }
 
+                if output.len() != (t.width as usize * t.height as usize) * 4 {
+                    error!(
+                        "Texture {:08x} has mismatching data length (expected {}, got {})",
+                        t.common.hashcode,
+                        (t.width as usize * t.height as usize) * 4,
+                        output.len()
+                    );
+
+                    continue;
+                }
+
                 texture.frames.push(output.clone().into_vec());
             }
 
