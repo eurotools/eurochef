@@ -82,18 +82,9 @@ impl eframe::App for EurochefApp {
     /// Called each time the UI needs repainting, which may be many times per second.
     /// Put your widgets into a `SidePanel`, `TopPanel`, `CentralPanel`, `Window` or `Area`.
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        let Self {
-            state,
-            current_panel,
-            spreadsheetlist,
-            fileinfo,
-            textures,
-            update_textures,
-        } = self;
-
-        if *update_textures {
-            textures.as_mut().unwrap().load_textures(ctx);
-            *update_textures = false;
+        if self.update_textures {
+            self.textures.as_mut().unwrap().load_textures(ctx);
+            self.update_textures = false;
         }
 
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
@@ -105,26 +96,32 @@ impl eframe::App for EurochefApp {
                         // TODO(cohae): drag and drop loading
                         // TODO(cohae): async loading (will allow WASM support)
                         #[cfg(not(target_arch = "wasm32"))]
-                        if let Some(path) = rfd::FileDialog::new()
-                            .add_filter("Eurocom DB", &["edb"])
-                            .pick_file()
-                        {
-                            ui.close_menu()
+                        match nfd::open_file_dialog(Some("edb"), None) {
+                            Ok(o) => match o {
+                                nfd::Response::Okay(f) => self.load_file(f),
+                                nfd::Response::OkayMultiple(f) => self.load_file(f[0].clone()),
+                                nfd::Response::Cancel => {}
+                            },
+                            Err(e) => {
+                                self.state = AppState::Error(e.into());
+                            }
                         }
+
+                        ui.close_menu()
                     }
                 });
             });
         });
 
         // Run the app at refresh rate on the texture panel (for animated textures)
-        match current_panel {
+        match self.current_panel {
             Panel::Textures => ctx.request_repaint(),
             _ => {
                 ctx.request_repaint_after(std::time::Duration::from_secs_f32(1.));
             }
         }
 
-        match state {
+        match &self.state {
             AppState::Ready => {}
             AppState::Loading(s) => {
                 let screen_rect = ctx.screen_rect();
@@ -172,41 +169,45 @@ impl eframe::App for EurochefApp {
                     });
 
                 if !open {
-                    *state = AppState::Ready;
+                    self.state = AppState::Ready;
                 }
             }
         }
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            if fileinfo.is_none() {
+            if self.fileinfo.is_none() {
                 ui.heading("No file loaded");
                 return;
             }
 
             ui.horizontal(|ui| {
-                if fileinfo.is_some() {
-                    ui.selectable_value(current_panel, Panel::FileInfo, "File info");
+                if self.fileinfo.is_some() {
+                    ui.selectable_value(&mut self.current_panel, Panel::FileInfo, "File info");
                 }
 
-                if spreadsheetlist.is_some() {
-                    ui.selectable_value(current_panel, Panel::Spreadsheets, "Spreadsheets");
+                if self.spreadsheetlist.is_some() {
+                    ui.selectable_value(
+                        &mut self.current_panel,
+                        Panel::Spreadsheets,
+                        "Spreadsheets",
+                    );
                 }
 
-                if textures.is_some() {
-                    ui.selectable_value(current_panel, Panel::Textures, "Textures");
+                if self.textures.is_some() {
+                    ui.selectable_value(&mut self.current_panel, Panel::Textures, "Textures");
                 }
             });
             ui.separator();
 
-            match current_panel {
-                Panel::FileInfo => fileinfo.as_mut().map(|s| s.show(ui)),
-                Panel::Textures => textures.as_mut().map(|s| s.show(ui)),
-                Panel::Spreadsheets => spreadsheetlist.as_mut().map(|s| s.show(ui)),
+            match self.current_panel {
+                Panel::FileInfo => self.fileinfo.as_mut().map(|s| s.show(ui)),
+                Panel::Textures => self.textures.as_mut().map(|s| s.show(ui)),
+                Panel::Spreadsheets => self.spreadsheetlist.as_mut().map(|s| s.show(ui)),
             };
         });
 
-        match current_panel {
-            Panel::Textures => textures.as_mut().map(|s| s.show_enlarged_window(ctx)),
+        match self.current_panel {
+            Panel::Textures => self.textures.as_mut().map(|s| s.show_enlarged_window(ctx)),
             _ => None,
         };
     }

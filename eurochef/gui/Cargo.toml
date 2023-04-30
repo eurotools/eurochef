@@ -28,8 +28,9 @@ eframe = { version = "0.21.0", default-features = false, features = [
 ] }
 fnv = "1.0"
 instant = "0.1"
-rfd = "0.11.2"
+# rfd = "0.11.2"
 color-eyre = "0.6.2"
+nfd = "0.0.4"
 
 # native:
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
