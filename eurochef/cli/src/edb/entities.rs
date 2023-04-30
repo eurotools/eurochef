@@ -283,7 +283,6 @@ fn read_entity<R: Read + Seek>(
         let nent = ent.normal_entity.as_ref().unwrap();
 
         data.seek(std::io::SeekFrom::Start(nent.vertex_data.offset_absolute()))?;
-        // TODO: Should probably not fall back to 3-3-2 but raise an error instead?
         for _ in 0..nent.vertex_count {
             match version {
                 252 | 250 | 240 | 221 => {
@@ -295,11 +294,9 @@ fn read_entity<R: Read + Seek>(
                     });
                 }
                 _ => {
-                    vertex_data.push(UXVertex {
-                        pos: data.read_type(endian)?,
-                        norm: data.read_type(endian)?,
-                        uv: data.read_type(endian)?,
-                    });
+                    panic!(
+                        "Vertex format for version {version} is not known yet, report to cohae!"
+                    );
                 }
             }
         }
