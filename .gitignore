@@ -3,6 +3,9 @@ extract/
 data/
 xroot/
 
+.idea
+.vscode
+
 *.edb
 *.sfx
 *.dll

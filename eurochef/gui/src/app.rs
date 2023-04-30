@@ -1,3 +1,6 @@
+use std::sync::Arc;
+
+use crossbeam::atomic::AtomicCell;
 use egui::{Color32, NumExt};
 
 use crate::{fileinfo, spreadsheet, textures};
@@ -23,7 +26,8 @@ pub struct EurochefApp {
     spreadsheetlist: Option<spreadsheet::TextItemList>,
     fileinfo: Option<fileinfo::FileInfoPanel>,
     textures: Option<textures::TextureList>,
-    update_textures: bool,
+
+    load_input: Arc<AtomicCell<Option<String>>>,
 }
 
 impl Default for EurochefApp {
@@ -34,7 +38,7 @@ impl Default for EurochefApp {
             spreadsheetlist: None,
             fileinfo: None,
             textures: None,
-            update_textures: false,
+            load_input: Arc::new(AtomicCell::new(None)),
         }
     }
 }
@@ -45,13 +49,14 @@ impl EurochefApp {
         let mut s = Self::default();
 
         if let Some(path) = path {
-            s.load_file(path);
+            // s.load_file(path);
+            s.load_input.store(Some(path));
         }
 
         s
     }
 
-    pub fn load_file<P: AsRef<std::path::Path>>(&mut self, path: P) {
+    pub fn load_file<P: AsRef<std::path::Path>>(&mut self, path: P, ctx: &egui::Context) {
         self.current_panel = Panel::FileInfo;
         self.spreadsheetlist = None;
         self.fileinfo = None;
@@ -71,7 +76,7 @@ impl EurochefApp {
             &mut file,
         )));
 
-        self.update_textures = true;
+        self.textures.as_mut().unwrap().load_textures(ctx);
     }
 }
 
@@ -82,20 +87,21 @@ impl eframe::App for EurochefApp {
     /// Called each time the UI needs repainting, which may be many times per second.
     /// Put your widgets into a `SidePanel`, `TopPanel`, `CentralPanel`, `Window` or `Area`.
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        if let Some(load_path) = self.load_input.take() {
+            self.load_file(load_path, ctx);
+        }
+
         let Self {
             state,
             current_panel,
             spreadsheetlist,
             fileinfo,
             textures,
-            update_textures,
+            load_input,
+            ..
         } = self;
 
-        if *update_textures {
-            textures.as_mut().unwrap().load_textures(ctx);
-            *update_textures = false;
-        }
-
+        let load_clone = load_input.clone();
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             egui::menu::bar(ui, |ui| {
                 ui.menu_button("File", |ui| {
@@ -105,12 +111,16 @@ impl eframe::App for EurochefApp {
                         // TODO(cohae): drag and drop loading
                         // TODO(cohae): async loading (will allow WASM support)
                         #[cfg(not(target_arch = "wasm32"))]
-                        if let Some(path) = rfd::FileDialog::new()
-                            .add_filter("Eurocom DB", &["edb"])
-                            .pick_file()
-                        {
-                            ui.close_menu()
-                        }
+                        std::thread::spawn(move || {
+                            if let Some(path) = rfd::FileDialog::new()
+                                .add_filter("Eurocom DB", &["edb"])
+                                .pick_file()
+                            {
+                                load_clone.store(Some(path.to_string_lossy().to_string()));
+                            }
+                        });
+
+                        ui.close_menu()
                     }
                 });
             });
