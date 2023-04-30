@@ -1,6 +1,7 @@
 **/target
 extract/
 data/
+xroot/
 
 *.edb
 *.sfx

@@ -23,6 +23,7 @@ pub struct EurochefApp {
     spreadsheetlist: Option<spreadsheet::TextItemList>,
     fileinfo: Option<fileinfo::FileInfoPanel>,
     textures: Option<textures::TextureList>,
+    update_textures: bool,
 }
 
 impl Default for EurochefApp {
@@ -33,14 +34,44 @@ impl Default for EurochefApp {
             spreadsheetlist: None,
             fileinfo: None,
             textures: None,
+            update_textures: false,
         }
     }
 }
 
 impl EurochefApp {
     /// Called once before the first frame.
-    pub fn new(_cc: &eframe::CreationContext<'_>) -> Self {
-        Self::default()
+    pub fn new(path: Option<String>) -> Self {
+        let mut s = Self::default();
+
+        if let Some(path) = path {
+            s.load_file(path);
+        }
+
+        s
+    }
+
+    pub fn load_file<P: AsRef<std::path::Path>>(&mut self, path: P) {
+        self.current_panel = Panel::FileInfo;
+        self.spreadsheetlist = None;
+        self.fileinfo = None;
+        self.textures = None;
+
+        let mut file = std::fs::File::open(path).unwrap();
+        self.fileinfo = Some(fileinfo::FileInfoPanel::new(fileinfo::read_from_file(
+            &mut file,
+        )));
+
+        let spreadsheets = spreadsheet::read_from_file(&mut file);
+        if spreadsheets.len() > 0 {
+            self.spreadsheetlist = Some(spreadsheet::TextItemList::new(spreadsheets[0].clone()));
+        }
+
+        self.textures = Some(textures::TextureList::new(textures::read_from_file(
+            &mut file,
+        )));
+
+        self.update_textures = true;
     }
 }
 
@@ -57,7 +88,13 @@ impl eframe::App for EurochefApp {
             spreadsheetlist,
             fileinfo,
             textures,
+            update_textures,
         } = self;
+
+        if *update_textures {
+            textures.as_mut().unwrap().load_textures(ctx);
+            *update_textures = false;
+        }
 
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             egui::menu::bar(ui, |ui| {
@@ -72,28 +109,6 @@ impl eframe::App for EurochefApp {
                             .add_filter("Eurocom DB", &["edb"])
                             .pick_file()
                         {
-                            *current_panel = Panel::FileInfo;
-                            *spreadsheetlist = None;
-                            *fileinfo = None;
-                            *textures = None;
-
-                            let mut file = std::fs::File::open(path).unwrap();
-                            *fileinfo = Some(fileinfo::FileInfoPanel::new(
-                                fileinfo::read_from_file(&mut file),
-                            ));
-
-                            let spreadsheets = spreadsheet::read_from_file(&mut file);
-                            if spreadsheets.len() > 0 {
-                                *spreadsheetlist =
-                                    Some(spreadsheet::TextItemList::new(spreadsheets[0].clone()));
-                            }
-
-                            *textures = Some(textures::TextureList::new(textures::read_from_file(
-                                &mut file,
-                            )));
-
-                            textures.as_mut().unwrap().load_textures(ctx);
-
                             ui.close_menu()
                         }
                     }

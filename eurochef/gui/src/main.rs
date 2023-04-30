@@ -1,18 +1,29 @@
 #![warn(clippy::all, rust_2018_idioms)]
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide
 
+use color_eyre::eyre::Result;
+
 // When compiling natively:
 #[cfg(not(target_arch = "wasm32"))]
-fn main() -> eframe::Result<()> {
+fn main() -> Result<()> {
+    use color_eyre::Report;
+
+    color_eyre::install()?;
+
     // Log to stdout (if you run with `RUST_LOG=debug`).
     tracing_subscriber::fmt::init();
 
     let native_options = eframe::NativeOptions::default();
-    eframe::run_native(
+    let res = eframe::run_native(
         "Eurochef",
         native_options,
-        Box::new(|cc| Box::new(eurochef_gui::EurochefApp::new(cc))),
-    )
+        Box::new(|cc| Box::new(eurochef_gui::EurochefApp::new(std::env::args().nth(1)))),
+    );
+
+    match res {
+        Ok(()) => Ok(()),
+        Err(e) => Err(Report::msg(e.to_string())),
+    }
 }
 
 // when compiling to web using trunk.
