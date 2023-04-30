@@ -65,7 +65,7 @@ pub fn execute_command(
         anyhow::bail!("Entity extraction is only supported for PC and Xbox (for now)")
     }
 
-    println!("Selected platform {platform:?}");
+    info!("Selected platform {platform:?}");
 
     let mut texture_uri_map: HashMap<u32, String> = HashMap::new();
     if dont_embed_textures {
@@ -92,6 +92,10 @@ pub fn execute_command(
         let mut data = vec![];
         let texture_decoder = texture::create_for_platform(platform);
         for t in header.texture_list.data.iter().progress_with(pb) {
+            let hash_str = format!("0x{:x}", t.common.hashcode);
+            let _span = error_span!("texture", hash = %hash_str);
+            let _span_enter = _span.enter();
+
             reader.seek(std::io::SeekFrom::Start(t.common.address as u64))?;
             let uri = format!("{:08x}_frame0.png", t.common.hashcode);
 
@@ -107,7 +111,7 @@ pub fn execute_command(
             );
 
             if let Err(e) = calculated_size {
-                println!("Failed to extract texture {:x}: {:?}", t.common.hashcode, e);
+                error!("Failed to extract texture: {:?}", e);
                 texture_uri_map.insert(t.common.hashcode, uri);
                 continue;
             }
@@ -128,7 +132,7 @@ pub fn execute_command(
             ))?;
 
             if let Err(e) = reader.read_exact(&mut data) {
-                println!("Failed to read texture {:x}: {}", t.common.hashcode, e);
+                error!("Failed to read texture: {}", e);
                 texture_uri_map.insert(t.common.hashcode, uri);
                 continue;
             }
@@ -141,7 +145,7 @@ pub fn execute_command(
                 tex.depth as u32,
                 tex.format,
             ) {
-                println!("Texture {:08x} failed to decode: {}", t.common.hashcode, e);
+                error!("Texture failed to decode: {}", e);
                 texture_uri_map.insert(t.common.hashcode, uri);
                 continue;
             }
@@ -175,14 +179,16 @@ pub fn execute_command(
 
     std::fs::create_dir_all(output_folder)?;
     for e in header.entity_list.data.iter().progress_with(pb) {
+        let hash_str = format!("0x{:x}", e.common.hashcode);
+        let _span = error_span!("entity", hash = %hash_str);
+        let _span_enter = _span.enter();
+
         reader.seek(std::io::SeekFrom::Start(e.common.address as u64))?;
 
-        let ent = reader
-            .read_type_args::<EXGeoBaseEntity>(endian, (header.version,))
-            .context("Failed to read entity");
+        let ent = reader.read_type_args::<EXGeoBaseEntity>(endian, (header.version,));
 
         if let Err(err) = ent {
-            println!("Failed to read entity {:x} {:?}", e.common.hashcode, err);
+            error!("Failed to read entity: {err}");
             continue;
         }
 
@@ -203,7 +209,7 @@ pub fn execute_command(
             4,
             remove_transparent,
         ) {
-            error!("Failed to extract entity {:x}: {err}", e.common.hashcode);
+            error!("Failed to extract entity: {err}");
             continue;
         }
 
@@ -222,9 +228,8 @@ pub fn execute_command(
         }
 
         if strips.len() <= 0 {
-            println!(
-                "Skipping entity {:x} because it doesnt have any tristrips (v={}/i={})",
-                e.common.hashcode,
+            error!(
+                "Skipping entity because it doesnt have any tristrips (v={}/i={})",
                 vertex_data.len(),
                 indices.len()
             );
@@ -341,7 +346,7 @@ fn read_entity<R: Read + Seek>(
                 if t.texture_index < nent.texture_list.data.textures.len() as i32 {
                     nent.texture_list.data.textures[t.texture_index as usize] as i32
                 } else {
-                    println!("Warning: tried to get texture #{} from texture list, but list only has {} elements!", t.texture_index, nent.texture_list.data.textures.len());
+                    error!("Tried to get texture #{} from texture list, but list only has {} elements!", t.texture_index, nent.texture_list.data.textures.len());
                     -1
                 }
             } else {

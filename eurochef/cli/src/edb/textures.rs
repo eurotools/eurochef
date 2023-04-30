@@ -66,20 +66,25 @@ pub fn execute_command(
 
     let textures = UXGeoTexture::read_all(header, &mut reader, platform)?;
     for t in textures.into_iter().progress_with(pb) {
+        let hash_str = format!("0x{:x}", t.hashcode);
+        let _span = error_span!("texture", hash = %hash_str);
+        let _span_enter = _span.enter();
+
         for (i, f) in t.frames.into_iter().enumerate() {
             if t.depth > 1 {
-                println!("Texture {:08x} is 3D, skipping", t.hashcode);
+                error!("Texture is 3D, skipping");
                 continue;
             }
 
             // TODO: Should this be handled by UXGeoTexture??
             if f.len() != (t.width as usize * t.height as usize) * 4 {
-                panic!(
-                    "Texture {:08x} has mismatching data length (expected {}, got {})",
-                    t.hashcode,
+                error!(
+                    "Texture has mismatching data length (expected {}, got {})",
                     (t.width as usize * t.height as usize) * 4,
                     f.len()
                 );
+
+                continue;
             }
 
             let filename =

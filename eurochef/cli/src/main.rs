@@ -160,6 +160,7 @@ enum FilelistCommand {
 }
 
 pub fn main() -> anyhow::Result<()> {
+    tracing_subscriber::fmt().without_time().init();
     let args = Args::parse();
 
     match &args.cmd {
