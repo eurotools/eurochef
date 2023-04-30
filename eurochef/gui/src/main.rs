@@ -17,7 +17,7 @@ fn main() -> Result<()> {
     let res = eframe::run_native(
         "Eurochef",
         native_options,
-        Box::new(|cc| Box::new(eurochef_gui::EurochefApp::new(std::env::args().nth(1)))),
+        Box::new(|_cc| Box::new(eurochef_gui::EurochefApp::new(std::env::args().nth(1)))),
     );
 
     match res {

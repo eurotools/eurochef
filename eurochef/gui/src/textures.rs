@@ -163,19 +163,13 @@ impl TextureList {
 }
 
 // TODO(cohae): EdbFile struct so we dont have to read endianness separately
-pub fn read_from_file<R: Read + Seek>(reader: &mut R) -> Vec<UXGeoTexture> {
+pub fn read_from_file<R: Read + Seek>(reader: &mut R, platform: Platform) -> Vec<UXGeoTexture> {
     reader.seek(std::io::SeekFrom::Start(0)).ok();
     let endian = if reader.read_ne::<u8>().unwrap() == 0x47 {
         Endian::Big
     } else {
         Endian::Little
     };
-
-    let platform = Platform::from_path(
-        // "/home/mikaela/Documents/Projects/eurochef-gui/data/GC files/PAL/x;/spyro/binary/_bin_gc/realm2c.edb",
-        "/home/mikaela/Documents/Projects/eurochef-gui/xroot/gforce/binary/_bin_pc/io_ekios.edb",
-    )
-    .unwrap();
 
     reader.seek(std::io::SeekFrom::Start(0)).unwrap();
 

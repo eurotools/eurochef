@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use crossbeam::atomic::AtomicCell;
 use egui::{Color32, NumExt};
+use eurochef_edb::versions::Platform;
 
 use crate::{fileinfo, spreadsheet, textures};
 
@@ -46,7 +47,7 @@ impl Default for EurochefApp {
 impl EurochefApp {
     /// Called once before the first frame.
     pub fn new(path: Option<String>) -> Self {
-        let mut s = Self::default();
+        let s = Self::default();
 
         if let Some(path) = path {
             // s.load_file(path);
@@ -62,6 +63,18 @@ impl EurochefApp {
         self.fileinfo = None;
         self.textures = None;
 
+        let platform = match Platform::from_path(&path) {
+            Some(p) => p,
+            None => {
+                self.state = AppState::Error(anyhow::anyhow!(
+                    "Couldn't derive platform from path '{:?}'",
+                    &path.as_ref()
+                ));
+                return;
+            }
+        };
+
+        // TODO(cohae): should loader functions be in the struct impls?
         let mut file = std::fs::File::open(path).unwrap();
         self.fileinfo = Some(fileinfo::FileInfoPanel::new(fileinfo::read_from_file(
             &mut file,
@@ -73,7 +86,7 @@ impl EurochefApp {
         }
 
         self.textures = Some(textures::TextureList::new(textures::read_from_file(
-            &mut file,
+            &mut file, platform,
         )));
 
         self.textures.as_mut().unwrap().load_textures(ctx);
