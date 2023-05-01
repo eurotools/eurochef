@@ -58,5 +58,7 @@ pub fn execute_command(filename: String, section: Option<u32>) -> anyhow::Result
         }
     }
 
+    info!("Successfully extracted spreadsheets!");
+
     Ok(())
 }

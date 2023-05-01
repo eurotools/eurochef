@@ -95,6 +95,8 @@ pub fn execute_command(
         outfile.write_all(json_string.as_bytes())?;
     }
 
+    info!("Successfully extracted maps!");
+
     Ok(())
 }
 

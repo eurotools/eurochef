@@ -244,7 +244,7 @@ pub fn execute_command(
         }
 
         if strips.len() <= 0 {
-            error!(
+            warn!(
                 "Skipping entity because it doesnt have any tristrips (v={}/i={})",
                 vertex_data.len(),
                 indices.len()
@@ -267,6 +267,8 @@ pub fn execute_command(
 
         outfile.write_all(json_string.as_bytes())?;
     }
+
+    info!("Successfully extracted entities!");
 
     Ok(())
 }

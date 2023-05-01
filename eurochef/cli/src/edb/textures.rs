@@ -72,7 +72,7 @@ pub fn execute_command(
         let _span_enter = _span.enter();
 
         if t.depth > 1 {
-            error!("Texture is 3D, skipping");
+            warn!("Texture is 3D, skipping");
             continue;
         }
 
@@ -132,6 +132,8 @@ pub fn execute_command(
             }
         }
     }
+
+    info!("Successfully extracted textures!");
 
     Ok(())
 }
