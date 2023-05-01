@@ -93,6 +93,9 @@ enum EdbCommand {
         /// .edb file to read
         filename: String,
 
+        /// Output folder for maps (default: "./maps/{filename}/")
+        output_folder: Option<String>,
+
         /// Override for platform detection
         #[arg(value_enum, short, long, ignore_case = true)]
         platform: Option<PlatformArg>,
@@ -189,9 +192,11 @@ fn handle_edb(cmd: EdbCommand) -> anyhow::Result<()> {
             no_embed,
             no_transparent,
         ),
-        EdbCommand::Maps { filename, platform } => {
-            edb::maps::execute_command(filename, platform, None)
-        }
+        EdbCommand::Maps {
+            filename,
+            platform,
+            output_folder,
+        } => edb::maps::execute_command(filename, platform, output_folder),
         EdbCommand::Spreadsheets { filename, section } => {
             edb::spreadsheets::execute_command(filename, section)
         }
