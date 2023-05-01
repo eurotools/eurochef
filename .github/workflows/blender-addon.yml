@@ -4,8 +4,6 @@ on:
   pull_request:
   push:
     branches: ["main"]
-    paths:
-      - "blender_addon"
 
 jobs:
   build:

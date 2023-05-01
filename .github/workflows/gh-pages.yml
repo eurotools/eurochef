@@ -5,6 +5,7 @@ on:
     branches: ["main"]
     paths-ignore:
       - "**/.md"
+      - "blender_addon"
 
 permissions:
   contents: write # for committing to gh-pages branch.
