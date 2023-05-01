@@ -30,7 +30,22 @@ pub fn execute_command(
             .to_string(),
     ));
 
-    println!("{output_folder}");
+    let mut file = File::open(&filename)?;
+    let endian = if file.read_ne::<u8>().unwrap() == 0x47 {
+        Endian::Big
+    } else {
+        Endian::Little
+    };
+    file.seek(std::io::SeekFrom::Start(0))?;
+
+    let header = file
+        .read_type::<EXGeoHeader>(endian)
+        .expect("Failed to read header");
+
+    if header.map_list.array_size == 0 {
+        warn!("File does not contain any maps!");
+        return Ok(());
+    }
 
     // * Almost as hacky as calling eurochef through a subprocess
     crate::edb::entities::execute_command(
@@ -43,18 +58,6 @@ pub fn execute_command(
 
     let output_folder = Path::new(&output_folder);
     std::fs::create_dir_all(output_folder)?;
-
-    let mut file = File::open(&filename)?;
-    let endian = if file.read_ne::<u8>().unwrap() == 0x47 {
-        Endian::Big
-    } else {
-        Endian::Little
-    };
-    file.seek(std::io::SeekFrom::Start(0))?;
-
-    let header = file
-        .read_type::<EXGeoHeader>(endian)
-        .expect("Failed to read header");
 
     for m in &header.map_list {
         file.seek(std::io::SeekFrom::Start(m.address as u64))?;
