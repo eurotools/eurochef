@@ -88,7 +88,7 @@ pub fn execute_command(
         );
         pb.set_message("Extracting textures");
 
-        // TODO: Library needs to do this and whatnot
+        // TODO(cohae): Use UXGeoTexture for this
         let mut data = vec![];
         let texture_decoder = texture::create_for_platform(platform);
         for t in header.texture_list.data.iter().progress_with(pb) {
@@ -165,7 +165,25 @@ pub fn execute_command(
         }
     }
 
-    let pb = ProgressBar::new(header.entity_list.data.len() as u64)
+    std::fs::create_dir_all(output_folder)?;
+    let mut entity_offsets: Vec<(u64, String)> = header
+        .entity_list
+        .data
+        .iter()
+        .map(|e| (e.common.address as u64, format!("{:x}", e.common.hashcode)))
+        .collect();
+
+    // Find entities in refpointers
+    for (i, r) in header.refpointer_list.data.iter().enumerate() {
+        reader.seek(std::io::SeekFrom::Start(r.address as u64))?;
+        let etype = reader.read_type::<u16>(endian)?;
+
+        if etype == 0x601 || etype == 0x603 {
+            entity_offsets.push((r.address as u64, format!("ref_{i}")))
+        }
+    }
+
+    let pb = ProgressBar::new(entity_offsets.len() as u64)
         .with_finish(indicatif::ProgressFinish::AndLeave);
     pb.set_style(
         ProgressStyle::with_template(
@@ -177,13 +195,11 @@ pub fn execute_command(
     );
     pb.set_message("Extracting entities");
 
-    std::fs::create_dir_all(output_folder)?;
-    for e in header.entity_list.data.iter().progress_with(pb) {
-        let hash_str = format!("0x{:x}", e.common.hashcode);
-        let _span = error_span!("entity", hash = %hash_str);
+    for (ent_offset, ent_id) in entity_offsets.iter().progress_with(pb) {
+        let _span = error_span!("entity", id = %ent_id);
         let _span_enter = _span.enter();
 
-        reader.seek(std::io::SeekFrom::Start(e.common.address as u64))?;
+        reader.seek(std::io::SeekFrom::Start(*ent_offset))?;
 
         let ent = reader.read_type_args::<EXGeoBaseEntity>(endian, (header.version,));
 
@@ -242,10 +258,9 @@ pub fn execute_command(
             &strips,
             ![252, 250, 240, 221].contains(&header.version),
             &texture_uri_map,
-            e.common.hashcode,
+            &ent_id,
         );
-        let mut outfile =
-            File::create(output_folder.join(format!("{:x}.gltf", e.common.hashcode)))?;
+        let mut outfile = File::create(output_folder.join(format!("{}.gltf", ent_id)))?;
 
         let json_string =
             gltf::json::serialize::to_string(&gltf).context("glTF serialization error")?;
