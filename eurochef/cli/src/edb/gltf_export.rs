@@ -199,6 +199,23 @@ pub fn dump_single_mesh_to_scene(
                     ..Default::default()
                 },
                 name: Some(format!("{:08x}.png", t.texture_hash)),
+                extensions: Some(gjson::extensions::material::Material {
+                    pbr_specular_glossiness: Some(
+                        gjson::extensions::material::PbrSpecularGlossiness {
+                            diffuse_texture: Some(gjson::texture::Info {
+                                index: gjson::Index::new(root.textures.len() as u32 - 1),
+                                tex_coord: 0,
+                                extensions: None,
+                                extras: Default::default(),
+                            }),
+                            specular_factor: gjson::extensions::material::PbrSpecularFactor([
+                                0.0, 0.0, 0.0,
+                            ]),
+                            glossiness_factor: gjson::material::StrengthFactor(0.0),
+                            ..Default::default()
+                        },
+                    ),
+                }),
                 ..Default::default()
             });
 
