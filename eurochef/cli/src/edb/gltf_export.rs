@@ -39,7 +39,7 @@ pub fn dump_single_mesh_to_scene(
     strips: &[TriStrip],
     use_normals: bool,
     texture_map: &HashMap<u32, String>,
-    hashcode: u32,
+    id: &str,
 ) -> gjson::Root {
     let vdata: &[u8] = bytemuck::cast_slice(vertices);
     let idata: &[u8] = bytemuck::cast_slice(indices);
@@ -129,7 +129,7 @@ pub fn dump_single_mesh_to_scene(
         extras: Default::default(),
         matrix: None,
         mesh: Some(gjson::Index::new(0)),
-        name: Some(format!("ent_{hashcode:x}")),
+        name: Some(format!("ent_{id}")),
         rotation: None,
         scale: None,
         translation: None,

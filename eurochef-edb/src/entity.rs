@@ -9,7 +9,7 @@ use crate::common::{EXRelPtr, EXVector};
 #[brw(import(version: u32))]
 // TODO: Format is slightly different on versions 248 and below
 pub struct EXGeoBaseEntity {
-    #[brw(assert([0x601, 0x603, 0x607].contains(&object_type)))]
+    #[brw(assert([0x601, 0x603, 0x607, 0x608].contains(&object_type)))]
     pub object_type: u32, // 0x0
     pub flags: u32,       // 0x4
     pub sort_value: u16,  // 0x8
@@ -30,6 +30,8 @@ pub struct EXGeoBaseEntity {
     #[brw(if(object_type.eq(&0x603)))]
     #[brw(args(version))]
     pub split_entity: Option<EXGeoSplitEntity>,
+    #[brw(if(object_type.eq(&0x608)))]
+    pub mapzone_entity: Option<EXGeoMapZoneEntity>,
 }
 
 #[binrw]
@@ -50,6 +52,14 @@ pub struct EXGeoEntity {
     pub vertex_count: u32,   // 0x78
     pub _unk7c: u32,         // 0x7c
     pub index_count: u32,    // 0x80
+}
+
+#[binrw]
+#[derive(Debug, Serialize)]
+pub struct EXGeoMapZoneEntity {
+    // pub base: EXGeoBaseEntity,                       // 0x0
+    pub _unk54: u32,        // 0x54
+    pub entity_refptr: u32, // 0x58
 }
 
 #[binrw]

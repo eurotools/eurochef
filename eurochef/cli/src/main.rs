@@ -88,15 +88,15 @@ enum EdbCommand {
         #[arg(value_parser = maybe_hex::<u32>)]
         section: Option<u32>,
     },
-    // /// Extract maps
-    // Maps {
-    //     /// .edb file to read
-    //     filename: String,
+    /// Extract maps
+    Maps {
+        /// .edb file to read
+        filename: String,
 
-    //     /// Override for platform detection
-    //     #[arg(value_enum, short, long, ignore_case = true)]
-    //     platform: Option<PlatformArg>,
-    // },
+        /// Override for platform detection
+        #[arg(value_enum, short, long, ignore_case = true)]
+        platform: Option<PlatformArg>,
+    },
     /// Extract textures
     Textures {
         /// .edb file to read
@@ -189,7 +189,9 @@ fn handle_edb(cmd: EdbCommand) -> anyhow::Result<()> {
             no_embed,
             no_transparent,
         ),
-        // EdbCommand::Maps { filename, platform } => edb::maps::execute_command(filename, platform),
+        EdbCommand::Maps { filename, platform } => {
+            edb::maps::execute_command(filename, platform, None)
+        }
         EdbCommand::Spreadsheets { filename, section } => {
             edb::spreadsheets::execute_command(filename, section)
         }
