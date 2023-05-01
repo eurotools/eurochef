@@ -6,7 +6,6 @@ on:
     branches: ["main"]
     paths-ignore:
       - "**/.md"
-      - "blender_addon"
 
 env:
   CARGO_TERM_COLOR: always
@@ -49,3 +48,28 @@ jobs:
         with:
           name: eurochef-win-${{ env.GITHUB_SHA_SHORT }}
           path: ./target/release/*.exe
+  package-addon:
+    name: Package Blender addon
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Copy dir
+        run: cp -r blender_addon eurochef_utils
+
+      - name: Zip addon
+        run: zip -r eurochef_utils.zip eurochef_utils
+
+      - name: Determine short GitHub SHA
+        shell: bash
+        run: |
+          export GITHUB_SHA_SHORT=$(git rev-parse --short "$GITHUB_SHA")
+          echo "GITHUB_SHA_SHORT=$GITHUB_SHA_SHORT" >> $GITHUB_ENV
+
+      - name: Publish artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: blender-eurochef-utils-${{ env.GITHUB_SHA_SHORT }}
+          path: eurochef_utils.zip
