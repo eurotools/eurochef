@@ -71,6 +71,10 @@ class EcmLoader(bpy.types.Operator, ImportHelper):
         for mapzone in self.data['mapzone_entities']:
             model_path = os.path.join(
                 self.directory, "ref_{}.gltf".format(mapzone['entity_refptr']))
+            if not os.path.exists(model_path):
+                print("Couldn't find model ref_{}".format(
+                    mapzone['entity_refptr']))
+                continue
 
             bpy.ops.import_scene.gltf(filepath=model_path)
 
