@@ -3,7 +3,7 @@ from . import ecm
 bl_info = {
     "name": "Eurochef Utility",
     "author": "cohaereo",
-    "description": "",
+    "description": "Utility to work with Eurochef files",
     "blender": (2, 80, 0),
     "version": (0, 0, 1),
     "location": "File -> Import",
