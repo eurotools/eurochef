@@ -48,16 +48,26 @@ class EcmLoader(bpy.types.Operator, ImportHelper):
             bpy.path.display_name_from_filepath(self.filepath))
         bpy.context.scene.collection.children.link(self.collection)
 
+        object_cache = {}
+
         for placement in self.data['placements']:
+            object_id = f"{placement['object_ref']:x}"
             model_path = os.path.join(
-                self.directory, "{:x}.gltf".format(placement['object_ref']))
+                self.directory, f"{object_id}.gltf")
+            print(f"[ECM] Loading {model_path}")
             if not os.path.exists(model_path):
-                print("Couldn't find model {:x}/{:x}".format(
-                    placement['object_ref'], placement['hashcode']))
+                print("Couldn't find model {}/{:x}".format(
+                    object_id, placement['hashcode']))
                 continue
 
-            bpy.ops.import_scene.gltf(filepath=model_path)
-            obj = bpy.context.active_object
+            obj = None
+            if object_id in object_cache:
+                obj = object_cache[object_id].copy()
+                print(f"Copied {object_id} from cache")
+            else:
+                bpy.ops.import_scene.gltf(filepath=model_path)
+                obj = bpy.context.active_object
+                bpy.context.scene.collection.objects.unlink(obj)
 
             obj.location = egx_to_blender_pos(
                 tuple(placement['position']))
@@ -67,16 +77,25 @@ class EcmLoader(bpy.types.Operator, ImportHelper):
                 tuple(placement['rotation']))
 
             obj.scale = egx_to_blender_scale(tuple(placement['scale']))
+            self.collection.objects.link(obj)
+
+            if object_id not in object_cache:
+                object_cache[object_id] = obj
 
         for mapzone in self.data['mapzone_entities']:
+            object_id = f"ref_{mapzone['entity_refptr']}"
             model_path = os.path.join(
-                self.directory, "ref_{}.gltf".format(mapzone['entity_refptr']))
+                self.directory, f"{object_id}.gltf")
+            print(f"[ECM] Loading {model_path}")
             if not os.path.exists(model_path):
                 print("Couldn't find model ref_{}".format(
                     mapzone['entity_refptr']))
                 continue
 
             bpy.ops.import_scene.gltf(filepath=model_path)
+            obj = bpy.context.active_object
+            bpy.context.scene.collection.objects.unlink(obj)
+            self.collection.objects.link(obj)
 
 
 def egx_to_blender_pos(pos: tuple):
