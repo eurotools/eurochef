@@ -43,6 +43,7 @@ pub fn dump_single_mesh_to_scene(
     use_normals: bool,
     texture_map: &HashMap<u32, (String, Transparency)>,
     id: &str,
+    file_hash: u32,
 ) -> gjson::Root {
     let vdata: &[u8] = bytemuck::cast_slice(vertices);
     let idata: &[u8] = bytemuck::cast_slice(indices);
@@ -174,10 +175,7 @@ pub fn dump_single_mesh_to_scene(
             let (img_uri, transparency) = texture_map
                 .get(&t.texture_hash)
                 .map(|v| v.clone())
-                .unwrap_or((
-                    format!("{:08x}_frame0.png", t.texture_hash),
-                    Transparency::Opaque,
-                ));
+                .unwrap_or((format!("{:08x}.png", t.texture_hash), Transparency::Opaque));
 
             root.images.push(gjson::Image {
                 uri: Some(img_uri),
@@ -185,7 +183,7 @@ pub fn dump_single_mesh_to_scene(
                 extensions: None,
                 extras: Default::default(),
                 mime_type: None,
-                name: Some(format!("{:08x}.png", t.texture_hash)),
+                name: Some(format!("{:08x}_{:08x}.png", t.texture_hash, file_hash)),
             });
 
             root.textures.push(gjson::Texture {
@@ -223,7 +221,7 @@ pub fn dump_single_mesh_to_scene(
                     }),
                     ..Default::default()
                 },
-                name: Some(format!("{:08x}.png", t.texture_hash)),
+                name: Some(format!("{:08x}_{:08x}.png", t.texture_hash, file_hash)),
                 extensions: Some(gjson::extensions::material::Material {
                     pbr_specular_glossiness: Some(
                         gjson::extensions::material::PbrSpecularGlossiness {

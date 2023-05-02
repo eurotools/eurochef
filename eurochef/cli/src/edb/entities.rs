@@ -108,9 +108,10 @@ pub fn execute_command(
             let _span_enter = _span.enter();
 
             trace!(
-                "tex={:x} flags=0b{:032b}",
+                "tex={:x} sg=0b{:016b} flags=0b{:032b}",
                 t.common.hashcode,
-                t.flags >> 0x18
+                t.flags >> 0x18,
+                t.flags
             );
 
             // cohae: This is wrong on a few levels, but it's just for transparency
@@ -288,6 +289,7 @@ pub fn execute_command(
             ![252, 250, 240, 221].contains(&header.version),
             &texture_uri_map,
             &ent_id,
+            header.hashcode,
         );
         let mut outfile = File::create(output_folder.join(format!("{}.gltf", ent_id)))?;
 
