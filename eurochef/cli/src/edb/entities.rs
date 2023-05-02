@@ -107,8 +107,17 @@ pub fn execute_command(
             let _span = error_span!("texture", hash = %hash_str);
             let _span_enter = _span.enter();
 
-            let is_transparent_blend = (((t.flags >> 0x18) >> 6) & 1) != 0;
-            let is_transparent_cutout = (((t.flags >> 0x18) >> 5) & 1) != 0;
+            trace!(
+                "tex={:x} flags=0b{:032b}",
+                t.common.hashcode,
+                t.flags >> 0x18
+            );
+
+            // cohae: This is wrong on a few levels, but it's just for transparency
+            let flags_shift = if header.version == 248 { 0x19 } else { 0x18 };
+
+            let is_transparent_blend = (((t.flags >> flags_shift) >> 6) & 1) != 0;
+            let is_transparent_cutout = (((t.flags >> flags_shift) >> 5) & 1) != 0;
             let transparency = match (is_transparent_blend, is_transparent_cutout) {
                 (false, false) => Transparency::Opaque,
                 (true, false) => Transparency::Blend,

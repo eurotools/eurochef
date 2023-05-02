@@ -8,6 +8,10 @@ use anyhow::Context;
 use clap::{Parser, Subcommand};
 use clap_num::maybe_hex;
 use eurochef_edb::versions::Platform;
+use tracing::metadata::LevelFilter;
+use tracing_subscriber::{
+    prelude::__tracing_subscriber_SubscriberExt, util::SubscriberInitExt, EnvFilter,
+};
 
 #[derive(clap::ValueEnum, PartialEq, Debug, Clone)]
 pub enum PlatformArg {
@@ -168,7 +172,16 @@ enum FilelistCommand {
 }
 
 pub fn main() -> anyhow::Result<()> {
-    tracing_subscriber::fmt().without_time().init();
+    tracing_subscriber::registry()
+        .with(tracing_subscriber::fmt::layer().without_time())
+        .with(
+            EnvFilter::builder()
+                .with_default_directive(LevelFilter::INFO.into())
+                .with_env_var("EUROCHEF_LOG")
+                .from_env_lossy(),
+        )
+        .init();
+
     let args = Args::parse();
 
     match &args.cmd {
