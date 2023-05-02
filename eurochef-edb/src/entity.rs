@@ -9,7 +9,7 @@ use crate::common::{EXRelPtr, EXVector};
 #[brw(import(version: u32))]
 // TODO: Format is slightly different on versions 248 and below
 pub struct EXGeoBaseEntity {
-    #[brw(assert([0x601, 0x603, 0x607, 0x608].contains(&object_type)))]
+    #[brw(assert([0x601, 0x603, 0x606, 0x607, 0x608].contains(&object_type)))]
     pub object_type: u32, // 0x0
     pub flags: u32,       // 0x4
     pub sort_value: u16,  // 0x8
