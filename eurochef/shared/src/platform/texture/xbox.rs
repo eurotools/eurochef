@@ -65,9 +65,9 @@ impl TextureDecoder for XboxTextureDecoder {
             }
             InternalFormat::ARGB4 => {
                 for (i, bytes) in input.chunks_exact(2).enumerate() {
-                    let b = bytes[0] & 0x0f;
+                    let r = bytes[0] & 0x0f;
                     let g = bytes[0] >> 4;
-                    let r = bytes[1] & 0x0f;
+                    let b = bytes[1] & 0x0f;
                     let a = bytes[1] >> 4;
                     buffer[i * 4 + 0] = (b << 4) | b;
                     buffer[i * 4 + 1] = (g << 4) | g;
