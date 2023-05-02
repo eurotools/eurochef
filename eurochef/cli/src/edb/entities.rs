@@ -309,7 +309,7 @@ fn read_entity<R: Read + Seek>(
         data.seek(std::io::SeekFrom::Start(nent.vertex_data.offset_absolute()))?;
         for _ in 0..nent.vertex_count {
             match version {
-                252 | 250 | 240 | 221 => {
+                252 | 250 | 251 | 240 | 221 => {
                     let d = data.read_type::<(EXVector3, u32, EXVector2)>(endian)?;
                     vertex_data.push(UXVertex {
                         pos: d.0,
