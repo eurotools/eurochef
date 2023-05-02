@@ -24,6 +24,7 @@ class EcmLoader(bpy.types.Operator, ImportHelper):
     merge_materials: BoolProperty(
         name="Merge materials (recommended)", default=True)
     lock_objects: BoolProperty(name="Make objects unselectable", default=False)
+    autosmooth: BoolProperty(name="Autosmooth meshes", default=True)
 
     def execute(self, context):
         self.data = json.load(open(self.filepath, 'r'))
@@ -81,9 +82,16 @@ class EcmLoader(bpy.types.Operator, ImportHelper):
             self.collection.objects.link(obj)
 
             if object_id not in object_cache:
+                # Make the material double-sided. We're only doing this for normal placements
+                for mat in obj.material_slots:
+                    mat.material.use_backface_culling = False
+
+                if self.autosmooth:
+                    bpy.ops.object.shade_smooth()
+
                 object_cache[object_id] = obj
 
-            if (self.lock_objects):
+            if self.lock_objects:
                 obj.hide_select = True
 
         for mapzone in self.data['mapzone_entities']:
@@ -101,7 +109,10 @@ class EcmLoader(bpy.types.Operator, ImportHelper):
             bpy.context.scene.collection.objects.unlink(obj)
             self.collection.objects.link(obj)
 
-            if (self.lock_objects):
+            if self.autosmooth:
+                bpy.ops.object.shade_smooth()
+
+            if self.lock_objects:
                 obj.hide_select = True
 
         if self.merge_materials:
