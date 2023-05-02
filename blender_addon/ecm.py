@@ -21,7 +21,8 @@ class EcmLoader(bpy.types.Operator, ImportHelper):
     )
 
     filepath: StringProperty(subtype="FILE_PATH")
-    downscale: BoolProperty(name="Rescale map (recommended)", default=True)
+    merge_materials: BoolProperty(
+        name="Merge materials (recommended)", default=True)
     lock_objects: BoolProperty(name="Make objects unselectable", default=False)
 
     def execute(self, context):
@@ -82,6 +83,9 @@ class EcmLoader(bpy.types.Operator, ImportHelper):
             if object_id not in object_cache:
                 object_cache[object_id] = obj
 
+            if (self.lock_objects):
+                obj.hide_select = True
+
         for mapzone in self.data['mapzone_entities']:
             object_id = f"ref_{mapzone['entity_refptr']}"
             model_path = os.path.join(
@@ -96,6 +100,38 @@ class EcmLoader(bpy.types.Operator, ImportHelper):
             obj = bpy.context.active_object
             bpy.context.scene.collection.objects.unlink(obj)
             self.collection.objects.link(obj)
+
+            if (self.lock_objects):
+                obj.hide_select = True
+
+        if self.merge_materials:
+            self.merge_all_materials()
+
+    # Merge all duplicate materials
+    def merge_all_materials(self):
+        original_materials = {}
+
+        # Find all materials
+        duplicates = 0
+        for obj in self.collection.objects:
+            for mat in obj.material_slots:
+                basename = mat.name[:mat.name.rfind('.')]
+                if basename == mat.name or mat.name.endswith(".png"):
+                    original_materials[mat.name] = mat.material
+                else:
+                    duplicates += 1
+
+        print(
+            f"Merging {duplicates} duplicate materials into {len(original_materials)}")
+
+        # Reassign materials
+        for obj in self.collection.objects:
+            for i, mat in enumerate(obj.material_slots):
+                basename = mat.name[:mat.name.rfind('.')]
+                if basename == mat.name or mat.name.endswith(".png"):
+                    continue
+                else:
+                    obj.material_slots[i].material = original_materials[basename]
 
 
 def egx_to_blender_pos(pos: tuple):
