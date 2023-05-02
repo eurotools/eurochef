@@ -53,7 +53,7 @@ pub fn execute_command(
         platform.clone(),
         Some(output_folder.clone()),
         false,
-        true,
+        false,
     )?;
 
     let output_folder = Path::new(&output_folder);

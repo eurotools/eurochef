@@ -4,6 +4,8 @@ use eurochef_edb::common::{EXVector2, EXVector3};
 use gltf::json::{self as gjson, validation::Checked};
 use std::collections::HashMap;
 
+use super::entities::Transparency;
+
 // pub fn write_glb<W: Write>(gltf: &gjson::Root, out: &mut W) -> anyhow::Result<()> {
 //     let json_string = gjson::serialize::to_string(gltf).context("glTF serialization error")?;
 //     let mut json_offset = json_string.len() as u32;
@@ -31,6 +33,7 @@ pub struct TriStrip {
     pub start_index: u32,
     pub index_count: u32,
     pub texture_hash: u32,
+    pub transparency: u16,
 }
 
 pub fn dump_single_mesh_to_scene(
@@ -38,7 +41,7 @@ pub fn dump_single_mesh_to_scene(
     indices: &[u32],
     strips: &[TriStrip],
     use_normals: bool,
-    texture_map: &HashMap<u32, String>,
+    texture_map: &HashMap<u32, (String, Transparency)>,
     id: &str,
 ) -> gjson::Root {
     let vdata: &[u8] = bytemuck::cast_slice(vertices);
@@ -168,9 +171,16 @@ pub fn dump_single_mesh_to_scene(
     let mut material_map: HashMap<u32, u32> = HashMap::new();
     for t in strips {
         if !material_map.contains_key(&t.texture_hash) {
-            let img_uri = texture_map.get(&t.texture_hash).map(|v| v.clone());
+            let (img_uri, transparency) = texture_map
+                .get(&t.texture_hash)
+                .map(|v| v.clone())
+                .unwrap_or((
+                    format!("{:08x}_frame0.png", t.texture_hash),
+                    Transparency::Opaque,
+                ));
+
             root.images.push(gjson::Image {
-                uri: Some(img_uri.unwrap_or(format!("{:08x}_frame0.png", t.texture_hash))),
+                uri: Some(img_uri),
                 buffer_view: None,
                 extensions: None,
                 extras: Default::default(),
@@ -187,6 +197,21 @@ pub fn dump_single_mesh_to_scene(
             });
 
             root.materials.push(gjson::Material {
+                alpha_mode: Checked::Valid(if transparency != Transparency::Opaque {
+                    match transparency {
+                        Transparency::Opaque => gjson::material::AlphaMode::Opaque,
+                        Transparency::Blend => gjson::material::AlphaMode::Blend,
+                        Transparency::Additive => gjson::material::AlphaMode::Blend,
+                        Transparency::Cutout => gltf::material::AlphaMode::Mask,
+                    }
+                } else {
+                    match t.transparency {
+                        0 => gjson::material::AlphaMode::Opaque,
+                        // 1 => Additive blending
+                        // 2 => Reverse_subtract blending
+                        _ => gjson::material::AlphaMode::Blend,
+                    }
+                }),
                 pbr_metallic_roughness: gjson::material::PbrMetallicRoughness {
                     metallic_factor: gjson::material::StrengthFactor(0.),
                     roughness_factor: gjson::material::StrengthFactor(1.),

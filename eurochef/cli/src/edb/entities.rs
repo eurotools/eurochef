@@ -26,6 +26,14 @@ use crate::{
 
 use super::gltf_export::{TriStrip, UXVertex};
 
+#[derive(PartialEq, Eq, Clone, Copy)]
+pub enum Transparency {
+    Opaque,
+    Blend,
+    Additive,
+    Cutout,
+}
+
 pub fn execute_command(
     filename: String,
     platform: Option<PlatformArg>,
@@ -67,12 +75,15 @@ pub fn execute_command(
 
     info!("Selected platform {platform:?}");
 
-    let mut texture_uri_map: HashMap<u32, String> = HashMap::new();
+    let mut texture_uri_map: HashMap<u32, (String, Transparency)> = HashMap::new();
     if dont_embed_textures {
         for t in &header.texture_list.data {
             texture_uri_map.insert(
                 t.common.hashcode,
-                format!("{:08x}_frame0.png", t.common.hashcode),
+                (
+                    format!("{:08x}_frame0.png", t.common.hashcode),
+                    Transparency::Opaque,
+                ),
             );
         }
     } else {
@@ -96,6 +107,15 @@ pub fn execute_command(
             let _span = error_span!("texture", hash = %hash_str);
             let _span_enter = _span.enter();
 
+            let is_transparent_blend = (((t.flags >> 0x18) >> 6) & 1) != 0;
+            let is_transparent_cutout = (((t.flags >> 0x18) >> 5) & 1) != 0;
+            let transparency = match (is_transparent_blend, is_transparent_cutout) {
+                (false, false) => Transparency::Opaque,
+                (true, false) => Transparency::Blend,
+                (false, true) => Transparency::Cutout,
+                _ => Transparency::Blend,
+            };
+
             reader.seek(std::io::SeekFrom::Start(t.common.address as u64))?;
             let uri = format!("{:08x}_frame0.png", t.common.hashcode);
 
@@ -112,7 +132,7 @@ pub fn execute_command(
 
             if let Err(e) = calculated_size {
                 error!("Failed to extract texture: {:?}", e);
-                texture_uri_map.insert(t.common.hashcode, uri);
+                texture_uri_map.insert(t.common.hashcode, (uri, transparency));
                 continue;
             }
 
@@ -133,7 +153,7 @@ pub fn execute_command(
 
             if let Err(e) = reader.read_exact(&mut data) {
                 error!("Failed to read texture: {}", e);
-                texture_uri_map.insert(t.common.hashcode, uri);
+                texture_uri_map.insert(t.common.hashcode, (uri, transparency));
                 continue;
             }
 
@@ -146,7 +166,7 @@ pub fn execute_command(
                 tex.format,
             ) {
                 error!("Texture failed to decode: {}", e);
-                texture_uri_map.insert(t.common.hashcode, uri);
+                texture_uri_map.insert(t.common.hashcode, (uri, transparency));
                 continue;
             }
 
@@ -161,7 +181,7 @@ pub fn execute_command(
             )?;
             let mut uri = "data:image/png;base64,".to_string();
             base64::engine::general_purpose::STANDARD.encode_string(&cur.into_inner(), &mut uri);
-            texture_uri_map.insert(t.common.hashcode, uri);
+            texture_uri_map.insert(t.common.hashcode, (uri, transparency));
         }
     }
 
@@ -353,10 +373,14 @@ fn read_entity<R: Read + Seek>(
                 break;
             }
 
-            if remove_transparent && t.trans_type != 0 {
+            // Skip transparent surfaces that use additive blending
+            if t.trans_type == 1 {
                 index_offset_local += t.tricount + 2;
                 continue;
             }
+
+            // if t.flags
+            // println!("t={} f=0x{:016b}", t.trans_type, t.flags);
 
             let texture_index = if ent.flags & 0x1 != 0 {
                 // Index from texture list instead of the "global" array
@@ -374,6 +398,7 @@ fn read_entity<R: Read + Seek>(
                 start_index: indices.len() as u32,
                 index_count: t.tricount * 3,
                 texture_hash: texture_index as u32,
+                transparency: t.trans_type,
             });
 
             for i in (index_offset_local as usize)..(index_offset_local + t.tricount) as usize {
