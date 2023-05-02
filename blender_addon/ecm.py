@@ -46,7 +46,7 @@ class EcmLoader(bpy.types.Operator, ImportHelper):
             return False
 
         self.collection = bpy.data.collections.new(
-            bpy.path.display_name_from_filepath(self.filepath))
+            os.path.basename(os.path.dirname(self.filepath)))
         bpy.context.scene.collection.children.link(self.collection)
 
         object_cache = {}
