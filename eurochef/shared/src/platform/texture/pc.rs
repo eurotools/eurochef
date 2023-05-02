@@ -75,6 +75,18 @@ impl TextureDecoder for PcTextureDecoder {
                     .into();
                 }
             }
+            InternalFormat::ARGB1555 => {
+                for (i, byte) in input.chunks_exact(2).enumerate() {
+                    // TODO: Endianness. We're gonna need to move all of this anyways
+                    let (x, y) = (i as u32 % width, i as u32 / width);
+                    let b = byte[0] & 0x1f;
+                    let g = (byte[0] >> 5) | ((byte[1] & 0x03) << 3);
+                    let r = (byte[1] & 0x7c) >> 2;
+                    let a = byte[1] >> 7;
+
+                    output[(x, y)] = [r as u8 * 8, g as u8 * 8, b as u8 * 8, a as u8 * 255].into();
+                }
+            }
             _ => {
                 anyhow::bail!("Unsupported format {:?}", fmt);
             }
