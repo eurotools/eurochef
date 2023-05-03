@@ -168,6 +168,14 @@ class EcmLoader(bpy.types.Operator, ImportHelper):
             if t['tsubtype']:
                 obj['subtype'] = t['tsubtype']
 
+            for di, d in enumerate(t['data']):
+                if d != 0:
+                    obj[f'data[0x{di:x}]'] = f"0x{d:x}"
+
+            for li, l in enumerate(t['links']):
+                if l != -1:
+                    obj[f'links[{li}]'] = str(l)
+
 
 def set_active_collection(collection: bpy.types.Collection):
     bpy.context.view_layer.active_layer_collection = bpy.context.view_layer.layer_collection.children[

@@ -103,6 +103,7 @@ pub fn execute_command(
                 (t.trig_type, t.trig_subtype)
             };
 
+            let (data, links) = parse_trigger_data(header.version, trig.trig_flags, &trig.data);
             let mut trigger = EurochefMapTrigger {
                 link_ref: t.link_ref,
                 ttype: format!("Trig_{ttype}"),
@@ -117,7 +118,9 @@ pub fn execute_command(
                 position: trig.position,
                 rotation: trig.rotation,
                 scale: trig.scale,
-                data: trig.data,
+                raw_data: trig.data,
+                data,
+                links,
             };
 
             if let Some(ref typemap) = trigger_typemap {
@@ -173,7 +176,10 @@ pub struct EurochefMapTrigger {
     pub position: [f32; 3],
     pub rotation: [f32; 3],
     pub scale: [f32; 3],
-    pub data: [u32; 32],
+
+    pub raw_data: [u32; 32],
+    pub data: Vec<u32>,
+    pub links: Vec<i32>,
 }
 
 fn load_trigger_types<P: AsRef<Path>>(path: P) -> anyhow::Result<HashMap<u32, String>> {
@@ -197,4 +203,37 @@ fn load_trigger_types<P: AsRef<Path>>(path: P) -> anyhow::Result<HashMap<u32, St
     }
 
     Ok(map)
+}
+
+fn parse_trigger_data(_version: u32, trig_flags: u32, raw_data: &[u32]) -> (Vec<u32>, Vec<i32>) {
+    let mut data = vec![];
+    let mut links = vec![];
+
+    let mut flag_accessor = 1;
+    let mut data_offset = 0;
+
+    // TODO(cohae): Some older games use only 8 values instead of 16
+    for _ in 0..16 {
+        if (trig_flags & flag_accessor) != 0 {
+            data.push(raw_data[data_offset]);
+            data_offset += 1;
+        } else {
+            data.push(0);
+        }
+
+        flag_accessor <<= 1;
+    }
+
+    for _ in 0..8 {
+        if (trig_flags & flag_accessor) != 0 {
+            links.push(raw_data[data_offset] as i32);
+            data_offset += 1;
+        } else {
+            links.push(-1);
+        }
+
+        flag_accessor <<= 1;
+    }
+
+    (data, links)
 }
