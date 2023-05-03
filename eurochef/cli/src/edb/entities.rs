@@ -273,12 +273,16 @@ pub fn execute_command(
             }
         }
 
-        if strips.len() <= 0 {
+        if vertex_data.len() == 0 {
             warn!(
-                "Skipping entity because it doesnt have any tristrips (v={}/i={})",
+                "Processed entity doesnt have vertex data! (v={}/i={}/t={})",
                 vertex_data.len(),
-                indices.len()
+                indices.len(),
+                strips.len()
             );
+        }
+
+        if strips.len() <= 0 {
             continue;
         }
 
