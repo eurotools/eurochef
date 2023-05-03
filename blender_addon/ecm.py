@@ -26,6 +26,8 @@ class EcmLoader(bpy.types.Operator, ImportHelper):
     lock_objects: BoolProperty(name="Make objects unselectable", default=False)
     autosmooth: BoolProperty(name="Autosmooth meshes", default=True)
 
+    import_triggers: BoolProperty(name="Import triggers", default=True)
+
     def execute(self, context):
         self.data = json.load(open(self.filepath, 'r'))
         self.directory = os.path.dirname(self.filepath)
@@ -52,6 +54,7 @@ class EcmLoader(bpy.types.Operator, ImportHelper):
 
         object_cache = {}
 
+        set_active_collection(self.collection)
         for placement in self.data['placements']:
             object_id = f"{placement['object_ref']:x}"
             model_path = os.path.join(
@@ -69,7 +72,7 @@ class EcmLoader(bpy.types.Operator, ImportHelper):
             else:
                 bpy.ops.import_scene.gltf(filepath=model_path)
                 obj = bpy.context.active_object
-                bpy.context.scene.collection.objects.unlink(obj)
+                # bpy.context.scene.collection.objects.unlink(obj)
 
             obj.location = egx_to_blender_pos(
                 tuple(placement['position']))
@@ -106,8 +109,6 @@ class EcmLoader(bpy.types.Operator, ImportHelper):
 
             bpy.ops.import_scene.gltf(filepath=model_path)
             obj = bpy.context.active_object
-            bpy.context.scene.collection.objects.unlink(obj)
-            self.collection.objects.link(obj)
 
             if self.autosmooth:
                 bpy.ops.object.shade_smooth()
@@ -117,6 +118,10 @@ class EcmLoader(bpy.types.Operator, ImportHelper):
 
         if self.merge_materials:
             self.merge_all_materials()
+
+        if self.import_triggers:
+            print("Importing triggers")
+            self.load_triggers(self.data['triggers'])
 
     # Merge all duplicate materials
     def merge_all_materials(self):
@@ -143,6 +148,34 @@ class EcmLoader(bpy.types.Operator, ImportHelper):
                     continue
                 else:
                     obj.material_slots[i].material = original_materials[basename]
+
+    def load_triggers(self, triggers):
+        self.trigger_collection = bpy.data.collections.new("triggers")
+        self.collection.children.link(self.trigger_collection)
+        set_active_collection_child(self.collection, self.trigger_collection)
+
+        for t in triggers:
+            bpy.ops.object.empty_add(type='PLAIN_AXES', align='WORLD', location=egx_to_blender_pos(tuple(
+                t['position'])), rotation=egx_to_blender_rot(tuple(t['rotation'])), scale=egx_to_blender_scale(tuple(t['scale'])))
+            obj = bpy.context.active_object
+
+            obj.name = t['ttype']
+            obj.show_name = True
+
+            if t['tsubtype']:
+                obj['subtype'] = t['tsubtype']
+
+
+def set_active_collection(collection: bpy.types.Collection):
+    bpy.context.view_layer.active_layer_collection = bpy.context.view_layer.layer_collection.children[
+        collection.name]
+
+# TODO(cohae): Could be better
+
+
+def set_active_collection_child(collection: bpy.types.Collection, child: bpy.types.Collection):
+    bpy.context.view_layer.active_layer_collection = bpy.context.view_layer.layer_collection.children[
+        collection.name].children[child.name]
 
 
 def egx_to_blender_pos(pos: tuple):

@@ -80,8 +80,8 @@ pub struct EXGeoTriggerHeader {
     // pub trigger_scripts: EXRelPtr<EXGeoTrigScriptHeader, -4>,
     pub trigger_scripts: EXRelPtr<(), i32, -4>,
 
-    // FIXME: Not the best
-    #[br(count = triggers.data.iter().map(|v| v.trigger.data.type_index).max().unwrap()+1)]
+    // TODO(cohae): custom parser
+    #[br(count = if triggers.data.len() != 0 { triggers.data.iter().map(|v| v.trigger.data.type_index).max().unwrap()+1 } else { 0 })]
     pub trigger_types: EXRelPtr<Vec<EXGeoTriggerType>>,
     // pub trigger_types: EXRelPtr<()>, // Last element is marked by a trig_type of -1
 
@@ -147,7 +147,7 @@ pub struct EXGeoTrigger {
     pub trig_flags: u32,     // 0x8
     pub position: EXVector3, // 0xc
     pub rotation: EXVector3, // 0x18
-    pub unk24: EXVector3,    // 0x24
+    pub scale: EXVector3,    // 0x24
     // TODO: We should make a separate reader for this to prevent over-reads
     pub data: [u32; 32], // 0x30
 }

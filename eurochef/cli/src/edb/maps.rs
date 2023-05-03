@@ -1,6 +1,7 @@
 use std::{
+    collections::HashMap,
     fs::File,
-    io::{Seek, Write},
+    io::{BufRead, BufReader, Seek, Write},
     path::Path,
 };
 
@@ -20,6 +21,7 @@ pub fn execute_command(
     filename: String,
     platform: Option<PlatformArg>,
     output_folder: Option<String>,
+    trigger_defs_file: Option<String>,
 ) -> anyhow::Result<()> {
     let output_folder = output_folder.unwrap_or(format!(
         "./maps/{}/",
@@ -29,6 +31,12 @@ pub fn execute_command(
             .to_string_lossy()
             .to_string(),
     ));
+
+    let trigger_typemap = if let Some(path) = trigger_defs_file {
+        Some(load_trigger_types(path)?)
+    } else {
+        None
+    };
 
     let mut file = File::open(&filename)?;
     let endian = if file.read_ne::<u8>().unwrap() == 0x47 {
@@ -66,7 +74,14 @@ pub fn execute_command(
             .read_type_args::<EXGeoMap>(endian, (header.version,))
             .context("Failed to read basetexture")?;
 
-        let mut mapzone_entities = vec![];
+        let mut export = EurochefMapExport {
+            paths: map.paths.data,
+            placements: map.placements.data,
+            lights: map.lights.data,
+            mapzone_entities: vec![],
+            triggers: vec![],
+        };
+
         for z in &map.zones {
             let entity_offset = header.refpointer_list.data[z.entity_refptr as usize].address;
             file.seek(std::io::SeekFrom::Start(entity_offset as u64))
@@ -77,20 +92,55 @@ pub fn execute_command(
                 anyhow::bail!("Refptr entity does not have a mapzone entity!");
             }
 
-            mapzone_entities.push(ent.mapzone_entity.unwrap());
+            export.mapzone_entities.push(ent.mapzone_entity.unwrap());
         }
 
-        let root = EurochefMapExport {
-            paths: map.paths.data,
-            placements: map.placements.data,
-            lights: map.lights.data,
-            mapzone_entities,
-        };
+        for (i, t) in map.trigger_header.data.triggers.data.iter().enumerate() {
+            let trig = &t.trigger.data;
+            let (ttype, tsubtype) = {
+                let t = &map.trigger_header.data.trigger_types.data[trig.type_index as usize];
+
+                (t.trig_type, t.trig_subtype)
+            };
+
+            let mut trigger = EurochefMapTrigger {
+                link_ref: t.link_ref,
+                ttype: format!("Trig_{ttype}"),
+                tsubtype: if tsubtype != 0 && tsubtype != 0x42000001 {
+                    Some(format!("TrigSub_{tsubtype}"))
+                } else {
+                    None
+                },
+                debug: trig.debug,
+                game_flags: trig.game_flags,
+                trig_flags: trig.trig_flags,
+                position: trig.position,
+                rotation: trig.rotation,
+                scale: trig.scale,
+                data: trig.data,
+            };
+
+            if let Some(ref typemap) = trigger_typemap {
+                match typemap.get(&ttype) {
+                    Some(t) => trigger.ttype = t.clone(),
+                    None => warn!("Couldn't find trigger type {ttype}"),
+                }
+
+                if trigger.tsubtype.is_some() {
+                    match typemap.get(&tsubtype) {
+                        Some(t) => trigger.tsubtype = Some(t.clone()),
+                        None => warn!("Couldn't find trigger subtype {tsubtype}"),
+                    }
+                }
+            }
+
+            export.triggers.push(trigger);
+        }
 
         let mut outfile = File::create(output_folder.join(format!("{:x}.ecm", m.hashcode)))?;
 
         let json_string =
-            gltf::json::serialize::to_string(&root).context("ECM serialization error")?;
+            gltf::json::serialize::to_string(&export).context("ECM serialization error")?;
 
         outfile.write_all(json_string.as_bytes())?;
     }
@@ -106,4 +156,45 @@ pub struct EurochefMapExport {
     pub placements: Vec<EXGeoPlacement>,
     pub lights: Vec<EXGeoLight>,
     pub mapzone_entities: Vec<EXGeoMapZoneEntity>,
+    pub triggers: Vec<EurochefMapTrigger>,
+}
+
+#[derive(Serialize)]
+pub struct EurochefMapTrigger {
+    // TODO(cohae): Is this related to a refptr?
+    pub link_ref: i32,
+
+    pub ttype: String,
+    pub tsubtype: Option<String>,
+
+    pub debug: u16,
+    pub game_flags: u32,
+    pub trig_flags: u32,
+    pub position: [f32; 3],
+    pub rotation: [f32; 3],
+    pub scale: [f32; 3],
+    pub data: [u32; 32],
+}
+
+fn load_trigger_types<P: AsRef<Path>>(path: P) -> anyhow::Result<HashMap<u32, String>> {
+    let mut map = HashMap::new();
+    let file = File::open(path).unwrap();
+    let reader = BufReader::new(file);
+    for line in reader.lines() {
+        let line = line?;
+        if line.is_empty() {
+            continue;
+        }
+
+        let mut split = line.split(',');
+        let hashcode = parse_int::parse(split.next().unwrap())?;
+        let name = split.next().unwrap().to_string();
+        map.insert(hashcode, name);
+        if split.next().is_some() {
+            warn!("Extra data in trigger type file!");
+            continue;
+        }
+    }
+
+    Ok(map)
 }

@@ -103,6 +103,10 @@ enum EdbCommand {
         /// Override for platform detection
         #[arg(value_enum, short, long, ignore_case = true)]
         platform: Option<PlatformArg>,
+
+        /// File with trigger names (assets/triggers_*.txt)
+        #[arg(short, long)]
+        trigger_defs: Option<String>,
     },
     /// Extract textures
     Textures {
@@ -209,7 +213,8 @@ fn handle_edb(cmd: EdbCommand) -> anyhow::Result<()> {
             filename,
             platform,
             output_folder,
-        } => edb::maps::execute_command(filename, platform, output_folder),
+            trigger_defs,
+        } => edb::maps::execute_command(filename, platform, output_folder, trigger_defs),
         EdbCommand::Spreadsheets { filename, section } => {
             edb::spreadsheets::execute_command(filename, section)
         }
