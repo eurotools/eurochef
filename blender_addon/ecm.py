@@ -72,7 +72,6 @@ class EcmLoader(bpy.types.Operator, ImportHelper):
             else:
                 bpy.ops.import_scene.gltf(filepath=model_path)
                 obj = bpy.context.active_object
-                # bpy.context.scene.collection.objects.unlink(obj)
 
             obj.location = egx_to_blender_pos(
                 tuple(placement['position']))
@@ -109,6 +108,10 @@ class EcmLoader(bpy.types.Operator, ImportHelper):
 
             bpy.ops.import_scene.gltf(filepath=model_path)
             obj = bpy.context.active_object
+
+            # Re-enable backface culling for some merged materials
+            for mat in obj.material_slots:
+                mat.material.use_backface_culling = True
 
             if self.autosmooth:
                 bpy.ops.object.shade_smooth()
