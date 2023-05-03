@@ -157,12 +157,12 @@ class EcmLoader(bpy.types.Operator, ImportHelper):
         self.collection.children.link(self.trigger_collection)
         set_active_collection_child(self.collection, self.trigger_collection)
 
-        for t in triggers:
+        for i, t in enumerate(triggers):
             bpy.ops.object.empty_add(type='PLAIN_AXES', align='WORLD', location=egx_to_blender_pos(tuple(
                 t['position'])), rotation=egx_to_blender_rot(tuple(t['rotation'])), scale=egx_to_blender_scale(tuple(t['scale'])))
             obj = bpy.context.active_object
 
-            obj.name = t['ttype']
+            obj.name = f"{i}#{t['ttype']}"
             obj.show_name = True
 
             if t['tsubtype']:
