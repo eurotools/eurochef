@@ -295,12 +295,10 @@ pub fn execute_command(
             &ent_id,
             header.hashcode,
         );
+
         let mut outfile = File::create(output_folder.join(format!("{}.gltf", ent_id)))?;
-
-        let json_string =
-            gltf::json::serialize::to_string(&gltf).context("glTF serialization error")?;
-
-        outfile.write_all(json_string.as_bytes())?;
+        gltf::json::serialize::to_writer(&mut outfile, &gltf)
+            .context("glTF serialization error")?;
     }
 
     info!("Successfully extracted entities!");
