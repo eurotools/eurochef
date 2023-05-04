@@ -56,8 +56,11 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - name: Create temp dir
+        run: mkdir addon_temp
+
       - name: Copy dir
-        run: cp -r blender_addon eurochef_utils
+        run: cp -r blender_addon addon_temp/eurochef_utils
 
       # - name: Zip addon
       #   run: zip -r eurochef_utils.zip eurochef_utils
@@ -72,4 +75,4 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: blender-eurochef-utils-${{ env.GITHUB_SHA_SHORT }}
-          path: eurochef_utils/
+          path: addon_temp/
