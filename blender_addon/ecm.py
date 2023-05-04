@@ -7,6 +7,8 @@ from bpy.props import (StringProperty, BoolProperty)
 from bpy_extras.io_utils import (ImportHelper)
 from mathutils import Euler
 
+from . import trigger_vis
+
 
 class EcmLoader(bpy.types.Operator, ImportHelper):
     """Import BSP map files from the Source engine"""
@@ -25,6 +27,9 @@ class EcmLoader(bpy.types.Operator, ImportHelper):
         name="Merge materials (recommended)", default=True)
     lock_objects: BoolProperty(name="Make objects unselectable", default=False)
     autosmooth: BoolProperty(name="Autosmooth meshes", default=True)
+
+    trigger_visualizations: BoolProperty(
+        name="Visualize special triggers", default=False)
 
     import_triggers: BoolProperty(name="Import triggers", default=True)
 
@@ -175,6 +180,10 @@ class EcmLoader(bpy.types.Operator, ImportHelper):
             for li, l in enumerate(t['links']):
                 if l != -1:
                     obj[f'links[{li}]'] = str(l)
+
+            if self.trigger_visualizations:
+                trigger_vis.process_triggers(
+                    t['data'], t['links'], obj, i, t['ttype'])
 
 
 def set_active_collection(collection: bpy.types.Collection):

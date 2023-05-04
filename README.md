@@ -23,7 +23,7 @@ Eurochef provides tools and Rust crates for working with Eurocom EngineX(T) file
 
 ### Games (EDB)
 
-_(Priority currently lies with G-Force)_
+_(Priority currently lies with Spyro and G-Force)_
 
 | Game (EDB Version)                             | Textures <sup>[1]</sup> | Maps | Scripts | Entities | Animations | Particles | Spreadsheets |
 | ---------------------------------------------- | ----------------------- | ---- | ------- | -------- | ---------- | --------- | ------------ |
