@@ -133,29 +133,32 @@ class EcmLoader(bpy.types.Operator, ImportHelper):
 
     # Merge all duplicate materials
     def merge_all_materials(self):
-        original_materials = {}
+        all_base_materials = {}
 
         # Find all materials
         duplicates = 0
-        for obj in self.collection.objects:
-            for mat in obj.material_slots:
-                basename = mat.name[:mat.name.rfind('.')]
-                if basename == mat.name or mat.name.endswith(".png"):
-                    original_materials[mat.name] = mat.material
-                else:
-                    duplicates += 1
+        # for obj in self.collection.objects:
+        for mat in bpy.data.materials:
+            basename = mat.name[:mat.name.rfind('.')]
+            if basename == mat.name or mat.name.endswith(".png"):
+                all_base_materials[mat.name] = mat
+            else:
+                duplicates += 1
 
         print(
-            f"Merging {duplicates} duplicate materials into {len(original_materials)}")
+            f"Merging {duplicates} duplicate materials ({len(all_base_materials)} base materials in total)")
 
         # Reassign materials
         for obj in self.collection.objects:
             for i, mat in enumerate(obj.material_slots):
                 basename = mat.name[:mat.name.rfind('.')]
+                print(f"Mat {mat.name}...", end='')
                 if basename == mat.name or mat.name.endswith(".png"):
+                    print(" Is original!")
                     continue
                 else:
-                    obj.material_slots[i].material = original_materials[basename]
+                    print(" Is a dupe!")
+                    obj.material_slots[i].material = all_base_materials[basename]
 
     def load_triggers(self, triggers):
         self.trigger_collection = bpy.data.collections.new("triggers")
