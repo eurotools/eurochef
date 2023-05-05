@@ -49,7 +49,7 @@ impl UXGeoTexture {
 
             let tex = reader
                 .read_type_args::<EXGeoTexture>(endian, (header.version, platform))
-                .context("Failed to read basetexture")?;
+                .context("Failed to read texture")?;
 
             let calculated_size = texture_decoder.get_data_size(
                 tex.width as u32,

@@ -72,7 +72,7 @@ pub fn execute_command(
 
         let map = file
             .read_type_args::<EXGeoMap>(endian, (header.version,))
-            .context("Failed to read basetexture")?;
+            .context("Failed to read map")?;
 
         let mut export = EurochefMapExport {
             paths: map.paths.data,

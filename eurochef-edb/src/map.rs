@@ -24,7 +24,12 @@ pub struct EXGeoMap {
     pub placement_groups: EXRelArray<()>, // EXGeoPlacementGroup, 0x50
     pub trigger_header: EXRelPtr<EXGeoTriggerHeader>, // 0x58
     pub unk_60: [u32; 4],                 // 0x5c
-    pub bounds_box: [EXVector3; 2],       // 0x6c
+
+    // TODO(cohae): Workaround for older spyro files like test_wts, need to test offset and other versions
+    #[brw(if(version.eq(&221)))]
+    _unk6c_pad: [u32; 2],
+
+    pub bounds_box: [EXVector3; 2], // 0x6c
 
     #[serde(skip)]
     num_zones: u32, // 0x84
