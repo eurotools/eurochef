@@ -42,13 +42,6 @@ class EcmLoader(bpy.types.Operator, ImportHelper):
 
         return {'FINISHED'}
 
-    def scale_pos(self, pos):
-        return [
-            pos[0] * 0.1,
-            pos[1] * 0.1,
-            pos[2] * 0.1,
-        ]
-
     def load(self):
         if (not self.data):
             return False
@@ -59,7 +52,6 @@ class EcmLoader(bpy.types.Operator, ImportHelper):
 
         object_cache = {}
 
-        set_active_collection(self.collection)
         for placement in self.data['placements']:
             object_id = f"{placement['object_ref']:x}"
             model_path = os.path.join(
@@ -86,7 +78,7 @@ class EcmLoader(bpy.types.Operator, ImportHelper):
                 tuple(placement['rotation']))
 
             obj.scale = egx_to_blender_scale(tuple(placement['scale']))
-            self.collection.objects.link(obj)
+            relink_object(obj, self.collection)
 
             if object_id not in object_cache:
                 # Make the material double-sided. We're only doing this for normal placements
@@ -113,6 +105,7 @@ class EcmLoader(bpy.types.Operator, ImportHelper):
 
             bpy.ops.import_scene.gltf(filepath=model_path)
             obj = bpy.context.active_object
+            relink_object(obj, self.collection)
 
             # Re-enable backface culling for some merged materials
             for mat in obj.material_slots:
@@ -152,23 +145,20 @@ class EcmLoader(bpy.types.Operator, ImportHelper):
         for obj in self.collection.objects:
             for i, mat in enumerate(obj.material_slots):
                 basename = mat.name[:mat.name.rfind('.')]
-                print(f"Mat {mat.name}...", end='')
                 if basename == mat.name or mat.name.endswith(".png"):
-                    print(" Is original!")
                     continue
                 else:
-                    print(" Is a dupe!")
                     obj.material_slots[i].material = all_base_materials[basename]
 
     def load_triggers(self, triggers):
         self.trigger_collection = bpy.data.collections.new("triggers")
         self.collection.children.link(self.trigger_collection)
-        set_active_collection_child(self.collection, self.trigger_collection)
 
         for i, t in enumerate(triggers):
             bpy.ops.object.empty_add(type='PLAIN_AXES', align='WORLD', location=egx_to_blender_pos(tuple(
                 t['position'])), rotation=egx_to_blender_rot(tuple(t['rotation'])), scale=egx_to_blender_scale(tuple(t['scale'])))
             obj = bpy.context.active_object
+            relink_object(obj, self.trigger_collection)
 
             obj.name = f"{i}#{t['ttype']}"
             obj.show_name = True
@@ -189,14 +179,21 @@ class EcmLoader(bpy.types.Operator, ImportHelper):
                     t['data'], t['links'], obj, i, t['ttype'])
 
 
+def relink_object(object: bpy.types.Object, new_collection: bpy.types.Collection):
+    # Unlink object from all collections and link it to a new one
+    for c in object.users_collection:
+        c.objects.unlink(object)
+
+    new_collection.objects.link(object)
+
+
 def set_active_collection(collection: bpy.types.Collection):
     bpy.context.view_layer.active_layer_collection = bpy.context.view_layer.layer_collection.children[
         collection.name]
 
-# TODO(cohae): Could be better
-
 
 def set_active_collection_child(collection: bpy.types.Collection, child: bpy.types.Collection):
+    # TODO(cohae): Could be better
     bpy.context.view_layer.active_layer_collection = bpy.context.view_layer.layer_collection.children[
         collection.name].children[child.name]
 
