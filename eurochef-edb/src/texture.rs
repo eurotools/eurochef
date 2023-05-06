@@ -40,7 +40,7 @@ pub struct EXGeoTexture {
 
     /// Newer games calculate data size from other parameters.
     /// For general usage it is not recommended to rely on this field for data size.
-    #[brw(if((version <= 252 && version != 240 && version != 221 && version != 248) || (platform == Platform::GameCube || platform == Platform::Wii)))]
+    #[brw(if((version <= 252 && version != 240 && version != 221 && version != 248) || (platform == Platform::GameCube || platform == Platform::Wii || platform == Platform::Xbox360)))]
     pub data_size: Option<u32>,
 
     #[br(count = image_count)]

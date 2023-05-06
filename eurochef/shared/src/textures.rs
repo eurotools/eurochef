@@ -51,25 +51,35 @@ impl UXGeoTexture {
                 .read_type_args::<EXGeoTexture>(endian, (header.version, platform))
                 .context("Failed to read texture")?;
 
-            let calculated_size = texture_decoder.get_data_size(
+            let calculated_size = match texture_decoder.get_data_size(
                 tex.width as u32,
                 tex.height as u32,
                 tex.depth as u32,
                 tex.format,
-            );
+            ) {
+                Ok(cs) => cs,
+                Err(e) => {
+                    error!("Failed to extract texture {:x}: {:?}", t.common.hashcode, e);
+                    continue;
+                }
+            };
 
-            if let Err(e) = calculated_size {
-                error!("Failed to extract texture {:x}: {:?}", t.common.hashcode, e);
+            let data_size = if let Some(size) = tex.data_size {
+                size as usize
+            } else {
+                calculated_size
+            };
+
+            if data_size == 0 {
+                error!(
+                    "Texture has no data? (calculated={}, data_size={:?})",
+                    calculated_size, tex.data_size
+                );
                 continue;
             }
 
             data.clear();
-            data.resize(
-                tex.data_size
-                    .map(|v| v as usize)
-                    .unwrap_or(calculated_size.unwrap()),
-                0u8,
-            );
+            data.resize(data_size, 0u8);
 
             let mut output = RgbaImage::new(tex.width as u32, tex.height as u32);
             let mut texture = UXGeoTexture {

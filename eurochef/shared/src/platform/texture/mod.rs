@@ -1,7 +1,8 @@
 pub mod gx;
 pub mod pc;
-// pub mod ps2;
 pub mod xbox;
+pub mod xenon;
+// pub mod ps2;
 
 use eurochef_edb::versions::Platform;
 use image::RgbaImage;
@@ -35,6 +36,7 @@ pub fn create_for_platform(platform: Platform) -> Box<dyn TextureDecoder> {
         // Platform::Ps2 => Box::new(ps2::Ps2TextureDecoder),
         Platform::GameCube | Platform::Wii => Box::new(gx::GxTextureDecoder),
         Platform::Xbox => Box::new(xbox::XboxTextureDecoder),
+        Platform::Xbox360 => Box::new(xenon::XenonTextureDecoder),
         p => panic!("Unsupported platform for texture decoding: {p:?}"),
     }
 }
