@@ -118,7 +118,7 @@ impl TextureList {
                             .on_hover_ui(|ui| {
                                 ui.label(format!(
                                     "Hashcode: {:08x}\nFormat (internal): 0x{:x}\nDimensions: {}x{}x{}\nScroll: {} {}\nFlags: 0x{:x}\n",
-                                    t.hashcode, t.format_internal, t.width, t.height, t.depth, t.scroll[0], t.scroll[1], t.flags
+                                    t.hashcode, t.format_internal, t.width, t.height, t.depth, t.scroll[0], t.scroll[1], t.game_flags
                                 ));
 
                                 if frames.len() > 1 {
@@ -187,5 +187,5 @@ pub fn read_from_file<R: Read + Seek>(reader: &mut R, platform: Platform) -> Vec
         .read_type::<EXGeoHeader>(endian)
         .expect("Failed to read header");
 
-    UXGeoTexture::read_all(header, reader, platform).unwrap()
+    UXGeoTexture::read_all(&header, reader, platform).unwrap()
 }

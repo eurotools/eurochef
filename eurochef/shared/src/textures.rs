@@ -19,7 +19,9 @@ pub struct UXGeoTexture {
 
     /// Platform-specific format index, only for debugging purposes!
     pub format_internal: u8,
-    pub flags: u16,
+
+    pub flags: u32,
+    pub game_flags: u16,
 
     /// UV scroll rate, in pixels per second
     pub scroll: [i16; 2],
@@ -34,7 +36,7 @@ pub struct UXGeoTexture {
 
 impl UXGeoTexture {
     pub fn read_all<R: Read + Seek>(
-        header: EXGeoHeader,
+        header: &EXGeoHeader,
         reader: &mut R,
         platform: Platform, // TODO: Shouldn't need to pass this for every function
     ) -> anyhow::Result<Vec<Self>> {
@@ -87,7 +89,8 @@ impl UXGeoTexture {
                 height: tex.height,
                 depth: tex.depth,
                 format_internal: tex.format,
-                flags: tex.game_flags,
+                flags: t.flags,
+                game_flags: tex.game_flags,
                 framerate: tex.frame_rate,
                 frame_count: tex.frame_count,
                 hashcode: t.common.hashcode,

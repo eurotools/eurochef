@@ -1,7 +1,7 @@
 use std::{
     collections::HashMap,
     fs::File,
-    io::{BufReader, Cursor, Read, Seek, Write},
+    io::{BufReader, Cursor, Read, Seek},
     path::Path,
 };
 
@@ -12,11 +12,10 @@ use eurochef_edb::{
     common::{EXVector2, EXVector3},
     entity::{EXGeoBaseEntity, EXGeoEntity_TriStrip},
     header::EXGeoHeader,
-    texture::EXGeoTexture,
     versions::Platform,
 };
-use eurochef_shared::platform::texture;
-use image::{EncodableLayout, ImageOutputFormat, RgbaImage};
+use eurochef_shared::textures::UXGeoTexture;
+use image::ImageOutputFormat;
 use indicatif::{ProgressBar, ProgressIterator, ProgressStyle};
 
 use crate::{
@@ -100,16 +99,15 @@ pub fn execute_command(
         pb.set_message("Extracting textures");
 
         // TODO(cohae): Use UXGeoTexture for this
-        let mut data = vec![];
-        let texture_decoder = texture::create_for_platform(platform);
-        for t in header.texture_list.data.iter().progress_with(pb) {
-            let hash_str = format!("0x{:x}", t.common.hashcode);
+        let textures = UXGeoTexture::read_all(&header, &mut reader, platform)?;
+        for t in textures.into_iter() {
+            let hash_str = format!("0x{:x}", t.hashcode);
             let _span = error_span!("texture", hash = %hash_str);
             let _span_enter = _span.enter();
 
             trace!(
                 "tex={:x} sg=0b{:016b} flags=0b{:032b}",
-                t.common.hashcode,
+                t.hashcode,
                 t.flags >> 0x18,
                 t.flags
             );
@@ -126,72 +124,19 @@ pub fn execute_command(
                 _ => Transparency::Blend,
             };
 
-            reader.seek(std::io::SeekFrom::Start(t.common.address as u64))?;
-            let uri = format!("{:08x}_frame0.png", t.common.hashcode);
-
-            let tex = reader
-                .read_type_args::<EXGeoTexture>(endian, (header.version, platform))
-                .context("Failed to read texture")?;
-
-            let calculated_size = texture_decoder.get_data_size(
-                tex.width as u32,
-                tex.height as u32,
-                tex.depth as u32,
-                tex.format,
-            );
-
-            if let Err(e) = calculated_size {
-                error!("Failed to extract texture: {:?}", e);
-                texture_uri_map.insert(t.common.hashcode, (uri, transparency));
-                continue;
-            }
-
-            data.clear();
-            data.resize(
-                tex.data_size
-                    .map(|v| v as usize)
-                    .unwrap_or(calculated_size.unwrap()),
-                0u8,
-            );
-
-            std::fs::create_dir_all(output_folder)?;
-
-            let mut output = RgbaImage::new(tex.width as u32, tex.height as u32);
-            reader.seek(std::io::SeekFrom::Start(
-                tex.frame_offsets[0].offset_absolute(),
-            ))?;
-
-            if let Err(e) = reader.read_exact(&mut data) {
-                error!("Failed to read texture: {}", e);
-                texture_uri_map.insert(t.common.hashcode, (uri, transparency));
-                continue;
-            }
-
-            if let Err(e) = texture_decoder.decode(
-                &data,
-                &mut output,
-                tex.width as u32,
-                tex.height as u32,
-                tex.depth as u32,
-                tex.format,
-            ) {
-                error!("Texture failed to decode: {}", e);
-                texture_uri_map.insert(t.common.hashcode, (uri, transparency));
-                continue;
-            }
-
             let mut cur = Cursor::new(Vec::new());
             image::write_buffer_with_format(
                 &mut cur,
-                output.as_bytes(),
-                output.width(),
-                output.height(),
+                &t.frames[0],
+                t.width as u32,
+                t.height as u32,
                 image::ColorType::Rgba8,
                 ImageOutputFormat::Png,
             )?;
+
             let mut uri = "data:image/png;base64,".to_string();
             base64::engine::general_purpose::STANDARD.encode_string(&cur.into_inner(), &mut uri);
-            texture_uri_map.insert(t.common.hashcode, (uri, transparency));
+            texture_uri_map.insert(t.hashcode, (uri, transparency));
         }
     }
 
@@ -243,8 +188,6 @@ pub fn execute_command(
         let mut vertex_data = vec![];
         let mut indices = vec![];
         let mut strips = vec![];
-
-        println!("ent {} @ 0x{:x}", ent_id, ent_offset);
 
         if let Err(err) = read_entity(
             &ent,
