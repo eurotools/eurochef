@@ -2,7 +2,10 @@
 use binrw::binrw;
 use serde::Serialize;
 
-use crate::common::{EXRelPtr, EXVector};
+use crate::{
+    common::{EXRelPtr, EXVector},
+    versions::Platform,
+};
 
 #[binrw]
 #[derive(Debug, Serialize)]
@@ -87,7 +90,7 @@ pub struct EXGeoEntity_TextureList {
 
 #[binrw]
 #[derive(Debug, Serialize)]
-#[brw(import(version: u32))]
+#[brw(import(version: u32, platform: Platform))]
 pub struct EXGeoEntity_TriStrip {
     pub tricount: u32,
     pub texture_index: i32,
@@ -95,7 +98,7 @@ pub struct EXGeoEntity_TriStrip {
     pub num_indices: u16,
     pub flags: u16,
     pub trans_type: u16,
-    #[brw(if(version <= 252 && version != 248))]
+    #[brw(if(version <= 252 && version != 248 || platform == Platform::Xbox360))]
     _unk10: u32,
 }
 

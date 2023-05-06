@@ -46,18 +46,20 @@ _Each field is formatted as R/W. For example, if a feature can be read, but not 
 
 ### Platforms
 
-| Platform      | Endian | Textures          | Sounds | Mesh |
-| ------------- | ------ | ----------------- | ------ | ---- |
-| PC            | LE     | ✅<sup>[2]</sup>/❌ | ❌      | ✅/❌  |
-| Xbox          | LE     | ✅<sup>[2]</sup>/❌ | ❌      | ✅/❌  |
-| Xbox 360      | BE     | ❌                 | ❌      | ❌    |
-| GameCube      | BE     | ✅<sup>[2]</sup>/❌ | ❌      | ❌    |
-| Wii           | BE     | ✅<sup>[2]</sup>/❌ | ❌      | ❌    |
-| Wii U         | BE     | ❌                 | ❌      | ❌    |
-| Playstation 2 | LE     | ❌                 | ❌      | ❌    |
-| Playstation 3 | BE     | ❌                 | ❌      | ❌    |
+| Platform      | Endian | Textures          | Sounds | Mesh              |
+| ------------- | ------ | ----------------- | ------ | ----------------- |
+| PC            | LE     | ✅<sup>[2]</sup>/❌ | ❌      | ✅/❌               |
+| Xbox          | LE     | ✅<sup>[2]</sup>/❌ | ❌      | ✅/❌               |
+| Xbox 360      | BE     | ✅<sup>[2]</sup>/❌ | ❌      | 🚧<sup>[3]</sup>/❌ |
+| GameCube      | BE     | ✅<sup>[2]</sup>/❌ | ❌      | ❌                 |
+| Wii           | BE     | ✅<sup>[2]</sup>/❌ | ❌      | ❌                 |
+| Wii U         | BE     | ❌                 | ❌      | ❌                 |
+| Playstation 2 | LE     | ❌                 | ❌      | ❌                 |
+| Playstation 3 | BE     | ❌                 | ❌      | ❌                 |
 
 <sup>[2]</sup> The most significant formats have been implemented, no games using the remaining formats are currently known
+
+<sup>[3]</sup> Supports vertex positions and normals, texture coordinates are currently broken
 
 ### Filelists
 
@@ -72,7 +74,6 @@ _Each field is formatted as R/W. For example, if a feature can be read, but not 
 | v11     | ❌    | ❌     |
 | v12     | ❌    | ❌     |
 | v13     | ❌    | ❌     |
-
 
 <!-- ## Map extracting -->
 <!-- TODO(cohae): Write this out into a guide on how to build/use CLI/GUI, not just for maps but also everything else -->

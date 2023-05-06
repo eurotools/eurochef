@@ -69,8 +69,8 @@ pub fn execute_command(
         .or(Platform::from_path(&filename))
         .expect("Failed to detect platform");
 
-    if platform != Platform::Pc && platform != Platform::Xbox {
-        anyhow::bail!("Entity extraction is only supported for PC and Xbox (for now)")
+    if platform != Platform::Pc && platform != Platform::Xbox && platform != Platform::Xbox360 {
+        anyhow::bail!("Entity extraction is only supported for PC and Xbox (360) (for now)")
     }
 
     info!("Selected platform {platform:?}");
@@ -206,7 +206,7 @@ pub fn execute_command(
     // Find entities in refpointers
     for (i, r) in header.refpointer_list.data.iter().enumerate() {
         reader.seek(std::io::SeekFrom::Start(r.address as u64))?;
-        let etype = reader.read_type::<u16>(endian)?;
+        let etype = reader.read_type::<u32>(endian)?;
 
         if etype == 0x601 || etype == 0x603 {
             entity_offsets.push((r.address as u64, format!("ref_{i}")))
@@ -244,6 +244,8 @@ pub fn execute_command(
         let mut indices = vec![];
         let mut strips = vec![];
 
+        println!("ent {} @ 0x{:x}", ent_id, ent_offset);
+
         if let Err(err) = read_entity(
             &ent,
             &mut vertex_data,
@@ -251,6 +253,7 @@ pub fn execute_command(
             &mut strips,
             endian,
             header.version,
+            platform,
             &mut reader,
             4,
             remove_transparent,
@@ -313,6 +316,7 @@ fn read_entity<R: Read + Seek>(
     strips: &mut Vec<TriStrip>,
     endian: Endian,
     version: u32,
+    platform: Platform,
     data: &mut R,
     depth_limit: u32,
     remove_transparent: bool,
@@ -330,6 +334,7 @@ fn read_entity<R: Read + Seek>(
                 strips,
                 endian,
                 version,
+                platform,
                 data,
                 depth_limit - 1,
                 remove_transparent,
@@ -340,6 +345,14 @@ fn read_entity<R: Read + Seek>(
         let nent = ent.normal_entity.as_ref().unwrap();
 
         data.seek(std::io::SeekFrom::Start(nent.vertex_data.offset_absolute()))?;
+
+        // TODO(cohae): 0BADF002 + vertex count???
+        if platform == Platform::Xbox360 {
+            for _ in 0..2 {
+                data.read_type::<u32>(endian).unwrap();
+            }
+        }
+
         for _ in 0..nent.vertex_count {
             match version {
                 252 | 250 | 251 | 240 | 221 => {
@@ -350,12 +363,22 @@ fn read_entity<R: Read + Seek>(
                         uv: d.2,
                     });
                 }
-                248 | 259 => {
-                    vertex_data.push(UXVertex {
-                        pos: data.read_type(endian)?,
-                        norm: data.read_type(endian)?,
-                        uv: data.read_type(endian)?,
-                    });
+                248 | 259 | 260 => {
+                    if platform == Platform::Xbox360 {
+                        // TODO(cohae): Wacky x360-specific format
+                        let d = data.read_type::<(EXVector3, u32, EXVector3, u32)>(endian)?;
+                        vertex_data.push(UXVertex {
+                            pos: d.0,
+                            norm: d.2,
+                            uv: [0.0, 0.0],
+                        });
+                    } else {
+                        vertex_data.push(UXVertex {
+                            pos: data.read_type(endian)?,
+                            norm: data.read_type(endian)?,
+                            uv: data.read_type(endian)?,
+                        });
+                    }
                 }
                 _ => {
                     panic!(
@@ -365,19 +388,31 @@ fn read_entity<R: Read + Seek>(
             }
         }
 
+        if platform == Platform::Xbox360 {
+            for i in 0..nent.vertex_count as usize {
+                vertex_data[i].uv = data.read_type(endian)?;
+            }
+        }
+
         data.seek(std::io::SeekFrom::Start(nent.index_data.offset_absolute()))?;
+
+        // TODO(cohae): 0BADF001
+        if platform == Platform::Xbox360 {
+            for _ in 0..2 {
+                data.read_type::<u16>(endian).unwrap();
+            }
+        }
+
         let new_indices: Vec<u32> = (0..nent.index_count)
             .map(|_| data.read_type::<u16>(endian).unwrap() as u32)
             .collect();
-
-        // indices.extend(&new_indices);
 
         let mut tristrips: Vec<EXGeoEntity_TriStrip> = vec![];
         data.seek(std::io::SeekFrom::Start(
             nent.tristrip_data.offset_absolute(),
         ))?;
         for _ in 0..nent.tristrip_count {
-            tristrips.push(data.read_type_args(endian, (version,))?);
+            tristrips.push(data.read_type_args(endian, (version, platform))?);
         }
 
         let mut index_offset_local = 0;
@@ -391,9 +426,6 @@ fn read_entity<R: Read + Seek>(
                 index_offset_local += t.tricount + 2;
                 continue;
             }
-
-            // if t.flags
-            // println!("t={} f=0x{:016b}", t.trans_type, t.flags);
 
             let texture_index = if ent.flags & 0x1 != 0 {
                 // Index from texture list instead of the "global" array

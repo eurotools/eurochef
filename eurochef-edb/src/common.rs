@@ -86,6 +86,7 @@ impl<T: BinRead + Debug, OT: BinRead + NumCast, const OFFSET: i64> Debug
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str("EXRelPtr(")?;
         self.data.fmt(f)?;
+        f.write_str(format!(", addr=0x{:x}", self.offset_absolute).as_str())?;
         f.write_str(")")
     }
 }
