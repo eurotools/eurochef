@@ -5,8 +5,8 @@ use binrw::binrw;
 use crate::{
     array::{EXGeoCommonArrayElement, EXGeoHashArray, EXRelArray},
     common::{
-        EXGeoAnimHeader, EXGeoAnimModeHeader, EXGeoAnimSetHeader, EXGeoEntityHeader,
-        EXGeoSpreadSheetHeader,
+        EXGeoAnimHeader, EXGeoAnimModeHeader, EXGeoAnimSetHeader, EXGeoAnimSkinHeader,
+        EXGeoEntityHeader, EXGeoSpreadSheetHeader,
     },
     texture::EXGeoTextureHeader,
     // versions::{EDB_VERSION_BOND, EDB_VERSION_GFORCE, EDB_VERSION_ICEAGE3},
@@ -18,6 +18,7 @@ pub type EXGeoRefPointerHeader = EXGeoCommonArrayElement;
 pub type EXGeoScriptHeader = EXGeoCommonArrayElement;
 pub type EXGeoSwooshHeader = EXGeoCommonArrayElement;
 pub type EXGeoFontHeader = EXGeoCommonArrayElement;
+pub type EXGeoMaterialHeader = EXGeoCommonArrayElement;
 
 // TODO: This whole system might need a rework
 #[binrw]
@@ -41,7 +42,7 @@ pub struct EXGeoHeader {
     #[br(args(version))]
     pub entity_list: EXGeoHashArray<EXGeoEntityHeader>, // 0x50
     pub anim_list: EXGeoHashArray<EXGeoAnimHeader>,
-    pub animskin_list: EXGeoHashArray<()>, // 0x60
+    pub animskin_list: EXGeoHashArray<EXGeoAnimSkinHeader>, // 0x60
     pub script_list: EXGeoHashArray<EXGeoScriptHeader>,
     pub map_list: EXGeoHashArray<EXGeoMapHeader>, // 0x70
     pub animmode_list: EXGeoHashArray<EXGeoAnimModeHeader>,
@@ -54,7 +55,7 @@ pub struct EXGeoHeader {
     #[brw(if(version.ge(&248)))]
     pub forcefeedback_list: EXGeoHashArray<()>,
     #[brw(if(version.ge(&248)))]
-    pub material_list: EXGeoHashArray<()>, // 0xb0
+    pub material_list: EXGeoHashArray<EXGeoMaterialHeader>, // 0xb0
 
     // ! Spyro Hack
     #[brw(if(version.eq(&240)))]

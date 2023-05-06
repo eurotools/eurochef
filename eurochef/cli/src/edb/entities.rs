@@ -19,7 +19,10 @@ use image::ImageOutputFormat;
 use indicatif::{ProgressBar, ProgressIterator, ProgressStyle};
 
 use crate::{
-    edb::{gltf_export::dump_single_mesh_to_scene, TICK_STRINGS},
+    edb::{
+        gltf_export::{self},
+        TICK_STRINGS,
+    },
     PlatformArg,
 };
 
@@ -98,7 +101,6 @@ pub fn execute_command(
         );
         pb.set_message("Extracting textures");
 
-        // TODO(cohae): Use UXGeoTexture for this
         let textures = UXGeoTexture::read_all(&header, &mut reader, platform)?;
         for t in textures.into_iter() {
             let hash_str = format!("0x{:x}", t.hashcode);
@@ -232,13 +234,14 @@ pub fn execute_command(
             continue;
         }
 
-        let gltf = dump_single_mesh_to_scene(
+        let mut gltf = gltf_export::create_mesh_scene(&ent_id);
+        gltf_export::add_mesh_to_scene(
+            &mut gltf,
             &vertex_data,
             &indices,
             &strips,
             ![252, 250, 240, 221].contains(&header.version),
             &texture_uri_map,
-            &ent_id,
             header.hashcode,
         );
 
@@ -252,7 +255,7 @@ pub fn execute_command(
     Ok(())
 }
 
-fn read_entity<R: Read + Seek>(
+pub fn read_entity<R: Read + Seek>(
     ent: &EXGeoBaseEntity,
     vertex_data: &mut Vec<UXVertex>,
     indices: &mut Vec<u32>,

@@ -1,3 +1,4 @@
+pub mod anim;
 pub mod array;
 pub mod common;
 pub mod entity;

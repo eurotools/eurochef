@@ -129,6 +129,19 @@ enum EdbCommand {
         #[arg(long)]
         no_apngs: bool,
     },
+    /// Extract animations (!!MAJOR WIP!!)
+    Animations {
+        /// .edb file to read
+        filename: String,
+
+        /// Output folder for textures (default: "./entities/{filename}/")
+        output_folder: Option<String>,
+
+        // TODO(cohae): can we move this up to the edb command?
+        /// Override for platform detection
+        #[arg(value_enum, short, long, ignore_case = true)]
+        platform: Option<PlatformArg>,
+    },
 }
 
 #[derive(Subcommand, Debug, Clone)]
@@ -225,6 +238,11 @@ fn handle_edb(cmd: EdbCommand) -> anyhow::Result<()> {
             format,
             no_apngs,
         } => edb::textures::execute_command(filename, platform, output_folder, format, no_apngs),
+        EdbCommand::Animations {
+            filename,
+            platform,
+            output_folder,
+        } => edb::animations::execute_command(filename, platform, output_folder),
     }
 }
 

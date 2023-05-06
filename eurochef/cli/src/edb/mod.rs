@@ -1,7 +1,8 @@
 const TICK_STRINGS: &'static str = "⠁⠂⠄⡀⢀⠠⠐⠈";
 
+pub mod animations;
 pub mod entities;
-pub mod maps;
 mod gltf_export;
+pub mod maps;
 pub mod spreadsheets;
 pub mod textures;

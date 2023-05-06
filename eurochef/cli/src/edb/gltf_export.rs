@@ -36,19 +36,74 @@ pub struct TriStrip {
     pub transparency: u16,
 }
 
-pub fn dump_single_mesh_to_scene(
+#[derive(Copy, Clone, Pod, Zeroable)]
+#[repr(C)]
+pub struct UXVertex {
+    pub pos: EXVector3,
+    pub norm: EXVector3,
+    pub uv: EXVector2,
+}
+
+/// Creates a scene with a single mesh in it
+pub fn create_mesh_scene(name: &str) -> gjson::Root {
+    let node = gjson::Node {
+        camera: None,
+        children: None,
+        extensions: Default::default(),
+        extras: Default::default(),
+        matrix: None,
+        mesh: Some(gjson::Index::new(0)),
+        name: Some(name.to_string()),
+        rotation: None,
+        scale: None,
+        translation: None,
+        skin: None,
+        weights: None,
+    };
+
+    let mesh = gjson::Mesh {
+        extensions: Default::default(),
+        extras: Default::default(),
+        name: None,
+        primitives: vec![],
+        weights: None,
+    };
+
+    let sampler = gjson::texture::Sampler::default();
+    gjson::Root {
+        accessors: vec![],
+        buffers: vec![],
+        buffer_views: vec![],
+        meshes: vec![mesh],
+        nodes: vec![node],
+        samplers: vec![sampler],
+        scenes: vec![gjson::Scene {
+            extensions: Default::default(),
+            extras: Default::default(),
+            name: None,
+            nodes: vec![gjson::Index::new(0)],
+        }],
+        asset: gjson::Asset {
+            generator: Some("Eurochef".to_string()),
+            ..Default::default()
+        },
+        ..Default::default()
+    }
+}
+
+/// Constructs a primitive and adds it to the first mesh in the scene
+pub fn add_mesh_to_scene(
+    root: &mut gjson::Root,
     vertices: &[UXVertex],
     indices: &[u32],
     strips: &[TriStrip],
     use_normals: bool,
     texture_map: &HashMap<u32, (String, Transparency)>,
-    id: &str,
     file_hash: u32,
-) -> gjson::Root {
+) {
     let vdata: &[u8] = bytemuck::cast_slice(vertices);
     let idata: &[u8] = bytemuck::cast_slice(indices);
 
-    let (min, max) = bounding_coords(vertices);
     let vertex_buffer = gjson::Buffer {
         byte_length: vdata.len() as u32,
         extensions: Default::default(),
@@ -57,8 +112,11 @@ pub fn dump_single_mesh_to_scene(
         uri: Some(create_data_uri(vdata)),
     };
 
+    let vertex_buffer_index = root.buffers.len() as u32;
+    root.buffers.push(vertex_buffer.clone());
+
     let vertex_buffer_view = gjson::buffer::View {
-        buffer: gjson::Index::new(0),
+        buffer: gjson::Index::new(vertex_buffer_index),
         byte_length: vertex_buffer.byte_length,
         byte_offset: None,
         byte_stride: Some(std::mem::size_of::<UXVertex>() as u32),
@@ -67,6 +125,10 @@ pub fn dump_single_mesh_to_scene(
         name: None,
         target: Some(Checked::Valid(gjson::buffer::Target::ArrayBuffer)),
     };
+
+    let vertex_buffer_view_index = root.buffer_views.len() as u32;
+    root.buffer_views.push(vertex_buffer_view);
+
     let index_buffer = gjson::Buffer {
         byte_length: idata.len() as u32,
         extensions: Default::default(),
@@ -75,8 +137,11 @@ pub fn dump_single_mesh_to_scene(
         uri: Some(create_data_uri(idata)),
     };
 
+    let index_buffer_index = root.buffers.len() as u32;
+    root.buffers.push(index_buffer.clone());
+
     let positions = gjson::Accessor {
-        buffer_view: Some(gjson::Index::new(0)),
+        buffer_view: Some(gjson::Index::new(vertex_buffer_view_index)),
         byte_offset: 0,
         count: vertices.len() as u32,
         component_type: Checked::Valid(gjson::accessor::GenericComponentType(
@@ -85,14 +150,14 @@ pub fn dump_single_mesh_to_scene(
         extensions: Default::default(),
         extras: Default::default(),
         type_: Checked::Valid(gjson::accessor::Type::Vec3),
-        min: Some(gjson::Value::from(Vec::from(min))),
-        max: Some(gjson::Value::from(Vec::from(max))),
+        min: None,
+        max: None,
         name: None,
         normalized: false,
         sparse: None,
     };
     let normals = gjson::Accessor {
-        buffer_view: Some(gjson::Index::new(0)),
+        buffer_view: Some(gjson::Index::new(vertex_buffer_view_index)),
         byte_offset: (3 * std::mem::size_of::<f32>()) as u32,
         count: vertices.len() as u32,
         component_type: Checked::Valid(gjson::accessor::GenericComponentType(
@@ -108,7 +173,7 @@ pub fn dump_single_mesh_to_scene(
         sparse: None,
     };
     let uvs = gjson::Accessor {
-        buffer_view: Some(gjson::Index::new(0)),
+        buffer_view: Some(gjson::Index::new(vertex_buffer_view_index)),
         byte_offset: (6 * std::mem::size_of::<f32>()) as u32,
         count: vertices.len() as u32,
         component_type: Checked::Valid(gjson::accessor::GenericComponentType(
@@ -124,52 +189,22 @@ pub fn dump_single_mesh_to_scene(
         sparse: None,
     };
 
-    let sampler = gjson::texture::Sampler::default();
+    let a_position_index = root.accessors.len() as u32;
+    let a_normals_index = a_position_index + 1;
+    let a_uvs_index = a_position_index + 2;
 
-    let node = gjson::Node {
-        camera: None,
-        children: None,
-        extensions: Default::default(),
-        extras: Default::default(),
-        matrix: None,
-        mesh: Some(gjson::Index::new(0)),
-        name: Some(format!("ent_{id}")),
-        rotation: None,
-        scale: None,
-        translation: None,
-        skin: None,
-        weights: None,
-    };
-
-    let mut root = gjson::Root {
-        accessors: vec![positions, normals, uvs],
-        buffers: vec![vertex_buffer, index_buffer],
-        buffer_views: vec![vertex_buffer_view],
-        meshes: vec![],
-        nodes: vec![node],
-        samplers: vec![sampler],
-        scenes: vec![gjson::Scene {
-            extensions: Default::default(),
-            extras: Default::default(),
-            name: None,
-            nodes: vec![gjson::Index::new(0)],
-        }],
-        asset: gjson::Asset {
-            generator: Some("Eurochef".to_string()),
-            ..Default::default()
-        },
-        ..Default::default()
-    };
-
-    let mut mesh = gjson::Mesh {
-        extensions: Default::default(),
-        extras: Default::default(),
-        name: None,
-        primitives: vec![],
-        weights: None,
-    };
+    root.accessors.push(positions);
+    root.accessors.push(normals);
+    root.accessors.push(uvs);
 
     let mut material_map: HashMap<u32, u32> = HashMap::new();
+    // Restore material map
+    for (i, m) in root.materials.iter().enumerate() {
+        let msplit = m.name.as_ref().unwrap().split('_').nth(0).unwrap();
+        let mhashcode = u32::from_str_radix(msplit, 16).unwrap();
+        material_map.insert(mhashcode, i as u32);
+    }
+
     for t in strips {
         if !material_map.contains_key(&t.texture_hash) {
             let (img_uri, transparency) = texture_map
@@ -239,6 +274,7 @@ pub fn dump_single_mesh_to_scene(
                         },
                     ),
                 }),
+                double_sided: true,
                 ..Default::default()
             });
 
@@ -249,7 +285,7 @@ pub fn dump_single_mesh_to_scene(
         let material_id = material_map.get(&t.texture_hash).unwrap();
 
         let index_buffer_view = gjson::buffer::View {
-            buffer: gjson::Index::new(1),
+            buffer: gjson::Index::new(index_buffer_index),
             byte_length: t.index_count * std::mem::size_of::<u32>() as u32,
             byte_offset: Some(t.start_index * std::mem::size_of::<u32>() as u32),
             byte_stride: None,
@@ -283,17 +319,17 @@ pub fn dump_single_mesh_to_scene(
                 let mut map = std::collections::HashMap::new();
                 map.insert(
                     Checked::Valid(gjson::mesh::Semantic::Positions),
-                    gjson::Index::new(0),
+                    gjson::Index::new(a_position_index),
                 );
                 if use_normals {
                     map.insert(
                         Checked::Valid(gjson::mesh::Semantic::Normals),
-                        gjson::Index::new(1),
+                        gjson::Index::new(a_normals_index),
                     );
                 }
                 map.insert(
                     Checked::Valid(gjson::mesh::Semantic::TexCoords(0)),
-                    gjson::Index::new(2),
+                    gjson::Index::new(a_uvs_index),
                 );
                 map
             },
@@ -305,34 +341,8 @@ pub fn dump_single_mesh_to_scene(
             targets: None,
         };
 
-        mesh.primitives.push(primitive);
+        root.meshes[0].primitives.push(primitive);
     }
-
-    root.meshes.push(mesh);
-
-    root
-}
-
-#[derive(Copy, Clone, Pod, Zeroable)]
-#[repr(C)]
-pub struct UXVertex {
-    pub pos: EXVector3,
-    pub norm: EXVector3,
-    pub uv: EXVector2,
-}
-
-fn bounding_coords(vertices: &[UXVertex]) -> ([f32; 3], [f32; 3]) {
-    let mut min = [f32::MAX, f32::MAX, f32::MAX];
-    let mut max = [f32::MIN, f32::MIN, f32::MIN];
-
-    for v in vertices {
-        let p = v.pos;
-        for i in 0..3 {
-            min[i] = f32::min(min[i], p[i]);
-            max[i] = f32::max(max[i], p[i]);
-        }
-    }
-    (min, max)
 }
 
 fn create_data_uri(data: &[u8]) -> String {
