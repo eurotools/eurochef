@@ -87,6 +87,7 @@ pub fn create_mesh_scene(name: &str) -> gjson::Root {
             generator: Some("Eurochef".to_string()),
             ..Default::default()
         },
+        extensions_used: vec!["KHR_materials_pbrSpecularGlossiness".to_string()],
         ..Default::default()
     }
 }
@@ -103,6 +104,8 @@ pub fn add_mesh_to_scene(
 ) {
     let vdata: &[u8] = bytemuck::cast_slice(vertices);
     let idata: &[u8] = bytemuck::cast_slice(indices);
+
+    let (min, max) = bounding_coords(vertices);
 
     let vertex_buffer = gjson::Buffer {
         byte_length: vdata.len() as u32,
@@ -150,8 +153,8 @@ pub fn add_mesh_to_scene(
         extensions: Default::default(),
         extras: Default::default(),
         type_: Checked::Valid(gjson::accessor::Type::Vec3),
-        min: None,
-        max: None,
+        min: Some(gjson::Value::from(Vec::from(min))),
+        max: Some(gjson::Value::from(Vec::from(max))),
         name: None,
         normalized: false,
         sparse: None,
@@ -343,6 +346,20 @@ pub fn add_mesh_to_scene(
 
         root.meshes[0].primitives.push(primitive);
     }
+}
+
+fn bounding_coords(vertices: &[UXVertex]) -> ([f32; 3], [f32; 3]) {
+    let mut min = [f32::MAX, f32::MAX, f32::MAX];
+    let mut max = [f32::MIN, f32::MIN, f32::MIN];
+
+    for v in vertices {
+        let p = v.pos;
+        for i in 0..3 {
+            min[i] = f32::min(min[i], p[i]);
+            max[i] = f32::max(max[i], p[i]);
+        }
+    }
+    (min, max)
 }
 
 fn create_data_uri(data: &[u8]) -> String {
