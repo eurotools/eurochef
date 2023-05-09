@@ -8,7 +8,7 @@ use std::{
 use anyhow::Context;
 use eurochef_edb::{
     binrw::{BinReaderExt, Endian},
-    entity::{EXGeoBaseEntity, EXGeoMapZoneEntity},
+    entity::{EXGeoEntity, EXGeoMapZoneEntity},
     header::EXGeoHeader,
     map::{EXGeoLight, EXGeoMap, EXGeoPath, EXGeoPlacement},
 };
@@ -87,12 +87,13 @@ pub fn execute_command(
             file.seek(std::io::SeekFrom::Start(entity_offset as u64))
                 .context("Mapzone refptr pointer to a non-entity object!")?;
 
-            let ent = file.read_type_args::<EXGeoBaseEntity>(endian, (header.version,))?;
-            if ent.mapzone_entity.is_none() {
+            let ent = file.read_type_args::<EXGeoEntity>(endian, (header.version,))?;
+
+            if let EXGeoEntity::MapZone(mapzone) = ent {
+                export.mapzone_entities.push(mapzone);
+            } else {
                 anyhow::bail!("Refptr entity does not have a mapzone entity!");
             }
-
-            export.mapzone_entities.push(ent.mapzone_entity.unwrap());
         }
 
         for t in map.trigger_header.triggers.iter() {

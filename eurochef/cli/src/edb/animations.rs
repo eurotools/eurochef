@@ -10,7 +10,7 @@ use base64::Engine;
 use eurochef_edb::{
     anim::EXGeoBaseAnimSkin,
     binrw::{BinReaderExt, Endian},
-    entity::EXGeoBaseEntity,
+    entity::EXGeoEntity,
     header::EXGeoHeader,
     versions::Platform,
 };
@@ -160,7 +160,7 @@ pub fn execute_command(
 
             reader.seek(std::io::SeekFrom::Start(e.common.address as u64))?;
 
-            let ent = reader.read_type_args::<EXGeoBaseEntity>(endian, (header.version,));
+            let ent = reader.read_type_args::<EXGeoEntity>(endian, (header.version,));
 
             if let Err(err) = ent {
                 error!("Failed to read entity: {err}");

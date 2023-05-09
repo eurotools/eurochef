@@ -875,6 +875,7 @@ dependencies = [
  "binrw",
  "num",
  "serde",
+ "thiserror",
 ]
 
 [[package]]

@@ -1,9 +1,10 @@
 #![allow(non_camel_case_types)]
-use binrw::binrw;
+use binrw::{binrw, BinRead, BinReaderExt};
 use serde::Serialize;
 
 use crate::{
     common::{EXRelPtr, EXVector},
+    error::EurochefError,
     versions::Platform,
 };
 
@@ -12,8 +13,6 @@ use crate::{
 #[brw(import(version: u32))]
 // TODO: Format is slightly different on versions 248 and below
 pub struct EXGeoBaseEntity {
-    #[brw(assert([0x601, 0x603, 0x606, 0x607, 0x608].contains(&object_type)))]
-    pub object_type: u32, // 0x0
     pub flags: u32,       // 0x4
     pub sort_value: u16,  // 0x8
     pub render_order: u8, // 0xa
@@ -26,22 +25,15 @@ pub struct EXGeoBaseEntity {
     _unk40: [u32; 4],
     pub gdi_count: u16, // 0x50
     pub gdi_index: u16, // 0x52
-
-    #[brw(if(object_type.eq(&0x601)))]
-    #[brw(args(version))]
-    pub normal_entity: Option<EXGeoEntity>,
-    #[brw(if(object_type.eq(&0x603)))]
-    #[brw(args(version))]
-    pub split_entity: Option<EXGeoSplitEntity>,
-    #[brw(if(object_type.eq(&0x608)))]
-    pub mapzone_entity: Option<EXGeoMapZoneEntity>,
 }
 
 #[binrw]
 #[derive(Debug, Serialize, Clone)]
-#[brw(import(_version: u32))]
-pub struct EXGeoEntity {
-    // pub base: EXGeoBaseEntity,                       // 0x0
+#[brw(import(version: u32))]
+pub struct EXGeoMeshEntity {
+    #[brw(args(version))]
+    pub base: EXGeoBaseEntity, // 0x0
+
     pub texture_list: EXRelPtr<EXGeoEntity_TextureList>, // 0x54
     pub tristrip_data: EXRelPtr,                         // 0x58
     pub vertex_data: EXRelPtr,                           // 0x5c
@@ -59,8 +51,11 @@ pub struct EXGeoEntity {
 
 #[binrw]
 #[derive(Debug, Serialize, Clone)]
+#[brw(import(version: u32))]
 pub struct EXGeoMapZoneEntity {
-    // pub base: EXGeoBaseEntity,                       // 0x0
+    #[brw(args(version))]
+    pub base: EXGeoBaseEntity, // 0x0
+
     pub _unk54: u32,        // 0x54
     pub entity_refptr: u32, // 0x58
 }
@@ -69,13 +64,16 @@ pub struct EXGeoMapZoneEntity {
 #[derive(Debug, Serialize, Clone)]
 #[brw(import(version: u32))]
 pub struct EXGeoSplitEntity {
+    #[brw(args(version))]
+    pub base: EXGeoBaseEntity, // 0x0
+
     // TODO(cohae): Older games have different limits, how do we handle that when writing files?
     #[brw(assert(entity_count.le(&512)))]
     pub entity_count: u32, // 0x54
     _unk58: u32,
 
     #[br(count = entity_count, args { inner: (version,) })]
-    pub entities: Vec<EXRelPtr<EXGeoBaseEntity>>, // 0x5c
+    pub entities: Vec<EXRelPtr<EXGeoEntity>>, // 0x5c
 }
 
 #[binrw]
@@ -102,6 +100,38 @@ pub struct EXGeoEntity_TriStrip {
     _unk10: u32,
 }
 
-#[binrw]
 #[derive(Debug, Serialize, Clone)]
-pub struct EXGeoEntity_VtxData {}
+pub enum EXGeoEntity {
+    Mesh(EXGeoMeshEntity),
+    Split(EXGeoSplitEntity),
+    MapZone(EXGeoMapZoneEntity),
+}
+
+impl BinRead for EXGeoEntity {
+    type Args<'a> = (u32,);
+
+    fn read_options<R: std::io::Read + std::io::Seek>(
+        reader: &mut R,
+        endian: binrw::Endian,
+        args: Self::Args<'_>,
+    ) -> binrw::BinResult<Self> {
+        let obj_type: u32 = reader.read_type(endian)?;
+
+        Ok(match obj_type {
+            0x601 => EXGeoEntity::Mesh(reader.read_type_args(endian, args)?),
+            0x603 => EXGeoEntity::Split(reader.read_type_args(endian, args)?),
+            0x608 => EXGeoEntity::MapZone(reader.read_type_args(endian, args)?),
+            t @ 0x600..=0x6ff => {
+                return Err(binrw::Error::Custom {
+                    pos: reader.stream_position()?,
+                    err: Box::new(EurochefError::Unsupported(format!(
+                        "EXGeoEntity type 0x{t:x} is not supported!"
+                    ))),
+                })
+            }
+            t => {
+                panic!("Invalid object type 0x{t:x}!")
+            }
+        })
+    }
+}

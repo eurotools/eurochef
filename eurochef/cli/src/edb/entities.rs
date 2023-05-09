@@ -10,7 +10,7 @@ use base64::Engine;
 use eurochef_edb::{
     binrw::{BinReaderExt, Endian},
     common::{EXVector2, EXVector3},
-    entity::{EXGeoBaseEntity, EXGeoEntity_TriStrip},
+    entity::{EXGeoEntity, EXGeoEntity_TriStrip},
     header::EXGeoHeader,
     versions::Platform,
 };
@@ -177,7 +177,7 @@ pub fn execute_command(
 
         reader.seek(std::io::SeekFrom::Start(*ent_offset))?;
 
-        let ent = reader.read_type_args::<EXGeoBaseEntity>(endian, (header.version,));
+        let ent = reader.read_type_args::<EXGeoEntity>(endian, (header.version,));
 
         if let Err(err) = ent {
             error!("Failed to read entity: {err}");
@@ -253,7 +253,7 @@ pub fn execute_command(
 }
 
 pub fn read_entity<R: Read + Seek>(
-    ent: &EXGeoBaseEntity,
+    ent: &EXGeoEntity,
     vertex_data: &mut Vec<UXVertex>,
     indices: &mut Vec<u32>,
     strips: &mut Vec<TriStrip>,
@@ -268,150 +268,147 @@ pub fn read_entity<R: Read + Seek>(
         anyhow::bail!("Entity recursion limit reached!");
     }
 
-    if ent.object_type == 0x603 {
-        for e in ent.split_entity.as_ref().unwrap().entities.iter() {
-            read_entity(
-                e,
-                vertex_data,
-                indices,
-                strips,
-                endian,
-                version,
-                platform,
-                data,
-                depth_limit - 1,
-                remove_transparent,
-            )?;
-        }
-    } else if ent.object_type == 0x601 {
-        let vertex_offset = vertex_data.len() as u32;
-        let nent = ent.normal_entity.as_ref().unwrap();
-
-        data.seek(std::io::SeekFrom::Start(nent.vertex_data.offset_absolute()))?;
-
-        // TODO(cohae): 0BADF002 + vertex count???
-        if platform == Platform::Xbox360 {
-            for _ in 0..2 {
-                data.read_type::<u32>(endian).unwrap();
+    match ent {
+        EXGeoEntity::Split(split) => {
+            for e in split.entities.iter() {
+                read_entity(
+                    e,
+                    vertex_data,
+                    indices,
+                    strips,
+                    endian,
+                    version,
+                    platform,
+                    data,
+                    depth_limit - 1,
+                    remove_transparent,
+                )?;
             }
         }
+        EXGeoEntity::Mesh(mesh) => {
+            let vertex_offset = vertex_data.len() as u32;
 
-        for _ in 0..nent.vertex_count {
-            match version {
-                252 | 250 | 251 | 240 | 221 => {
-                    let d = data.read_type::<(EXVector3, u32, EXVector2)>(endian)?;
-                    vertex_data.push(UXVertex {
-                        pos: d.0,
-                        norm: [0f32, 0f32, 0f32],
-                        uv: d.2,
-                    });
+            data.seek(std::io::SeekFrom::Start(mesh.vertex_data.offset_absolute()))?;
+
+            // TODO(cohae): 0BADF002 + vertex count???
+            if platform == Platform::Xbox360 {
+                for _ in 0..2 {
+                    data.read_type::<u32>(endian).unwrap();
                 }
-                248 | 259 | 260 => {
-                    if platform == Platform::Xbox360 {
-                        // TODO(cohae): Wacky x360-specific format
-                        let d = data.read_type::<(EXVector3, u32, EXVector3, u32)>(endian)?;
+            }
+
+            for _ in 0..mesh.vertex_count {
+                match version {
+                    252 | 250 | 251 | 240 | 221 => {
+                        let d = data.read_type::<(EXVector3, u32, EXVector2)>(endian)?;
                         vertex_data.push(UXVertex {
                             pos: d.0,
-                            norm: d.2,
-                            uv: [0.0, 0.0],
-                        });
-                    } else {
-                        vertex_data.push(UXVertex {
-                            pos: data.read_type(endian)?,
-                            norm: data.read_type(endian)?,
-                            uv: data.read_type(endian)?,
+                            norm: [0f32, 0f32, 0f32],
+                            uv: d.2,
                         });
                     }
-                }
-                _ => {
-                    panic!(
+                    248 | 259 | 260 => {
+                        if platform == Platform::Xbox360 {
+                            // TODO(cohae): Wacky x360-specific format
+                            let d = data.read_type::<(EXVector3, u32, EXVector3, u32)>(endian)?;
+                            vertex_data.push(UXVertex {
+                                pos: d.0,
+                                norm: d.2,
+                                uv: [0.0, 0.0],
+                            });
+                        } else {
+                            vertex_data.push(UXVertex {
+                                pos: data.read_type(endian)?,
+                                norm: data.read_type(endian)?,
+                                uv: data.read_type(endian)?,
+                            });
+                        }
+                    }
+                    _ => {
+                        panic!(
                         "Vertex format for version {version} is not known yet, report to cohae!"
                     );
+                    }
                 }
             }
-        }
 
-        if platform == Platform::Xbox360 {
-            for i in 0..nent.vertex_count as usize {
-                vertex_data[i].uv = data.read_type(endian)?;
-            }
-        }
-
-        data.seek(std::io::SeekFrom::Start(nent.index_data.offset_absolute()))?;
-
-        // TODO(cohae): 0BADF001
-        if platform == Platform::Xbox360 {
-            for _ in 0..2 {
-                data.read_type::<u16>(endian).unwrap();
-            }
-        }
-
-        let new_indices: Vec<u32> = (0..nent.index_count)
-            .map(|_| data.read_type::<u16>(endian).unwrap() as u32)
-            .collect();
-
-        let mut tristrips: Vec<EXGeoEntity_TriStrip> = vec![];
-        data.seek(std::io::SeekFrom::Start(
-            nent.tristrip_data.offset_absolute(),
-        ))?;
-        for _ in 0..nent.tristrip_count {
-            tristrips.push(data.read_type_args(endian, (version, platform))?);
-        }
-
-        let mut index_offset_local = 0;
-        for t in tristrips {
-            if t.tricount < 1 {
-                break;
+            if platform == Platform::Xbox360 {
+                for i in 0..mesh.vertex_count as usize {
+                    vertex_data[i].uv = data.read_type(endian)?;
+                }
             }
 
-            // Skip transparent surfaces that use additive blending
-            if t.trans_type == 1 {
+            data.seek(std::io::SeekFrom::Start(mesh.index_data.offset_absolute()))?;
+
+            // TODO(cohae): 0BADF001
+            if platform == Platform::Xbox360 {
+                for _ in 0..2 {
+                    data.read_type::<u16>(endian).unwrap();
+                }
+            }
+
+            let new_indices: Vec<u32> = (0..mesh.index_count)
+                .map(|_| data.read_type::<u16>(endian).unwrap() as u32)
+                .collect();
+
+            let mut tristrips: Vec<EXGeoEntity_TriStrip> = vec![];
+            data.seek(std::io::SeekFrom::Start(
+                mesh.tristrip_data.offset_absolute(),
+            ))?;
+            for _ in 0..mesh.tristrip_count {
+                tristrips.push(data.read_type_args(endian, (version, platform))?);
+            }
+
+            let mut index_offset_local = 0;
+            for t in tristrips {
+                if t.tricount < 1 {
+                    break;
+                }
+
+                // Skip transparent surfaces that use additive blending
+                if t.trans_type == 1 {
+                    index_offset_local += t.tricount + 2;
+                    continue;
+                }
+
+                let texture_index = if mesh.base.flags & 0x1 != 0 {
+                    // Index from texture list instead of the "global" array
+                    if t.texture_index < mesh.texture_list.textures.len() as i32 {
+                        mesh.texture_list.textures[t.texture_index as usize] as i32
+                    } else {
+                        error!("Tried to get texture #{} from texture list, but list only has {} elements!", t.texture_index, mesh.texture_list.textures.len());
+                        -1
+                    }
+                } else {
+                    t.texture_index
+                };
+
+                strips.push(TriStrip {
+                    start_index: indices.len() as u32,
+                    index_count: t.tricount * 3,
+                    texture_hash: texture_index as u32,
+                    transparency: t.trans_type,
+                });
+
+                for i in (index_offset_local as usize)..(index_offset_local + t.tricount) as usize {
+                    if (i - index_offset_local as usize) % 2 == 0 {
+                        indices.extend([
+                            vertex_offset + new_indices[i + 2] as u32,
+                            vertex_offset + new_indices[i + 1] as u32,
+                            vertex_offset + new_indices[i] as u32,
+                        ])
+                    } else {
+                        indices.extend([
+                            vertex_offset + new_indices[i] as u32,
+                            vertex_offset + new_indices[i + 1] as u32,
+                            vertex_offset + new_indices[i + 2] as u32,
+                        ])
+                    }
+                }
                 index_offset_local += t.tricount + 2;
-                continue;
             }
-
-            let texture_index = if ent.flags & 0x1 != 0 {
-                // Index from texture list instead of the "global" array
-                if t.texture_index < nent.texture_list.textures.len() as i32 {
-                    nent.texture_list.textures[t.texture_index as usize] as i32
-                } else {
-                    error!("Tried to get texture #{} from texture list, but list only has {} elements!", t.texture_index, nent.texture_list.textures.len());
-                    -1
-                }
-            } else {
-                t.texture_index
-            };
-
-            strips.push(TriStrip {
-                start_index: indices.len() as u32,
-                index_count: t.tricount * 3,
-                texture_hash: texture_index as u32,
-                transparency: t.trans_type,
-            });
-
-            for i in (index_offset_local as usize)..(index_offset_local + t.tricount) as usize {
-                if (i - index_offset_local as usize) % 2 == 0 {
-                    indices.extend([
-                        vertex_offset + new_indices[i + 2] as u32,
-                        vertex_offset + new_indices[i + 1] as u32,
-                        vertex_offset + new_indices[i] as u32,
-                    ])
-                } else {
-                    indices.extend([
-                        vertex_offset + new_indices[i] as u32,
-                        vertex_offset + new_indices[i + 1] as u32,
-                        vertex_offset + new_indices[i + 2] as u32,
-                    ])
-                }
-            }
-            index_offset_local += t.tricount + 2;
         }
-    } else {
-        if (0x600..0x700).contains(&ent.object_type) {
-            anyhow::bail!("Unsupported object type 0x{:x}", ent.object_type)
-        }
-
-        anyhow::bail!("Invalid obj type 0x{:x}", ent.object_type)
+        _ => {}
     }
 
     Ok(())
