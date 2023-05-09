@@ -1,4 +1,4 @@
-use std::{any::TypeId, fmt::Debug};
+use std::{any::TypeId, fmt::Debug, ops::Deref};
 
 use binrw::{binrw, BinRead, BinReaderExt, BinWrite};
 use num::NumCast;
@@ -13,10 +13,10 @@ pub type EXVector2 = [f32; 2];
 // TODO: RelPtr16 generic
 #[derive(Clone)]
 pub struct EXRelPtr<T: BinRead = (), OT: BinRead + NumCast = i32, const OFFSET: i64 = 0> {
-    pub offset: OT,
-    pub offset_absolute: u64,
+    offset: OT,
+    offset_absolute: u64,
 
-    pub data: T,
+    data: T,
 }
 
 impl<T: BinRead, OT: BinRead + NumCast, const OFFSET: i64> EXRelPtr<T, OT, OFFSET> {
@@ -119,6 +119,14 @@ where
         } else {
             self.data.serialize(serializer)
         }
+    }
+}
+
+impl<T: BinRead + Debug> Deref for EXRelPtr<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.data
     }
 }
 

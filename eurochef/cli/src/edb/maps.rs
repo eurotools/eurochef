@@ -76,7 +76,7 @@ pub fn execute_command(
 
         let mut export = EurochefMapExport {
             paths: map.paths.data().clone(),
-            placements: map.placements.data,
+            placements: map.placements.data().clone(),
             lights: map.lights.data().clone(),
             mapzone_entities: vec![],
             triggers: vec![],
@@ -95,10 +95,10 @@ pub fn execute_command(
             export.mapzone_entities.push(ent.mapzone_entity.unwrap());
         }
 
-        for t in map.trigger_header.data.triggers.data.iter() {
-            let trig = &t.trigger.data;
+        for t in map.trigger_header.triggers.iter() {
+            let trig = &t.trigger;
             let (ttype, tsubtype) = {
-                let t = &map.trigger_header.data.trigger_types.data[trig.type_index as usize];
+                let t = &map.trigger_header.trigger_types[trig.type_index as usize];
 
                 (t.trig_type, t.trig_subtype)
             };

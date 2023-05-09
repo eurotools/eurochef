@@ -133,11 +133,11 @@ impl<T: BinRead + Serialize> Serialize for EXGeoHashArray<T> {
 
 #[derive(Clone)]
 pub struct EXRelArray<T: BinRead + 'static> {
-    pub array_size: i32,
+    array_size: i32,
 
-    pub rel_offset: EXRelPtr,
+    rel_offset: EXRelPtr,
 
-    pub data: Vec<T>,
+    data: Vec<T>,
 }
 
 impl<T: BinRead> EXRelArray<T> {

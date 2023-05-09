@@ -64,7 +64,7 @@ impl UXGeoSpreadsheet {
                         .expect("Failed to read textitem");
                     section.entries.push(UXGeoTextItem {
                         hashcode: item.hashcode,
-                        text: item.string.data.to_string(),
+                        text: item.string.to_string(),
                         sound_hashcode: item.sound_hashcode,
                     });
                 }

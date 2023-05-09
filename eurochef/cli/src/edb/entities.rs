@@ -271,7 +271,7 @@ pub fn read_entity<R: Read + Seek>(
     if ent.object_type == 0x603 {
         for e in ent.split_entity.as_ref().unwrap().entities.iter() {
             read_entity(
-                &e.data,
+                e,
                 vertex_data,
                 indices,
                 strips,
@@ -372,10 +372,10 @@ pub fn read_entity<R: Read + Seek>(
 
             let texture_index = if ent.flags & 0x1 != 0 {
                 // Index from texture list instead of the "global" array
-                if t.texture_index < nent.texture_list.data.textures.len() as i32 {
-                    nent.texture_list.data.textures[t.texture_index as usize] as i32
+                if t.texture_index < nent.texture_list.textures.len() as i32 {
+                    nent.texture_list.textures[t.texture_index as usize] as i32
                 } else {
-                    error!("Tried to get texture #{} from texture list, but list only has {} elements!", t.texture_index, nent.texture_list.data.textures.len());
+                    error!("Tried to get texture #{} from texture list, but list only has {} elements!", t.texture_index, nent.texture_list.textures.len());
                     -1
                 }
             } else {

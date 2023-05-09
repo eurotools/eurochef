@@ -145,9 +145,8 @@ pub fn execute_command(
 
         let entity_indices: Vec<u32> = skin
             .entities
-            .data
             .iter()
-            .chain(skin.more_entities.data.iter())
+            .chain(skin.more_entities.iter())
             .map(|d| d.entity_index & 0x00ffffff)
             .collect();
 

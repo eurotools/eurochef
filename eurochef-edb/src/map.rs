@@ -86,7 +86,7 @@ pub struct EXGeoTriggerHeader {
     pub trigger_scripts: EXRelPtr<(), i32, -4>,
 
     // TODO(cohae): custom parser
-    #[br(count = if triggers.data.len() != 0 { triggers.data.iter().map(|v| v.trigger.data.type_index).max().unwrap()+1 } else { 0 })]
+    #[br(count = if triggers.len() != 0 { triggers.iter().map(|v| v.trigger.type_index).max().unwrap()+1 } else { 0 })]
     pub trigger_types: EXRelPtr<Vec<EXGeoTriggerType>>,
     // pub trigger_types: EXRelPtr<()>, // Last element is marked by a trig_type of -1
 
