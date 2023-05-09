@@ -53,6 +53,18 @@ impl TextureDecoder for XenonTextureDecoder {
 
                 bcn.decompress(&swapped, width as usize, height as usize, &mut buffer);
             }
+            InternalFormat::ARGB4 => {
+                for (i, bytes) in input.chunks_exact(2).enumerate() {
+                    let r = bytes[1] & 0x0f;
+                    let g = bytes[1] >> 4;
+                    let b = bytes[0] & 0x0f;
+                    let a = bytes[0] >> 4;
+                    buffer[i * 4 + 0] = (b << 4) | b;
+                    buffer[i * 4 + 1] = (g << 4) | g;
+                    buffer[i * 4 + 2] = (r << 4) | r;
+                    buffer[i * 4 + 3] = (a << 4) | a;
+                }
+            }
             InternalFormat::RGB565 => {
                 for (i, bytes) in input.chunks_exact(2).enumerate() {
                     // TODO: Endianness. We're gonna need to move all of this anyways
@@ -98,13 +110,14 @@ enum InternalFormat {
     Dxt5 = 5,
 
     RGB565 = 6,
+    ARGB4 = 8,
     ARGB8 = 9,
 }
 
 impl InternalFormat {
     pub fn bpp(&self) -> usize {
         match self {
-            Self::RGB565 => 16,
+            Self::RGB565 | Self::ARGB4 => 16,
             Self::ARGB8 => 32,
             Self::Dxt1 => 4,
             Self::Dxt3 | Self::Dxt5 => 8,
