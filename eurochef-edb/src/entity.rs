@@ -69,8 +69,8 @@ pub struct EXGeoMapZoneEntity {
 #[derive(Debug, Serialize)]
 #[brw(import(version: u32))]
 pub struct EXGeoSplitEntity {
-    // pub base: EXGeoBaseEntity, // 0x0
-    #[brw(assert(entity_count.le(&256)))]
+    // TODO(cohae): Older games have different limits, how do we handle that when writing files?
+    #[brw(assert(entity_count.le(&512)))]
     pub entity_count: u32, // 0x54
     _unk58: u32,
 
