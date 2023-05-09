@@ -8,7 +8,7 @@ use crate::{
 };
 
 #[binrw]
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 #[brw(import(version: u32))]
 // TODO: Format is slightly different on versions 248 and below
 pub struct EXGeoBaseEntity {
@@ -38,7 +38,7 @@ pub struct EXGeoBaseEntity {
 }
 
 #[binrw]
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 #[brw(import(_version: u32))]
 pub struct EXGeoEntity {
     // pub base: EXGeoBaseEntity,                       // 0x0
@@ -58,7 +58,7 @@ pub struct EXGeoEntity {
 }
 
 #[binrw]
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub struct EXGeoMapZoneEntity {
     // pub base: EXGeoBaseEntity,                       // 0x0
     pub _unk54: u32,        // 0x54
@@ -66,7 +66,7 @@ pub struct EXGeoMapZoneEntity {
 }
 
 #[binrw]
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 #[brw(import(version: u32))]
 pub struct EXGeoSplitEntity {
     // TODO(cohae): Older games have different limits, how do we handle that when writing files?
@@ -79,7 +79,7 @@ pub struct EXGeoSplitEntity {
 }
 
 #[binrw]
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub struct EXGeoEntity_TextureList {
     #[serde(skip)]
     pub texture_count: u16,
@@ -89,7 +89,7 @@ pub struct EXGeoEntity_TextureList {
 }
 
 #[binrw]
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 #[brw(import(version: u32, platform: Platform))]
 pub struct EXGeoEntity_TriStrip {
     pub tricount: u32,
@@ -103,5 +103,5 @@ pub struct EXGeoEntity_TriStrip {
 }
 
 #[binrw]
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub struct EXGeoEntity_VtxData {}

@@ -47,7 +47,7 @@ impl UXGeoTexture {
         let texture_decoder = texture::create_for_platform(platform);
         let mut textures = vec![];
         let mut data = vec![];
-        for t in header.texture_list.data.iter() {
+        for t in header.texture_list.iter() {
             reader.seek(std::io::SeekFrom::Start(t.common.address as u64))?;
 
             let tex = reader

@@ -50,7 +50,7 @@ pub fn execute_command(
         .read_type::<EXGeoHeader>(endian)
         .expect("Failed to read header");
 
-    if header.map_list.array_size == 0 {
+    if header.map_list.len() == 0 {
         warn!("File does not contain any maps!");
         return Ok(());
     }
@@ -75,15 +75,15 @@ pub fn execute_command(
             .context("Failed to read map")?;
 
         let mut export = EurochefMapExport {
-            paths: map.paths.data,
+            paths: map.paths.data().clone(),
             placements: map.placements.data,
-            lights: map.lights.data,
+            lights: map.lights.data().clone(),
             mapzone_entities: vec![],
             triggers: vec![],
         };
 
         for z in &map.zones {
-            let entity_offset = header.refpointer_list.data[z.entity_refptr as usize].address;
+            let entity_offset = header.refpointer_list[z.entity_refptr as usize].address;
             file.seek(std::io::SeekFrom::Start(entity_offset as u64))
                 .context("Mapzone refptr pointer to a non-entity object!")?;
 
@@ -95,7 +95,7 @@ pub fn execute_command(
             export.mapzone_entities.push(ent.mapzone_entity.unwrap());
         }
 
-        for (i, t) in map.trigger_header.data.triggers.data.iter().enumerate() {
+        for t in map.trigger_header.data.triggers.data.iter() {
             let trig = &t.trigger.data;
             let (ttype, tsubtype) = {
                 let t = &map.trigger_header.data.trigger_types.data[trig.type_index as usize];

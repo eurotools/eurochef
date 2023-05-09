@@ -79,7 +79,7 @@ pub fn execute_command(
 
     let mut texture_uri_map: HashMap<u32, (String, Transparency)> = HashMap::new();
     if dont_embed_textures {
-        for t in &header.texture_list.data {
+        for t in &header.texture_list {
             texture_uri_map.insert(
                 t.common.hashcode,
                 (
@@ -89,7 +89,7 @@ pub fn execute_command(
             );
         }
     } else {
-        let pb = ProgressBar::new(header.texture_list.data.len() as u64)
+        let pb = ProgressBar::new(header.texture_list.len() as u64)
             .with_finish(indicatif::ProgressFinish::AndLeave);
         pb.set_style(
             ProgressStyle::with_template(
@@ -145,13 +145,12 @@ pub fn execute_command(
     std::fs::create_dir_all(output_folder)?;
     let mut entity_offsets: Vec<(u64, String)> = header
         .entity_list
-        .data
         .iter()
         .map(|e| (e.common.address as u64, format!("{:x}", e.common.hashcode)))
         .collect();
 
     // Find entities in refpointers
-    for (i, r) in header.refpointer_list.data.iter().enumerate() {
+    for (i, r) in header.refpointer_list.iter().enumerate() {
         reader.seek(std::io::SeekFrom::Start(r.address as u64))?;
         let etype = reader.read_type::<u32>(endian)?;
 
@@ -215,9 +214,7 @@ pub fn execute_command(
         // Look up texture hashcodes
         for t in &mut strips {
             if t.texture_hash != u32::MAX {
-                t.texture_hash = header.texture_list.data[t.texture_hash as usize]
-                    .common
-                    .hashcode;
+                t.texture_hash = header.texture_list[t.texture_hash as usize].common.hashcode;
             }
         }
 

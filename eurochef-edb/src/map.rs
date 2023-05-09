@@ -7,7 +7,7 @@ use crate::{
 };
 
 #[binrw]
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 #[brw(import(version: u32))] // TODO: Seems a bit dirty, no?
 pub struct EXGeoMap {
     pub common: u32,
@@ -42,7 +42,7 @@ pub struct EXGeoMap {
 }
 
 #[binrw]
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 #[br(import(version: u32))]
 // TODO(cohae): Struct is not accurate below version 248 yet
 pub struct EXGeoMapZone {
@@ -68,7 +68,7 @@ pub struct EXGeoMapZone {
 // TODO(cohae): A lot of these structures might need to be split up into separate files
 
 #[binrw]
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub struct EXGeoPortalInfo {
     pub map_on: u16,
     pub map_to: u16,
@@ -78,7 +78,7 @@ pub struct EXGeoPortalInfo {
 }
 
 #[binrw]
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub struct EXGeoTriggerHeader {
     pub triggers: EXRelArray<EXGeoTrigHeader>,
 
@@ -95,7 +95,7 @@ pub struct EXGeoTriggerHeader {
 }
 
 #[binrw]
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub struct EXGeoTriggerType {
     pub trig_type: u32,
     pub trig_subtype: u32,
@@ -104,7 +104,7 @@ pub struct EXGeoTriggerType {
 }
 
 #[binrw]
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub struct EXGeoTrigScriptHeader {
     pub script_count: u32,
     pub data_ptr: EXRelPtr,
@@ -114,7 +114,7 @@ pub struct EXGeoTrigScriptHeader {
 }
 
 #[binrw]
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub struct EXGeoBaseDatum {
     pub hashcode: u32,
     pub flags: u16,
@@ -128,7 +128,7 @@ pub struct EXGeoBaseDatum {
 pub type EXGeoTriggerDatum = EXGeoBaseDatum;
 
 #[binrw]
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub struct EXGeoBspNode {
     pub pos: EXVector,
     pub nodes: [i16; 2],
@@ -137,14 +137,14 @@ pub struct EXGeoBspNode {
 }
 
 #[binrw]
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub struct EXGeoTrigHeader {
     pub trigger: EXRelPtr<EXGeoTrigger>,
     pub link_ref: i32,
 }
 
 #[binrw]
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub struct EXGeoTrigger {
     pub type_index: u16,
     pub debug: u16,
@@ -158,7 +158,7 @@ pub struct EXGeoTrigger {
 }
 
 #[binrw]
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub struct EXGeoPortal {
     pub map_a: u16,
     pub map_b: u16,
@@ -173,7 +173,7 @@ pub struct EXGeoPortal {
 }
 
 #[binrw]
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub struct EXGeoFace {
     pub common: u32,
     pub texture_ref: u32,
@@ -185,7 +185,7 @@ pub struct EXGeoFace {
 }
 
 #[binrw]
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub struct GeoFaceVtx {
     pub v: EXVector,
     pub uv: EXVector2,
@@ -194,7 +194,7 @@ pub struct GeoFaceVtx {
 }
 
 #[binrw]
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub struct EXGeoCamera {
     pub hashcode: u32,
     pub position: EXVector3,
@@ -206,13 +206,13 @@ pub struct EXGeoCamera {
 }
 
 #[binrw]
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub struct EXGeoSky {
     pub hashcode: u32,
 }
 
 #[binrw]
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub struct EXGeoSound {
     pub hashcode: u32,
     pub position: EXVector3,
@@ -229,7 +229,7 @@ pub struct EXGeoSound {
 }
 
 #[binrw]
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub struct EXGeoPlacement {
     pub hashcode: u32,
     pub position: EXVector3,
@@ -245,7 +245,7 @@ pub struct EXGeoPlacement {
 }
 
 #[binrw]
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub struct EXGeoLight {
     pub hashcode: u32,
     pub position: EXVector3,
@@ -260,7 +260,7 @@ pub struct EXGeoLight {
 }
 
 #[binrw]
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub struct EXGeoPath {
     pub hashcode: u32,
     pub position: EXVector3, // 0x4
@@ -277,7 +277,7 @@ pub struct EXGeoPath {
 }
 
 #[binrw]
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub struct EXGeoPathLink {
     pub node_a: u16,
     pub node_b: u16,
@@ -287,7 +287,7 @@ pub struct EXGeoPathLink {
 }
 
 #[binrw]
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub struct EXGeoPathNode {
     pub position: EXVector3,
     pub size: EXVector2,

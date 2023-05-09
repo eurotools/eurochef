@@ -52,7 +52,7 @@ pub fn execute_command(
         .read_type::<EXGeoHeader>(endian)
         .expect("Failed to read header");
 
-    if header.animskin_list.array_size == 0 {
+    if header.animskin_list.len() == 0 {
         warn!("File does not contain any animation skins!");
         return Ok(());
     }
@@ -69,7 +69,7 @@ pub fn execute_command(
     }
 
     let mut texture_uri_map: HashMap<u32, (String, Transparency)> = HashMap::new();
-    let pb = ProgressBar::new(header.texture_list.data.len() as u64)
+    let pb = ProgressBar::new(header.texture_list.len() as u64)
         .with_finish(indicatif::ProgressFinish::AndLeave);
     pb.set_style(
         ProgressStyle::with_template(
@@ -121,7 +121,7 @@ pub fn execute_command(
         texture_uri_map.insert(t.hashcode, (uri, transparency));
     }
 
-    let pb = ProgressBar::new(header.animskin_list.data.len() as u64)
+    let pb = ProgressBar::new(header.animskin_list.len() as u64)
         .with_finish(indicatif::ProgressFinish::AndLeave);
     pb.set_style(
         ProgressStyle::with_template(
@@ -133,7 +133,7 @@ pub fn execute_command(
     );
     pb.set_message("Extracting animskins");
 
-    for a in header.animskin_list.data.iter().progress_with(pb) {
+    for a in header.animskin_list.iter().progress_with(pb) {
         let skin_id = format!("{:x}", a.common.hashcode);
         let _span = error_span!("animskin", id = %skin_id);
         let _span_enter = _span.enter();
@@ -154,7 +154,7 @@ pub fn execute_command(
         let mut gltf = gltf_export::create_mesh_scene(&skin_id);
 
         for entity_index in entity_indices {
-            let e = &header.entity_list.data[entity_index as usize];
+            let e = &header.entity_list[entity_index as usize];
             let ent_id = format!("{:x}", e.common.hashcode);
             let _espan = error_span!("entity", id = %ent_id);
             let _espan_enter = _espan.enter();
@@ -198,9 +198,7 @@ pub fn execute_command(
             // Look up texture hashcodes
             for t in &mut strips {
                 if t.texture_hash != u32::MAX {
-                    t.texture_hash = header.texture_list.data[t.texture_hash as usize]
-                        .common
-                        .hashcode;
+                    t.texture_hash = header.texture_list[t.texture_hash as usize].common.hashcode;
                 }
             }
 

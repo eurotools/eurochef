@@ -50,7 +50,7 @@ impl UXGeoSpreadsheet {
                     hashcode: s.hashcode,
                     entries: vec![],
                 };
-                let refpointer = &header.refpointer_list.data[s.refpointer_index as usize];
+                let refpointer = &header.refpointer_list[s.refpointer_index as usize];
 
                 reader
                     .seek(std::io::SeekFrom::Start(refpointer.address as u64))

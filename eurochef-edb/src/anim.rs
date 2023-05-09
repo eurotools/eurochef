@@ -7,8 +7,8 @@ use crate::{
 };
 
 #[binrw]
-#[derive(Debug, Serialize)]
-#[brw(import(version: u32))]
+#[derive(Debug, Serialize, Clone)]
+#[brw(import(_version: u32))]
 pub struct EXGeoBaseAnimSkin {
     pub object_type: u32,          // 0x0
     pub _unk4: u32,                // 0x4, some size
@@ -29,7 +29,7 @@ pub struct EXGeoBaseAnimSkin {
 }
 
 #[binrw]
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub struct EXGeoAnimSkinEntityList {
     _pad0: u32,
     _pad1: u32,

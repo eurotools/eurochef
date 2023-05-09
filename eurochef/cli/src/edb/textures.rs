@@ -53,7 +53,7 @@ pub fn execute_command(
 
     println!("Selected platform {platform:?}");
 
-    let pb = ProgressBar::new(header.texture_list.data.len() as u64)
+    let pb = ProgressBar::new(header.texture_list.len() as u64)
         .with_finish(indicatif::ProgressFinish::AndLeave);
     pb.set_style(
         ProgressStyle::with_template(

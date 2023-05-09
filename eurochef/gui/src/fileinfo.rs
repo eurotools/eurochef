@@ -25,7 +25,7 @@ impl FileInfoPanel {
         }
         macro_rules! quick_array {
             ($label:expr, $array:ident) => {
-                let v = self.header.$array.array_size;
+                let v = self.header.$array.len();
                 quick_info!(
                     $label,
                     if v == 0 {

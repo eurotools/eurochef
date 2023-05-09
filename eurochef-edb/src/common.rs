@@ -11,6 +11,7 @@ pub type EXVector = [f32; 4];
 pub type EXVector2 = [f32; 2];
 
 // TODO: RelPtr16 generic
+#[derive(Clone)]
 pub struct EXRelPtr<T: BinRead = (), OT: BinRead + NumCast = i32, const OFFSET: i64 = 0> {
     pub offset: OT,
     pub offset_absolute: u64,
