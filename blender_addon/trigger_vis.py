@@ -3,6 +3,8 @@ import bpy
 from mathutils import Euler
 import math
 
+from blender_addon.common import relink_object
+
 
 def raw_to_f32(raw: int):
     return unpack(">f", pack(">I", raw))[0]
@@ -11,6 +13,7 @@ def raw_to_f32(raw: int):
 def visualize_crossplane(data, parent, parent_id, parent_subclass):
     bpy.ops.mesh.primitive_plane_add()
     obj = bpy.context.active_object
+    relink_object(obj, parent.users_collection[0])
     obj.name = f"{parent_id}#Visualization"
     obj.parent = parent
     bpy.ops.object.origin_clear()

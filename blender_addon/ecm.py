@@ -7,6 +7,8 @@ from bpy.props import (StringProperty, BoolProperty)
 from bpy_extras.io_utils import (ImportHelper)
 from mathutils import Euler
 
+from blender_addon.common import relink_object
+
 from . import trigger_vis
 
 
@@ -177,25 +179,6 @@ class EcmLoader(bpy.types.Operator, ImportHelper):
             if self.trigger_visualizations:
                 trigger_vis.process_triggers(
                     t['data'], t['links'], obj, i, t['ttype'])
-
-
-def relink_object(object: bpy.types.Object, new_collection: bpy.types.Collection):
-    # Unlink object from all collections and link it to a new one
-    for c in object.users_collection:
-        c.objects.unlink(object)
-
-    new_collection.objects.link(object)
-
-
-def set_active_collection(collection: bpy.types.Collection):
-    bpy.context.view_layer.active_layer_collection = bpy.context.view_layer.layer_collection.children[
-        collection.name]
-
-
-def set_active_collection_child(collection: bpy.types.Collection, child: bpy.types.Collection):
-    # TODO(cohae): Could be better
-    bpy.context.view_layer.active_layer_collection = bpy.context.view_layer.layer_collection.children[
-        collection.name].children[child.name]
 
 
 def egx_to_blender_pos(pos: tuple):
