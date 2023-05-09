@@ -5,7 +5,7 @@ use eurochef_edb::{
     binrw::BinReaderExt, header::EXGeoHeader, texture::EXGeoTexture, versions::Platform,
 };
 use image::RgbaImage;
-use tracing::error;
+use tracing::{error, warn};
 
 use crate::platform::texture;
 
@@ -34,6 +34,7 @@ pub struct UXGeoTexture {
     pub frames: Vec<Vec<u8>>,
 }
 
+// TODO(cohae): read() for a single texture (going to be used for reference textures)
 impl UXGeoTexture {
     pub fn read_all<R: Read + Seek>(
         header: &EXGeoHeader,
@@ -53,6 +54,13 @@ impl UXGeoTexture {
                 .read_type_args::<EXGeoTexture>(endian, (header.version, platform))
                 .context("Failed to read texture")?;
 
+            // cohae: This is a bit of a difficult one. We might need an alternative to return these references somehow (enum with variant?), as we cannot open other files from this context.
+            if let Some(external_file) = tex.external_file {
+                let external_texture = tex.frame_offsets[0].offset;
+                warn!("Texture is an external reference, skipping (texture 0x{external_texture:x} from file 0x{external_file:x})");
+                continue;
+            }
+
             let calculated_size = match texture_decoder.get_data_size(
                 tex.width as u32,
                 tex.height as u32,
@@ -61,16 +69,12 @@ impl UXGeoTexture {
             ) {
                 Ok(cs) => cs,
                 Err(e) => {
-                    error!("Failed to extract texture {:x}: {:?}", t.common.hashcode, e);
+                    error!("Failed to extract texture {:x}: {e}", t.common.hashcode);
                     continue;
                 }
             };
 
-            let data_size = if let Some(size) = tex.data_size {
-                size as usize
-            } else {
-                calculated_size
-            };
+            let data_size = tex.data_size.map(|v| v as usize).unwrap_or(calculated_size);
 
             if data_size == 0 {
                 error!(
@@ -98,11 +102,11 @@ impl UXGeoTexture {
                 frames: Vec::with_capacity(tex.frame_count as usize),
             };
 
-            for frame_offset in tex.frame_offsets.iter() {
+            for (i, frame_offset) in tex.frame_offsets.iter().enumerate() {
                 reader.seek(std::io::SeekFrom::Start(frame_offset.offset_absolute()))?;
 
                 if let Err(e) = reader.read_exact(&mut data) {
-                    error!("Failed to read texture {:x}: {}", t.common.hashcode, e);
+                    error!("Failed to read texture {:x}.{i}: {e}", t.common.hashcode);
                 }
 
                 if let Err(e) = texture_decoder.decode(
@@ -119,7 +123,7 @@ impl UXGeoTexture {
 
                 if output.len() != (t.width as usize * t.height as usize) * 4 {
                     error!(
-                        "Texture {:08x} has mismatching data length (expected {}, got {})",
+                        "Texture {:08x}.{i} has mismatching data length (expected {}, got {})",
                         t.common.hashcode,
                         (t.width as usize * t.height as usize) * 4,
                         output.len()

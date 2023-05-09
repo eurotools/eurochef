@@ -14,7 +14,7 @@ pub struct EXGeoTextureHeader {
 
 #[binrw]
 #[derive(Debug)]
-#[brw(import(version: u32, platform: Platform))] // TODO: Seems a bit dirty, no?
+#[brw(import(version: u32, platform: Platform))]
 pub struct EXGeoTexture {
     pub width: u16,        // 0x0
     pub height: u16,       // 0x2
@@ -33,13 +33,24 @@ pub struct EXGeoTexture {
     pub unk_14: u32,       // 0x14
     pub color: u32,        // 0x18
 
-    _pad1: [u32; 2], // 0x1c
+    // TODO(cohae): G-Force only for now, check other games
+    /// If set, contains the hashcode of another file
+    /// The first frame offset will be replaced with a texture hashcode from that file
+    #[br(map = |x: i32| if x == -1 { None } else { Some(x as u32) } )]
+    #[br(if(version == 259))]
+    pub external_file: Option<u32>, // 0x1c
+
+    #[br(if(version != 259))]
+    _pad1: u32, // 0x20
+
+    _pad2: u32, // 0x20
 
     #[brw(if(platform != Platform::GameCube))]
-    _pad2: u32, // 0x24
+    _pad3: u32, // 0x24
 
+    // TODO(cohae): This might just be platform specific
     /// Newer games calculate data size from other parameters.
-    /// For general usage it is not recommended to rely on this field for data size.
+    /// For general usage it is not recommended to rely on this field exlusively for data size.
     #[brw(if((version <= 252 && version != 240 && version != 221 && version != 248) || (platform == Platform::GameCube || platform == Platform::Wii || platform == Platform::Xbox360)))]
     pub data_size: Option<u32>,
 

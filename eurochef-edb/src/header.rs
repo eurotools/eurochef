@@ -59,7 +59,7 @@ pub struct EXGeoHeader {
 
     // ! Spyro Hack
     #[brw(if(version.eq(&240)))]
-    spyrohack: u64,
+    _spyrohack: u64,
 
     pub texture_list: EXGeoHashArray<EXGeoTextureHeader>,
 
