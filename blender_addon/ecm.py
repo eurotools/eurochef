@@ -95,6 +95,8 @@ class EcmLoader(bpy.types.Operator, ImportHelper):
             if self.lock_objects:
                 obj.hide_select = True
 
+            self.process_blended_surfaces(obj)
+
         for mapzone in self.data['mapzone_entities']:
             object_id = f"ref_{mapzone['entity_refptr']}"
             model_path = os.path.join(
@@ -119,7 +121,7 @@ class EcmLoader(bpy.types.Operator, ImportHelper):
             if self.lock_objects:
                 obj.hide_select = True
 
-            self.check_for_blended_surfaces(obj)
+            self.process_blended_surfaces(obj)
 
         if self.merge_materials:
             self.merge_all_materials()
@@ -128,7 +130,7 @@ class EcmLoader(bpy.types.Operator, ImportHelper):
             print("Importing triggers")
             self.load_triggers(self.data['triggers'])
 
-    def check_for_blended_surfaces(self, obj: bpy.types.Object):
+    def process_blended_surfaces(self, obj: bpy.types.Object):
         mesh: bpy.types.Mesh = obj.data
         color_layer = mesh.vertex_colors["Col"]
         # Check if the object has any polygons with a vertex color alpha under 1.0, and modify the material if it does
@@ -198,7 +200,11 @@ class EcmLoader(bpy.types.Operator, ImportHelper):
                 if basename == mat.name or mat.name.endswith(".png"):
                     continue
                 else:
-                    obj.material_slots[i].material = all_base_materials[basename]
+                    base_material = all_base_materials[basename]
+                    # Do not merge materials with different transparency settings
+                    if base_material.blend_method != mat.material.blend_method:
+                        continue
+                    obj.material_slots[i].material = base_material
 
     def load_triggers(self, triggers):
         self.trigger_collection = bpy.data.collections.new("triggers")
