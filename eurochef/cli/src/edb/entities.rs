@@ -9,7 +9,7 @@ use anyhow::Context;
 use base64::Engine;
 use eurochef_edb::{
     binrw::{BinReaderExt, Endian},
-    common::{EXVector2, EXVector3},
+    common::{EXVector, EXVector2, EXVector3},
     entity::{EXGeoEntity, EXGeoEntity_TriStrip},
     header::EXGeoHeader,
     versions::Platform,
@@ -304,8 +304,21 @@ pub fn read_entity<R: Read + Seek>(
             }
         }
         EXGeoEntity::Mesh(mesh) => {
-            println!("{mesh:#?}");
             let vertex_offset = vertex_data.len() as u32;
+
+            data.seek(std::io::SeekFrom::Start(
+                mesh.vertex_colors.offset_absolute(),
+            ))?;
+            let mut vertex_colors: Vec<EXVector> = vec![];
+            for _ in 0..mesh.vertex_count {
+                let rgba: [u8; 4] = data.read_type(endian)?;
+                vertex_colors.push(linear_rgb_to_srgb([
+                    rgba[2] as f32 / 255.0,
+                    rgba[1] as f32 / 255.0,
+                    rgba[0] as f32 / 255.0,
+                    rgba[3] as f32 / 255.0,
+                ]));
+            }
 
             data.seek(std::io::SeekFrom::Start(mesh.vertex_data.offset_absolute()))?;
 
@@ -316,7 +329,7 @@ pub fn read_entity<R: Read + Seek>(
                 }
             }
 
-            for _ in 0..mesh.vertex_count {
+            for i in 0..mesh.vertex_count {
                 match version {
                     252 | 250 | 251 | 240 | 221 => {
                         let d = data.read_type::<(EXVector3, u32, EXVector2)>(endian)?;
@@ -324,6 +337,7 @@ pub fn read_entity<R: Read + Seek>(
                             pos: d.0,
                             norm: [0f32, 0f32, 0f32],
                             uv: d.2,
+                            color: vertex_colors[i as usize],
                         });
                     }
                     248 | 259 | 260 => {
@@ -334,12 +348,14 @@ pub fn read_entity<R: Read + Seek>(
                                 pos: d.0,
                                 norm: d.2,
                                 uv: [0.0, 0.0],
+                                color: vertex_colors[i as usize],
                             });
                         } else {
                             vertex_data.push(UXVertex {
                                 pos: data.read_type(endian)?,
                                 norm: data.read_type(endian)?,
                                 uv: data.read_type(endian)?,
+                                color: vertex_colors[i as usize],
                             });
                         }
                     }
@@ -431,4 +447,36 @@ pub fn read_entity<R: Read + Seek>(
     }
 
     Ok(())
+}
+
+fn linear_rgb_to_srgb(rgb: [f32; 4]) -> [f32; 4] {
+    let mut srgb = [0.0; 4];
+
+    for i in 0..3 {
+        if rgb[i] <= 0.0031308 {
+            srgb[i] = 12.92 * rgb[i];
+        } else {
+            srgb[i] = 1.055 * rgb[i].powf(1.0 / 2.4) - 0.055;
+        }
+    }
+
+    srgb[3] = rgb[3]; // Copy alpha channel
+
+    srgb
+}
+
+fn srgb_to_linear_rgb(srgb: [f32; 4]) -> [f32; 4] {
+    let mut rgb = [0.0; 4];
+
+    for i in 0..3 {
+        if srgb[i] <= 0.04045 {
+            rgb[i] = srgb[i] / 12.92;
+        } else {
+            rgb[i] = ((srgb[i] + 0.055) / 1.055).powf(2.4);
+        }
+    }
+
+    rgb[3] = srgb[3]; // Copy alpha channel
+
+    rgb
 }

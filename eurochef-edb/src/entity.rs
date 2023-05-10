@@ -37,7 +37,7 @@ pub struct EXGeoMeshEntity {
     pub texture_list: EXRelPtr<EXGeoEntity_TextureList>, // 0x54
     pub tristrip_data: EXRelPtr,                         // 0x58
     pub vertex_data: EXRelPtr,                           // 0x5c
-    pub _unk60: EXRelPtr,                                // 0x60
+    pub vertex_colors: EXRelPtr,                         // 0x60
     pub _unk64: EXRelPtr,                                // 0x64
     pub _unk68: EXRelPtr,                                // 0x68
     pub index_data: EXRelPtr,                            // 0x6c

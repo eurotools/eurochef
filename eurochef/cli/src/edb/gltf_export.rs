@@ -1,6 +1,6 @@
 use base64::Engine;
 use bytemuck::{Pod, Zeroable};
-use eurochef_edb::common::{EXVector2, EXVector3};
+use eurochef_edb::common::{EXVector, EXVector2, EXVector3};
 use gltf::json::{self as gjson, validation::Checked};
 use std::collections::HashMap;
 
@@ -42,6 +42,7 @@ pub struct UXVertex {
     pub pos: EXVector3,
     pub norm: EXVector3,
     pub uv: EXVector2,
+    pub color: EXVector,
 }
 
 /// Creates a scene with a single mesh in it
@@ -191,14 +192,32 @@ pub fn add_mesh_to_scene(
         normalized: false,
         sparse: None,
     };
+    let colors = gjson::Accessor {
+        buffer_view: Some(gjson::Index::new(vertex_buffer_view_index)),
+        byte_offset: (8 * std::mem::size_of::<f32>()) as u32,
+        count: vertices.len() as u32,
+        component_type: Checked::Valid(gjson::accessor::GenericComponentType(
+            gjson::accessor::ComponentType::F32,
+        )),
+        extensions: Default::default(),
+        extras: Default::default(),
+        type_: Checked::Valid(gjson::accessor::Type::Vec4),
+        min: None,
+        max: None,
+        name: None,
+        normalized: false,
+        sparse: None,
+    };
 
     let a_position_index = root.accessors.len() as u32;
     let a_normals_index = a_position_index + 1;
     let a_uvs_index = a_position_index + 2;
+    let a_colors_index = a_position_index + 3;
 
     root.accessors.push(positions);
     root.accessors.push(normals);
     root.accessors.push(uvs);
+    root.accessors.push(colors);
 
     let mut material_map: HashMap<u32, u32> = HashMap::new();
     // Restore material map
@@ -333,6 +352,10 @@ pub fn add_mesh_to_scene(
                 map.insert(
                     Checked::Valid(gjson::mesh::Semantic::TexCoords(0)),
                     gjson::Index::new(a_uvs_index),
+                );
+                map.insert(
+                    Checked::Valid(gjson::mesh::Semantic::Colors(0)),
+                    gjson::Index::new(a_colors_index),
                 );
                 map
             },
