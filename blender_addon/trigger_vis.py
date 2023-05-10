@@ -3,7 +3,7 @@ import bpy
 from mathutils import Euler
 import math
 
-from blender_addon.common import relink_object
+from .common import relink_object
 
 
 def raw_to_f32(raw: int):
