@@ -29,7 +29,7 @@ pub struct EXGeoBaseEntity {
 
 #[binrw]
 #[derive(Debug, Serialize, Clone)]
-#[brw(import(version: u32))]
+#[brw(import(version: u32, platform: Platform))]
 pub struct EXGeoMeshEntity {
     #[brw(args(version))]
     pub base: EXGeoBaseEntity, // 0x0
@@ -39,10 +39,14 @@ pub struct EXGeoMeshEntity {
     pub vertex_data: EXRelPtr,                           // 0x5c
     pub _unk60: EXRelPtr,                                // 0x60
     pub _unk64: EXRelPtr,                                // 0x64
-    pub _unk68: u32,                                     // 0x68
+    pub _unk68: EXRelPtr,                                // 0x68
     pub index_data: EXRelPtr,                            // 0x6c
 
-    pub _unk70: u32,         // 0x70
+    pub _unk70: u32, // 0x70
+
+    #[brw(if(platform == Platform::GameCube || platform == Platform::Wii))]
+    _unk74: [u32; 2], // 0x74
+
     pub tristrip_count: u32, // 0x74
     pub vertex_count: u32,   // 0x78
     pub _unk7c: u32,         // 0x7c
@@ -51,7 +55,7 @@ pub struct EXGeoMeshEntity {
 
 #[binrw]
 #[derive(Debug, Serialize, Clone)]
-#[brw(import(version: u32))]
+#[brw(import(version: u32, _platform: Platform))]
 pub struct EXGeoMapZoneEntity {
     #[brw(args(version))]
     pub base: EXGeoBaseEntity, // 0x0
@@ -62,7 +66,7 @@ pub struct EXGeoMapZoneEntity {
 
 #[binrw]
 #[derive(Debug, Serialize, Clone)]
-#[brw(import(version: u32))]
+#[brw(import(version: u32, platform: Platform))]
 pub struct EXGeoSplitEntity {
     #[brw(args(version))]
     pub base: EXGeoBaseEntity, // 0x0
@@ -72,7 +76,7 @@ pub struct EXGeoSplitEntity {
     pub entity_count: u32, // 0x54
     _unk58: u32,
 
-    #[br(count = entity_count, args { inner: (version,) })]
+    #[br(count = entity_count, args { inner: (version, platform) })]
     pub entities: Vec<EXRelPtr<EXGeoEntity>>, // 0x5c
 }
 
@@ -108,7 +112,7 @@ pub enum EXGeoEntity {
 }
 
 impl BinRead for EXGeoEntity {
-    type Args<'a> = (u32,);
+    type Args<'a> = (u32, Platform);
 
     fn read_options<R: std::io::Read + std::io::Seek>(
         reader: &mut R,

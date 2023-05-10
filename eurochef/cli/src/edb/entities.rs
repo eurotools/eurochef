@@ -71,8 +71,11 @@ pub fn execute_command(
         .or(Platform::from_path(&filename))
         .expect("Failed to detect platform");
 
-    if platform != Platform::Pc && platform != Platform::Xbox && platform != Platform::Xbox360 {
-        anyhow::bail!("Entity extraction is only supported for PC and Xbox (360) (for now)")
+    match platform {
+        Platform::Pc | Platform::Xbox | Platform::Xbox360 /* | Platform::GameCube | Platform::Wii */ => {}
+        _ => {
+            anyhow::bail!("Entity extraction is only supported for PC and Xbox (360) (for now)")
+        }
     }
 
     info!("Selected platform {platform:?}");
@@ -106,6 +109,11 @@ pub fn execute_command(
             let hash_str = format!("0x{:x}", t.hashcode);
             let _span = error_span!("texture", hash = %hash_str);
             let _span_enter = _span.enter();
+
+            if t.frames.len() == 0 {
+                error!("Skipping texture with no frames");
+                continue;
+            }
 
             trace!(
                 "tex={:x} sg=0b{:016b} flags=0b{:032b}",
@@ -177,7 +185,7 @@ pub fn execute_command(
 
         reader.seek(std::io::SeekFrom::Start(*ent_offset))?;
 
-        let ent = reader.read_type_args::<EXGeoEntity>(endian, (header.version,));
+        let ent = reader.read_type_args::<EXGeoEntity>(endian, (header.version, platform));
 
         if let Err(err) = ent {
             error!("Failed to read entity: {err}");
@@ -185,6 +193,16 @@ pub fn execute_command(
         }
 
         let ent = ent.unwrap();
+
+        if let EXGeoEntity::Mesh(ref mesh) = ent {
+            if mesh.vertex_count == 0 {
+                warn!(
+                    "Skipping entity without vertex data! (v={}/i={}/t={})",
+                    mesh.vertex_count, mesh.index_count, mesh.tristrip_count
+                );
+                continue;
+            }
+        }
 
         let mut vertex_data = vec![];
         let mut indices = vec![];
@@ -286,6 +304,7 @@ pub fn read_entity<R: Read + Seek>(
             }
         }
         EXGeoEntity::Mesh(mesh) => {
+            println!("{mesh:#?}");
             let vertex_offset = vertex_data.len() as u32;
 
             data.seek(std::io::SeekFrom::Start(mesh.vertex_data.offset_absolute()))?;

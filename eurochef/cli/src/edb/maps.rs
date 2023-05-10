@@ -11,6 +11,7 @@ use eurochef_edb::{
     entity::{EXGeoEntity, EXGeoMapZoneEntity},
     header::EXGeoHeader,
     map::{EXGeoLight, EXGeoMap, EXGeoPath, EXGeoPlacement},
+    versions::Platform,
 };
 
 use serde::Serialize;
@@ -64,6 +65,11 @@ pub fn execute_command(
         false,
     )?;
 
+    let platform = platform
+        .map(|p| p.into())
+        .or(Platform::from_path(&filename))
+        .expect("Failed to detect platform");
+
     let output_folder = Path::new(&output_folder);
     std::fs::create_dir_all(output_folder)?;
 
@@ -87,7 +93,7 @@ pub fn execute_command(
             file.seek(std::io::SeekFrom::Start(entity_offset as u64))
                 .context("Mapzone refptr pointer to a non-entity object!")?;
 
-            let ent = file.read_type_args::<EXGeoEntity>(endian, (header.version,))?;
+            let ent = file.read_type_args::<EXGeoEntity>(endian, (header.version, platform))?;
 
             if let EXGeoEntity::MapZone(mapzone) = ent {
                 export.mapzone_entities.push(mapzone);

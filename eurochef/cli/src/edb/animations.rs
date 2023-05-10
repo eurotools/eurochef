@@ -160,7 +160,7 @@ pub fn execute_command(
 
             reader.seek(std::io::SeekFrom::Start(e.common.address as u64))?;
 
-            let ent = reader.read_type_args::<EXGeoEntity>(endian, (header.version,));
+            let ent = reader.read_type_args::<EXGeoEntity>(endian, (header.version, platform));
 
             if let Err(err) = ent {
                 error!("Failed to read entity: {err}");
