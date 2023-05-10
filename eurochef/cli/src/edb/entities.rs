@@ -464,19 +464,3 @@ fn linear_rgb_to_srgb(rgb: [f32; 4]) -> [f32; 4] {
 
     srgb
 }
-
-fn srgb_to_linear_rgb(srgb: [f32; 4]) -> [f32; 4] {
-    let mut rgb = [0.0; 4];
-
-    for i in 0..3 {
-        if srgb[i] <= 0.04045 {
-            rgb[i] = srgb[i] / 12.92;
-        } else {
-            rgb[i] = ((srgb[i] + 0.055) / 1.055).powf(2.4);
-        }
-    }
-
-    rgb[3] = srgb[3]; // Copy alpha channel
-
-    rgb
-}
