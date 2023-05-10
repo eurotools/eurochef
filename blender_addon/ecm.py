@@ -119,12 +119,60 @@ class EcmLoader(bpy.types.Operator, ImportHelper):
             if self.lock_objects:
                 obj.hide_select = True
 
+            self.check_for_blended_surfaces(obj)
+
         if self.merge_materials:
             self.merge_all_materials()
 
         if self.import_triggers:
             print("Importing triggers")
             self.load_triggers(self.data['triggers'])
+
+    def check_for_blended_surfaces(self, obj: bpy.types.Object):
+        mesh: bpy.types.Mesh = obj.data
+        color_layer = mesh.vertex_colors["Col"]
+        # Check if the object has any polygons with a vertex color alpha under 1.0, and modify the material if it does
+        for poly in mesh.polygons:
+            for idx in poly.loop_indices:
+                rgb = color_layer.data[idx].color
+                if len(rgb) != 4:
+                    return
+
+                if rgb[3] < 1.0:
+                    material = obj.material_slots[poly.material_index].material
+                    self.modify_material_for_blending(material)
+                    return
+
+    def modify_material_for_blending(self, material: bpy.types.Material):
+        # Set the material's alpha mode to blend
+        material.blend_method = 'BLEND'
+
+        # Add a mix node before the material output, plugging the original material into the second slot, and a transparency node into the first. Plug the vertex color alpha into the factor
+
+        # Create a mix node
+        mix_node = material.node_tree.nodes.new("ShaderNodeMixShader")
+
+        # Create a transparency node
+        transparency_node = material.node_tree.nodes.new(
+            "ShaderNodeBsdfTransparent")
+
+        # Get the color attribute node
+        vertex_color_node = material.node_tree.nodes["Color Attribute"]
+
+        # Get the output node
+        output_node = material.node_tree.nodes["Material Output"]
+
+        # Get node attached to output node
+        output_node_shader = output_node.inputs[0].links[0].from_node
+
+        material.node_tree.links.new(
+            mix_node.inputs[2], output_node_shader.outputs[0])
+        material.node_tree.links.new(
+            output_node.inputs["Surface"], mix_node.outputs[0])
+        material.node_tree.links.new(
+            mix_node.inputs[1], transparency_node.outputs["BSDF"])
+        material.node_tree.links.new(
+            mix_node.inputs["Fac"], vertex_color_node.outputs["Alpha"])
 
     # Merge all duplicate materials
     def merge_all_materials(self):
