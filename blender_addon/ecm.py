@@ -33,6 +33,9 @@ class EcmLoader(bpy.types.Operator, ImportHelper):
     trigger_visualizations: BoolProperty(
         name="Visualize special triggers", default=False)
 
+    surface_blending: BoolProperty(
+        name="Surface blending (WIP)", default=False)
+
     import_triggers: BoolProperty(name="Import triggers", default=True)
 
     def execute(self, context):
@@ -131,23 +134,36 @@ class EcmLoader(bpy.types.Operator, ImportHelper):
             self.load_triggers(self.data['triggers'])
 
     def process_blended_surfaces(self, obj: bpy.types.Object):
+        for mat in obj.material_slots:
+            self.rewrite_material_vertex_lighting(mat.material)
+
+        if not self.surface_blending:
+            return
+
         mesh: bpy.types.Mesh = obj.data
         color_layer = mesh.vertex_colors["Col"]
         # Check if the object has any polygons with a vertex color alpha under 1.0, and modify the material if it does
+        seen_materials = []
         for poly in mesh.polygons:
-            for idx in poly.loop_indices:
-                rgb = color_layer.data[idx].color
-                if len(rgb) != 4:
-                    return
+            material = obj.material_slots[poly.material_index].material
+            if material.name not in seen_materials:
+                for idx in poly.loop_indices:
+                    rgb = color_layer.data[idx].color
 
-                if rgb[3] < 1.0:
-                    material = obj.material_slots[poly.material_index].material
-                    self.modify_material_for_blending(material)
-                    return
+                    if rgb[3] < 1.0:
+                        print(
+                            f"Surface has transparency {rgb[0]} {rgb[1]} {rgb[2]} {rgb[3]}")
+                        seen_materials.append(material.name)
+                        self.modify_material_for_blending(material)
+
+    # Rewrite the material to use vertex colors as lighting
+    def rewrite_material_vertex_lighting(self, material: bpy.types.Material):
+        ...
 
     def modify_material_for_blending(self, material: bpy.types.Material):
+
         # Set the material's alpha mode to blend
-        material.blend_method = 'BLEND'
+        material.blend_method = 'HASHED'
 
         # Add a mix node before the material output, plugging the original material into the second slot, and a transparency node into the first. Plug the vertex color alpha into the factor
 
