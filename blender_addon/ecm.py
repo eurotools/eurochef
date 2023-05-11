@@ -7,7 +7,7 @@ from bpy.props import (StringProperty, BoolProperty)
 from bpy_extras.io_utils import (ImportHelper)
 from mathutils import Euler
 
-from blender_addon.common import relink_object
+from .common import create_srgb_node_group, relink_object
 
 from . import trigger_vis
 
@@ -51,6 +51,9 @@ class EcmLoader(bpy.types.Operator, ImportHelper):
         if (not self.data):
             return False
 
+        create_srgb_node_group()
+
+        self.processed_materials = []
         self.collection = bpy.data.collections.new(
             os.path.basename(os.path.dirname(self.filepath)))
         bpy.context.scene.collection.children.link(self.collection)
@@ -134,6 +137,11 @@ class EcmLoader(bpy.types.Operator, ImportHelper):
             self.load_triggers(self.data['triggers'])
 
     def process_blended_surfaces(self, obj: bpy.types.Object):
+        if obj.name in self.processed_materials:
+            return
+
+        self.processed_materials.append(obj.name)
+
         for mat in obj.material_slots:
             self.rewrite_material_vertex_lighting(mat.material)
 
@@ -158,7 +166,68 @@ class EcmLoader(bpy.types.Operator, ImportHelper):
 
     # Rewrite the material to use vertex colors as lighting
     def rewrite_material_vertex_lighting(self, material: bpy.types.Material):
-        ...
+        # Check if the material already uses transparency
+        transparency = material.blend_method
+
+        # Get the texture node
+        texture_node: bpy.types.ShaderNodeTexImage = material.node_tree.nodes["Image Texture"]
+        img = texture_node.image
+
+        material.node_tree.nodes.clear()
+
+        texture_node = material.node_tree.nodes.new(
+            "ShaderNodeTexImage")
+        texture_node.image = img
+        texture_node.image.colorspace_settings.name = "Linear"
+
+        # Create a color attribute node
+        vertex_color_node = material.node_tree.nodes.new(
+            "ShaderNodeVertexColor")
+
+        # Create a material output node
+        output_node = material.node_tree.nodes.new("ShaderNodeOutputMaterial")
+
+        # Create a vector math node with multiply mode
+        multiply_texture_node = material.node_tree.nodes.new(
+            "ShaderNodeVectorMath")
+        multiply_texture_node.operation = 'MULTIPLY'
+
+        double_vertex_colors_node = material.node_tree.nodes.new(
+            "ShaderNodeVectorMath")
+        double_vertex_colors_node.operation = 'MULTIPLY'
+        double_vertex_colors_node.inputs[1].default_value = (2.0, 2.0, 2.0)
+
+        # Create srgbApprox node group
+        srgb_node = material.node_tree.nodes.new("ShaderNodeGroup")
+        srgb_node.node_tree = bpy.data.node_groups['srgbApprox']
+
+        material.node_tree.links.new(
+            double_vertex_colors_node.inputs[0], vertex_color_node.outputs[0])
+        material.node_tree.links.new(
+            multiply_texture_node.inputs[0], texture_node.outputs[0])
+        material.node_tree.links.new(
+            multiply_texture_node.inputs[1], double_vertex_colors_node.outputs[0])
+        material.node_tree.links.new(
+            srgb_node.inputs[0], multiply_texture_node.outputs[0])
+
+        if transparency != 'OPAQUE':
+            transparency_node = material.node_tree.nodes.new(
+                "ShaderNodeBsdfTransparent")
+
+            transparency_mix_node = material.node_tree.nodes.new(
+                "ShaderNodeMixShader")
+
+            material.node_tree.links.new(
+                transparency_mix_node.inputs[0], texture_node.outputs[1])
+            material.node_tree.links.new(
+                transparency_mix_node.inputs[1], transparency_node.outputs[0])
+            material.node_tree.links.new(
+                transparency_mix_node.inputs[2], srgb_node.outputs[0])
+            material.node_tree.links.new(
+                output_node.inputs[0], transparency_mix_node.outputs[0])
+        else:
+            material.node_tree.links.new(
+                output_node.inputs[0], srgb_node.outputs[0])
 
     def modify_material_for_blending(self, material: bpy.types.Material):
 
