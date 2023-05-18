@@ -34,6 +34,7 @@ pub struct EXGeoMeshEntity {
     #[brw(args(version))]
     pub base: EXGeoBaseEntity, // 0x0
 
+    // TODO(cohae): All of these need to be read by eurochef-edb
     pub texture_list: EXRelPtr<EXGeoEntity_TextureList>, // 0x54
     pub tristrip_data: EXRelPtr,                         // 0x58
     pub vertex_data: EXRelPtr,                           // 0x5c

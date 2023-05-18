@@ -1,10 +1,11 @@
 use std::sync::Arc;
 
 use crossbeam::atomic::AtomicCell;
-use egui::{Color32, NumExt};
+use eframe::CreationContext;
+use egui::{Color32, FontData, FontDefinitions, NumExt};
 use eurochef_edb::versions::Platform;
 
-use crate::{fileinfo, spreadsheet, textures};
+use crate::{entities, fileinfo, spreadsheet, textures};
 
 /// Basic app tracking state
 pub enum AppState {
@@ -16,38 +17,53 @@ pub enum AppState {
 #[derive(PartialEq)]
 enum Panel {
     FileInfo,
+    Entities,
     Textures,
     Spreadsheets,
 }
 
 pub struct EurochefApp {
+    gl: Arc<glow::Context>,
+
     state: AppState,
     current_panel: Panel,
 
     spreadsheetlist: Option<spreadsheet::TextItemList>,
     fileinfo: Option<fileinfo::FileInfoPanel>,
     textures: Option<textures::TextureList>,
+    entities: Option<entities::EntityListPanel>,
 
     load_input: Arc<AtomicCell<Option<String>>>,
 }
 
-impl Default for EurochefApp {
-    fn default() -> Self {
-        Self {
+impl EurochefApp {
+    /// Called once before the first frame.
+    pub fn new(path: Option<String>, cc: &CreationContext<'_>) -> Self {
+        // Install FontAwesome font and place it second
+        let mut fonts = FontDefinitions::default();
+        fonts.font_data.insert(
+            "font_awesome".to_owned(),
+            FontData::from_static(include_bytes!("../assets/FontAwesomeSolid.ttf")),
+        );
+
+        fonts
+            .families
+            .entry(egui::FontFamily::Proportional)
+            .or_default()
+            .insert(1, "font_awesome".to_owned());
+
+        cc.egui_ctx.set_fonts(fonts);
+
+        let s = Self {
+            gl: cc.gl.clone().unwrap(),
             state: AppState::Ready,
             current_panel: Panel::FileInfo,
             spreadsheetlist: None,
             fileinfo: None,
             textures: None,
+            entities: None,
             load_input: Arc::new(AtomicCell::new(None)),
-        }
-    }
-}
-
-impl EurochefApp {
-    /// Called once before the first frame.
-    pub fn new(path: Option<String>) -> Self {
-        let s = Self::default();
+        };
 
         if let Some(path) = path {
             // s.load_file(path);
@@ -58,7 +74,8 @@ impl EurochefApp {
     }
 
     pub fn load_file<P: AsRef<std::path::Path>>(&mut self, path: P, ctx: &egui::Context) {
-        self.current_panel = Panel::FileInfo;
+        // self.current_panel = Panel::FileInfo;
+        self.current_panel = Panel::Entities;
         self.spreadsheetlist = None;
         self.fileinfo = None;
         self.textures = None;
@@ -84,6 +101,15 @@ impl EurochefApp {
         if spreadsheets.len() > 0 {
             self.spreadsheetlist = Some(spreadsheet::TextItemList::new(spreadsheets[0].clone()));
         }
+
+        let (entities, skins, ref_entities) = entities::read_from_file(&mut file, platform);
+        self.entities = Some(entities::EntityListPanel::new(
+            ctx,
+            self.gl.clone(),
+            entities,
+            skins,
+            ref_entities,
+        ));
 
         self.textures = Some(textures::TextureList::new(textures::read_from_file(
             &mut file, platform,
@@ -111,6 +137,7 @@ impl eframe::App for EurochefApp {
             fileinfo,
             textures,
             load_input,
+            entities,
             ..
         } = self;
 
@@ -119,8 +146,6 @@ impl eframe::App for EurochefApp {
             egui::menu::bar(ui, |ui| {
                 ui.menu_button("File", |ui| {
                     if ui.button("Open").clicked() {
-                        // super::web::import_data();
-
                         // TODO(cohae): drag and drop loading
                         // TODO(cohae): async loading (will allow WASM support)
                         #[cfg(not(target_arch = "wasm32"))]
@@ -130,6 +155,8 @@ impl eframe::App for EurochefApp {
                                 .pick_file()
                             {
                                 load_clone.store(Some(path.to_string_lossy().to_string()));
+                            } else {
+                                load_clone.store(None);
                             }
                         });
 
@@ -178,15 +205,21 @@ impl eframe::App for EurochefApp {
                     .open(&mut open)
                     .show(ctx, |ui| {
                         ui.horizontal(|ui| {
-                            let icon = egui::RichText::new("❗")
-                                .color(Color32::from_rgb(200, 90, 90))
-                                .size(30.);
+                            let (irect, _) =
+                                ui.allocate_exact_size([48., 48.].into(), egui::Sense::hover());
+                            ui.painter().text(
+                                irect.center() + [0., 8.].into(),
+                                egui::Align2::CENTER_CENTER,
+                                '\u{f00d}',
+                                egui::FontId::proportional(48.),
+                                Color32::from_rgb(250, 40, 40),
+                            );
 
-                            ui.label(icon);
                             ui.label(format!("{e}"));
                         });
 
                         if !e.backtrace().to_string().starts_with("disabled backtrace") {
+                            ui.add_space(4.);
                             ui.collapsing("Backtrace", |ui| {
                                 egui::ScrollArea::vertical()
                                     .show(ui, |ui| ui.label(e.backtrace().to_string()));
@@ -215,6 +248,8 @@ impl eframe::App for EurochefApp {
                     ui.selectable_value(current_panel, Panel::Spreadsheets, "Spreadsheets");
                 }
 
+                ui.selectable_value(current_panel, Panel::Entities, "Entities");
+
                 if textures.is_some() {
                     ui.selectable_value(current_panel, Panel::Textures, "Textures");
                 }
@@ -224,6 +259,7 @@ impl eframe::App for EurochefApp {
             match current_panel {
                 Panel::FileInfo => fileinfo.as_mut().map(|s| s.show(ui)),
                 Panel::Textures => textures.as_mut().map(|s| s.show(ui)),
+                Panel::Entities => entities.as_mut().map(|s| s.show(ui)),
                 Panel::Spreadsheets => spreadsheetlist.as_mut().map(|s| s.show(ui)),
             };
         });

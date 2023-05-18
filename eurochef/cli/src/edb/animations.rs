@@ -14,7 +14,7 @@ use eurochef_edb::{
     header::EXGeoHeader,
     versions::Platform,
 };
-use eurochef_shared::textures::UXGeoTexture;
+use eurochef_shared::{entities::read_entity, textures::UXGeoTexture};
 use image::ImageOutputFormat;
 use indicatif::{ProgressBar, ProgressIterator, ProgressStyle};
 
@@ -173,7 +173,7 @@ pub fn execute_command(
             let mut indices = vec![];
             let mut strips = vec![];
 
-            if let Err(err) = super::entities::read_entity(
+            if let Err(err) = read_entity(
                 &ent,
                 &mut vertex_data,
                 &mut indices,

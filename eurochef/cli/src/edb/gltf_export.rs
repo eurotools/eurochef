@@ -1,6 +1,5 @@
 use base64::Engine;
-use bytemuck::{Pod, Zeroable};
-use eurochef_edb::common::{EXVector, EXVector2, EXVector3};
+use eurochef_shared::entities::{TriStrip, UXVertex};
 use gltf::json::{self as gjson, validation::Checked};
 use std::collections::HashMap;
 
@@ -27,23 +26,6 @@ use super::entities::Transparency;
 // fn align_to_multiple_of_four(n: &mut u32) {
 //     *n = (*n + 3) & !3;
 // }
-
-#[derive(Debug)]
-pub struct TriStrip {
-    pub start_index: u32,
-    pub index_count: u32,
-    pub texture_hash: u32,
-    pub transparency: u16,
-}
-
-#[derive(Copy, Clone, Pod, Zeroable)]
-#[repr(C)]
-pub struct UXVertex {
-    pub pos: EXVector3,
-    pub norm: EXVector3,
-    pub uv: EXVector2,
-    pub color: EXVector,
-}
 
 /// Creates a scene with a single mesh in it
 pub fn create_mesh_scene(name: &str) -> gjson::Root {

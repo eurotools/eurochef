@@ -9,7 +9,9 @@ pub use app::EurochefApp;
 #[cfg(target_arch = "wasm32")]
 mod web;
 
-// TODO: Move
+mod entities;
+mod entity_renderer;
 mod fileinfo;
+mod gl_helper;
 mod spreadsheet;
 mod textures;

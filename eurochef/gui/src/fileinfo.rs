@@ -1,5 +1,7 @@
 use std::io::{Read, Seek};
 
+use font_awesome as fa;
+
 use eurochef_edb::{
     binrw::{BinReaderExt, Endian},
     header::EXGeoHeader,
@@ -41,7 +43,7 @@ impl FileInfoPanel {
             };
         }
 
-        ui.label(egui::RichText::new("EDB File Info").heading());
+        ui.label(egui::RichText::new(format!("{} EDB File Info", fa::INFO_CIRCLE)).heading());
         quick_info!("Version", self.header.version.to_string());
         quick_info!(
             "Base file size",

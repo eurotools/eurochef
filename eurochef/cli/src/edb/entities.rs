@@ -1,7 +1,7 @@
 use std::{
     collections::HashMap,
     fs::File,
-    io::{BufReader, Cursor, Read, Seek},
+    io::{BufReader, Cursor, Seek},
     path::Path,
 };
 
@@ -9,12 +9,11 @@ use anyhow::Context;
 use base64::Engine;
 use eurochef_edb::{
     binrw::{BinReaderExt, Endian},
-    common::{EXVector, EXVector2, EXVector3},
-    entity::{EXGeoEntity, EXGeoEntity_TriStrip},
+    entity::EXGeoEntity,
     header::EXGeoHeader,
     versions::Platform,
 };
-use eurochef_shared::textures::UXGeoTexture;
+use eurochef_shared::{entities::read_entity, textures::UXGeoTexture};
 use image::ImageOutputFormat;
 use indicatif::{ProgressBar, ProgressIterator, ProgressStyle};
 
@@ -25,8 +24,6 @@ use crate::{
     },
     PlatformArg,
 };
-
-use super::gltf_export::{TriStrip, UXVertex};
 
 #[derive(PartialEq, Eq, Clone, Copy)]
 pub enum Transparency {
@@ -186,7 +183,6 @@ pub fn execute_command(
         reader.seek(std::io::SeekFrom::Start(*ent_offset))?;
 
         let ent = reader.read_type_args::<EXGeoEntity>(endian, (header.version, platform));
-
         if let Err(err) = ent {
             error!("Failed to read entity: {err}");
             continue;
@@ -224,6 +220,16 @@ pub fn execute_command(
             continue;
         }
 
+        if strips.len() <= 0 {
+            warn!(
+                "Processed entity doesnt have tristrips! (v={}/i={}/t={})",
+                vertex_data.len(),
+                indices.len(),
+                strips.len()
+            );
+            continue;
+        }
+
         // Process vertex data (flipping vertex data and UVs)
         for v in &mut vertex_data {
             v.pos[0] = -v.pos[0];
@@ -245,10 +251,6 @@ pub fn execute_command(
             );
         }
 
-        if strips.len() <= 0 {
-            continue;
-        }
-
         let mut gltf = gltf_export::create_mesh_scene(&ent_id);
         gltf_export::add_mesh_to_scene(
             &mut gltf,
@@ -268,199 +270,4 @@ pub fn execute_command(
     info!("Successfully extracted entities!");
 
     Ok(())
-}
-
-pub fn read_entity<R: Read + Seek>(
-    ent: &EXGeoEntity,
-    vertex_data: &mut Vec<UXVertex>,
-    indices: &mut Vec<u32>,
-    strips: &mut Vec<TriStrip>,
-    endian: Endian,
-    version: u32,
-    platform: Platform,
-    data: &mut R,
-    depth_limit: u32,
-    remove_transparent: bool,
-) -> anyhow::Result<()> {
-    if depth_limit == 0 {
-        anyhow::bail!("Entity recursion limit reached!");
-    }
-
-    match ent {
-        EXGeoEntity::Split(split) => {
-            for e in split.entities.iter() {
-                read_entity(
-                    e,
-                    vertex_data,
-                    indices,
-                    strips,
-                    endian,
-                    version,
-                    platform,
-                    data,
-                    depth_limit - 1,
-                    remove_transparent,
-                )?;
-            }
-        }
-        EXGeoEntity::Mesh(mesh) => {
-            let vertex_offset = vertex_data.len() as u32;
-
-            data.seek(std::io::SeekFrom::Start(
-                mesh.vertex_colors.offset_absolute(),
-            ))?;
-            let mut vertex_colors: Vec<EXVector> = vec![];
-            for _ in 0..mesh.vertex_count {
-                let rgba: [u8; 4] = data.read_type(endian)?;
-                vertex_colors.push(linear_rgb_to_srgb([
-                    rgba[2] as f32 / 255.0,
-                    rgba[1] as f32 / 255.0,
-                    rgba[0] as f32 / 255.0,
-                    rgba[3] as f32 / 255.0,
-                ]));
-            }
-
-            data.seek(std::io::SeekFrom::Start(mesh.vertex_data.offset_absolute()))?;
-
-            // TODO(cohae): 0BADF002 + vertex count???
-            if platform == Platform::Xbox360 {
-                for _ in 0..2 {
-                    data.read_type::<u32>(endian).unwrap();
-                }
-            }
-
-            for i in 0..mesh.vertex_count {
-                match version {
-                    252 | 250 | 251 | 240 | 221 => {
-                        let d = data.read_type::<(EXVector3, u32, EXVector2)>(endian)?;
-                        vertex_data.push(UXVertex {
-                            pos: d.0,
-                            norm: [0f32, 0f32, 0f32],
-                            uv: d.2,
-                            color: vertex_colors[i as usize],
-                        });
-                    }
-                    248 | 259 | 260 => {
-                        if platform == Platform::Xbox360 {
-                            // TODO(cohae): Wacky x360-specific format
-                            let d = data.read_type::<(EXVector3, u32, EXVector3, u32)>(endian)?;
-                            vertex_data.push(UXVertex {
-                                pos: d.0,
-                                norm: d.2,
-                                uv: [0.0, 0.0],
-                                color: vertex_colors[i as usize],
-                            });
-                        } else {
-                            vertex_data.push(UXVertex {
-                                pos: data.read_type(endian)?,
-                                norm: data.read_type(endian)?,
-                                uv: data.read_type(endian)?,
-                                color: vertex_colors[i as usize],
-                            });
-                        }
-                    }
-                    _ => {
-                        panic!(
-                        "Vertex format for version {version} is not known yet, report to cohae!"
-                    );
-                    }
-                }
-            }
-
-            if platform == Platform::Xbox360 {
-                for i in 0..mesh.vertex_count as usize {
-                    vertex_data[i].uv = data.read_type(endian)?;
-                }
-            }
-
-            data.seek(std::io::SeekFrom::Start(mesh.index_data.offset_absolute()))?;
-
-            // TODO(cohae): 0BADF001
-            if platform == Platform::Xbox360 {
-                for _ in 0..2 {
-                    data.read_type::<u16>(endian).unwrap();
-                }
-            }
-
-            let new_indices: Vec<u32> = (0..mesh.index_count)
-                .map(|_| data.read_type::<u16>(endian).unwrap() as u32)
-                .collect();
-
-            let mut tristrips: Vec<EXGeoEntity_TriStrip> = vec![];
-            data.seek(std::io::SeekFrom::Start(
-                mesh.tristrip_data.offset_absolute(),
-            ))?;
-            for _ in 0..mesh.tristrip_count {
-                tristrips.push(data.read_type_args(endian, (version, platform))?);
-            }
-
-            let mut index_offset_local = 0;
-            for t in tristrips {
-                if t.tricount < 1 {
-                    break;
-                }
-
-                // Skip transparent surfaces that use additive blending
-                if t.trans_type == 1 {
-                    index_offset_local += t.tricount + 2;
-                    continue;
-                }
-
-                let texture_index = if mesh.base.flags & 0x1 != 0 {
-                    // Index from texture list instead of the "global" array
-                    if t.texture_index < mesh.texture_list.textures.len() as i32 {
-                        mesh.texture_list.textures[t.texture_index as usize] as i32
-                    } else {
-                        error!("Tried to get texture #{} from texture list, but list only has {} elements!", t.texture_index, mesh.texture_list.textures.len());
-                        -1
-                    }
-                } else {
-                    t.texture_index
-                };
-
-                strips.push(TriStrip {
-                    start_index: indices.len() as u32,
-                    index_count: t.tricount * 3,
-                    texture_hash: texture_index as u32,
-                    transparency: t.trans_type,
-                });
-
-                for i in (index_offset_local as usize)..(index_offset_local + t.tricount) as usize {
-                    if (i - index_offset_local as usize) % 2 == 0 {
-                        indices.extend([
-                            vertex_offset + new_indices[i + 2] as u32,
-                            vertex_offset + new_indices[i + 1] as u32,
-                            vertex_offset + new_indices[i] as u32,
-                        ])
-                    } else {
-                        indices.extend([
-                            vertex_offset + new_indices[i] as u32,
-                            vertex_offset + new_indices[i + 1] as u32,
-                            vertex_offset + new_indices[i + 2] as u32,
-                        ])
-                    }
-                }
-                index_offset_local += t.tricount + 2;
-            }
-        }
-        _ => {}
-    }
-
-    Ok(())
-}
-
-fn linear_rgb_to_srgb(rgb: [f32; 4]) -> [f32; 4] {
-    let mut srgb = [0.0; 4];
-
-    for i in 0..3 {
-        if rgb[i] <= 0.0031308 {
-            srgb[i] = 12.92 * rgb[i];
-        } else {
-            srgb[i] = 1.055 * rgb[i].powf(1.0 / 2.4) - 0.055;
-        }
-    }
-
-    srgb[3] = rgb[3]; // Copy alpha channel
-
-    srgb
 }

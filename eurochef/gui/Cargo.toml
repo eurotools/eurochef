@@ -31,6 +31,10 @@ instant = "0.1"
 rfd = "0.11.2"
 color-eyre = "0.6.2"
 crossbeam = "0.8.2"
+font-awesome = "0.2"
+glow = "0.12"
+egui_glow = "0.21.0"
+glam = "0.24.0"
 
 # native:
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]

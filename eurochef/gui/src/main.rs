@@ -13,11 +13,17 @@ fn main() -> Result<()> {
     // Log to stdout (if you run with `RUST_LOG=debug`).
     tracing_subscriber::fmt::init();
 
-    let native_options = eframe::NativeOptions::default();
+    let native_options = eframe::NativeOptions {
+        initial_window_size: Some([1280., 1024.].into()),
+        depth_buffer: 24,
+        multisampling: 4,
+        shader_version: Some(egui_glow::ShaderVersion::Es300),
+        ..Default::default()
+    };
     let res = eframe::run_native(
         "Eurochef",
         native_options,
-        Box::new(|_cc| Box::new(eurochef_gui::EurochefApp::new(std::env::args().nth(1)))),
+        Box::new(|cc| Box::new(eurochef_gui::EurochefApp::new(std::env::args().nth(1), cc))),
     );
 
     match res {
@@ -41,7 +47,7 @@ fn main() {
         eframe::start_web(
             "the_canvas_id", // hardcode it
             web_options,
-            Box::new(|cc| Box::new(eurochef_gui::EurochefApp::new(cc))),
+            Box::new(|cc| Box::new(eurochef_gui::EurochefApp::new(None, cc))),
         )
         .await
         .expect("failed to start eframe");
