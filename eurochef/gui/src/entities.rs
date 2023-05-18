@@ -3,7 +3,7 @@ use std::{
     sync::Arc,
 };
 
-use egui::{RichText, Vec2, Widget};
+use egui::{Color32, RichText, Vec2, Widget};
 use eurochef_edb::{
     anim::EXGeoBaseAnimSkin,
     binrw::{BinReaderExt, Endian},
@@ -12,6 +12,7 @@ use eurochef_edb::{
     versions::Platform,
 };
 use eurochef_shared::entities::{read_entity, TriStrip, UXVertex};
+use fnv::FnvHashMap;
 use font_awesome as fa;
 
 use crate::entity_renderer::EntityFrame;
@@ -21,6 +22,8 @@ pub struct EntityListPanel {
     // TODO: replace with drawing clock icon from FA dynamically
     missing_texture: egui::TextureHandle,
     entity_renderer: Option<EntityFrame>,
+
+    entity_previews: FnvHashMap<String, Option<egui::TextureHandle>>,
 
     entities: Vec<(u32, EXGeoEntity, ProcessedEntityMesh)>,
     skins: Vec<(u32, EXGeoBaseAnimSkin)>,
@@ -51,6 +54,17 @@ impl EntityListPanel {
             egui::TextureOptions::NEAREST,
         );
 
+        let mut entity_previews = FnvHashMap::default();
+        for (hashcode, _, _) in entities.iter() {
+            entity_previews.insert(format!("{hashcode:x}"), None);
+        }
+        for (hashcode, _) in skins.iter() {
+            entity_previews.insert(format!("{hashcode:x}"), None);
+        }
+        for (index, _, _) in ref_entities.iter() {
+            entity_previews.insert(format!("ref_{index}"), None);
+        }
+
         EntityListPanel {
             gl,
             missing_texture: texture,
@@ -58,6 +72,7 @@ impl EntityListPanel {
             entities,
             skins,
             ref_entities,
+            entity_previews,
         }
     }
 
@@ -124,9 +139,49 @@ impl EntityListPanel {
                 ui.allocate_ui(Vec2::splat(256.), |ui| {
                     ui.spacing_mut().item_spacing = [4., 4.].into();
                     ui.vertical(|ui| {
-                        if egui::Image::new(self.missing_texture.id(), [256., 256. - 22.])
-                            .sense(egui::Sense::click())
-                            .ui(ui)
+                        let label = match ty {
+                            0 | 2 => {
+                                format!("{i:x}")
+                            }
+                            1 => {
+                                format!("ref_{i}")
+                            }
+                            _ => unreachable!(),
+                        };
+
+                        let response = if let Some(tex) = self.entity_previews.get(&label).unwrap()
+                        {
+                            egui::Image::new(tex.id(), [256., 256. - 22.])
+                                .sense(egui::Sense::click())
+                                .ui(ui)
+                        } else {
+                            let (rect, response) = ui.allocate_exact_size(
+                                [256., 256. - 22.].into(),
+                                egui::Sense::click(),
+                            );
+
+                            ui.painter().rect_filled(
+                                rect,
+                                egui::Rounding {
+                                    nw: 8.,
+                                    ne: 8.,
+                                    ..Default::default()
+                                },
+                                Color32::from_rgb(50, 50, 50),
+                            );
+
+                            ui.painter().text(
+                                rect.center() + [0., 16.].into(),
+                                egui::Align2::CENTER_CENTER,
+                                fa::CLOCK,
+                                egui::FontId::proportional(96.),
+                                Color32::WHITE,
+                            );
+
+                            response
+                        };
+
+                        if response
                             .on_hover_cursor(egui::CursorIcon::PointingHand)
                             .clicked()
                         {
