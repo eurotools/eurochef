@@ -16,6 +16,11 @@ pub fn setup() {
             Err(e) => eprintln!("Failed to create panic log: {e}"),
         }
 
+        // Dont show dialog on debug builds
+        if cfg!(debug_assertions) {
+            return;
+        }
+
         // Finally, show a dialog
         let panic_message_stripped = &strip_ansi_codes(&format!("{info}"));
         if let Err(e) = native_dialog::MessageDialog::new()
