@@ -97,11 +97,9 @@ impl EntityListPanel {
         if let Some(er) = self.entity_renderer.as_mut() {
             ui.separator();
 
-            unsafe {
-                egui::Frame::canvas(ui.style()).show(ui, |ui| {
-                    er.show(ui, self.gl.clone());
-                });
-            }
+            egui::Frame::canvas(ui.style()).show(ui, |ui| {
+                er.show(ui, self.gl.clone());
+            });
         } else {
             egui::ScrollArea::vertical()
                 .id_source("section_scroll_area")

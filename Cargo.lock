@@ -19,6 +19,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c71b1793ee61086797f5c80b6efa2b8ffa6d5dd703f118545808a7f2e27f7046"
 
 [[package]]
+name = "accesskit"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4803cf8c252f374ae6bfbb341e49e5a37f7601f2ce74a105927a663eba952c67"
+dependencies = [
+ "enumn",
+ "serde",
+]
+
+[[package]]
 name = "addr2line"
 version = "0.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -41,6 +51,7 @@ checksum = "2c99f64d1e06488f620f932677e24bc6e2897582980441ae90a671415bd7ec2f"
 dependencies = [
  "cfg-if",
  "once_cell",
+ "serde",
  "version_check",
 ]
 
@@ -193,6 +204,12 @@ dependencies = [
  "object",
  "rustc-demangle",
 ]
+
+[[package]]
+name = "base64"
+version = "0.13.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9e1b586273c5702936fe7b7d6896644d8be71e6314cfe09d3167c95f712589e8"
 
 [[package]]
 name = "base64"
@@ -650,6 +667,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b365fabc795046672053e29c954733ec3b05e4be654ab130fe8f1f94d7051f35"
 
 [[package]]
+name = "directories-next"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "339ee130d97a610ea5a5872d2bbb130fdf68884ff09d3028b81bec8a1ac23bbc"
+dependencies = [
+ "cfg-if",
+ "dirs-sys-next",
+]
+
+[[package]]
 name = "dirs"
 version = "4.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -718,6 +745,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1f99fe3cac305af9d6d92971af60d0f7ea4d783201ef1673571567b6699964d9"
 dependencies = [
  "bytemuck",
+ "serde",
 ]
 
 [[package]]
@@ -727,6 +755,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3df3ce60931e5f2d83bab4484d1a283908534d5308cc6b0c5c22c59cd15ee7cc"
 dependencies = [
  "bytemuck",
+ "directories-next",
  "egui",
  "egui-winit",
  "egui_glow",
@@ -736,6 +765,8 @@ dependencies = [
  "js-sys",
  "percent-encoding",
  "raw-window-handle 0.5.1",
+ "ron",
+ "serde",
  "thiserror",
  "tracing",
  "wasm-bindgen",
@@ -750,9 +781,12 @@ version = "0.21.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6412a21e0bde7c0918f7fb44bbbb86b5e1f88e63c026a4e747cc7af02f76dfbe"
 dependencies = [
+ "accesskit",
  "ahash",
  "epaint",
  "nohash-hasher",
+ "ron",
+ "serde",
  "tracing",
 ]
 
@@ -766,6 +800,7 @@ dependencies = [
  "arboard",
  "egui",
  "instant",
+ "serde",
  "smithay-clipboard",
  "tracing",
  "webbrowser",
@@ -810,6 +845,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b8ecd80612937e0267909d5351770fe150004e24dab93954f69ca62eecd3f77e"
 dependencies = [
  "bytemuck",
+ "serde",
 ]
 
 [[package]]
@@ -843,6 +879,7 @@ dependencies = [
  "emath",
  "nohash-hasher",
  "parking_lot",
+ "serde",
 ]
 
 [[package]]
@@ -893,7 +930,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "apng",
- "base64",
+ "base64 0.21.0",
  "bytemuck",
  "clap",
  "clap-num",
@@ -2245,6 +2282,17 @@ dependencies = [
  "wasm-bindgen-futures",
  "web-sys",
  "windows",
+]
+
+[[package]]
+name = "ron"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "300a51053b1cb55c80b7a9fde4120726ddf25ca241a1cbb926626f62fb136bff"
+dependencies = [
+ "base64 0.13.1",
+ "bitflags",
+ "serde",
 ]
 
 [[package]]
