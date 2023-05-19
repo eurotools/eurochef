@@ -34,7 +34,7 @@ impl EntityFrame {
         let mut s = Self {
             hashcode,
             renderer: Arc::new(Mutex::new(EntityRenderer::new(gl, textures))),
-            orientation: egui::vec2(1., -1.),
+            orientation: egui::vec2(-2., -1.),
             origin: Vec3::ZERO,
             zoom: 5.0,
             mesh_center: Vec3::ZERO,

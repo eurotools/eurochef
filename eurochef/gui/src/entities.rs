@@ -309,7 +309,7 @@ impl EntityListPanel {
 
                     er.draw(
                         &self.gl,
-                        egui::vec2(1., -1.),
+                        egui::vec2(-2., -1.),
                         Vec3::ZERO,
                         0.30 * maximum_extent,
                         paint_info,
