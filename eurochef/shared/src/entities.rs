@@ -7,7 +7,7 @@ use eurochef_edb::{
     entity::{EXGeoEntity, EXGeoEntity_TriStrip},
     versions::Platform,
 };
-use tracing::error;
+use tracing::{error, warn};
 
 #[derive(Debug, Clone, Copy)]
 pub struct TriStrip {
@@ -198,6 +198,9 @@ pub fn read_entity<R: Read + Seek>(
                 }
                 index_offset_local += t.tricount + 2;
             }
+        }
+        EXGeoEntity::UnknownType(u) => {
+            warn!("Unsupported entity type 0x{u:x}")
         }
         _ => {}
     }

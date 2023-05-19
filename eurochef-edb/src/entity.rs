@@ -110,6 +110,7 @@ pub enum EXGeoEntity {
     Mesh(EXGeoMeshEntity),
     Split(EXGeoSplitEntity),
     MapZone(EXGeoMapZoneEntity),
+    UnknownType(u32),
 }
 
 impl BinRead for EXGeoEntity {
@@ -126,16 +127,11 @@ impl BinRead for EXGeoEntity {
             0x601 => EXGeoEntity::Mesh(reader.read_type_args(endian, args)?),
             0x603 => EXGeoEntity::Split(reader.read_type_args(endian, args)?),
             0x608 => EXGeoEntity::MapZone(reader.read_type_args(endian, args)?),
-            t @ 0x600..=0x6ff => {
-                return Err(binrw::Error::Custom {
+            t @ 0x600..=0x6ff => EXGeoEntity::UnknownType(t),
+            _ => {
+                return Err(binrw::Error::NoVariantMatch {
                     pos: reader.stream_position()?,
-                    err: Box::new(EurochefError::Unsupported(format!(
-                        "EXGeoEntity type 0x{t:x} is not supported!"
-                    ))),
                 })
-            }
-            t => {
-                panic!("Invalid object type 0x{t:x}!")
             }
         })
     }
