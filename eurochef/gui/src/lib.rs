@@ -13,5 +13,6 @@ mod entities;
 mod entity_renderer;
 mod fileinfo;
 mod gl_helper;
+pub mod panic_dialog;
 mod spreadsheet;
 mod textures;

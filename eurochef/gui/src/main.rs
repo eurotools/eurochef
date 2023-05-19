@@ -8,7 +8,7 @@ use color_eyre::eyre::Result;
 fn main() -> Result<()> {
     use color_eyre::Report;
 
-    color_eyre::install()?;
+    eurochef_gui::panic_dialog::setup();
 
     // Log to stdout (if you run with `RUST_LOG=debug`).
     tracing_subscriber::fmt::init();
