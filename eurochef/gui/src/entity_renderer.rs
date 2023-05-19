@@ -47,6 +47,10 @@ impl EntityFrame {
         s
     }
 
+    fn zoom_factor(zoom_level: f32) -> f32 {
+        2.0f32.powf(zoom_level * std::f32::consts::LN_2)
+    }
+
     pub fn show(&mut self, ui: &mut egui::Ui, gl: Arc<glow::Context>) {
         ui.checkbox(
             &mut self.renderer.lock().unwrap().orthographic,
@@ -63,11 +67,11 @@ impl EntityFrame {
         //     self.pan_camera(response.drag_delta() * 0.015);
         // }
 
-        self.zoom += -ui.input(|i| i.scroll_delta).y * 0.05;
-        self.zoom = self.zoom.clamp(0.1, 250.0);
+        self.zoom += -ui.input(|i| i.scroll_delta).y * 0.005;
+        self.zoom = self.zoom.clamp(0.00, 250.0);
 
         let orientation = self.orientation;
-        let zoom = self.zoom;
+        let zoom = Self::zoom_factor(self.zoom);
         let origin = self.origin;
         let mesh_center = self.mesh_center;
 
