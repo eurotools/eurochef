@@ -48,7 +48,7 @@ impl EntityFrame {
     }
 
     fn zoom_factor(zoom_level: f32) -> f32 {
-        2.0f32.powf(zoom_level * std::f32::consts::LN_2)
+        2.0f32.powf(zoom_level * std::f32::consts::LN_2) - 0.9
     }
 
     pub fn show(&mut self, ui: &mut egui::Ui, gl: Arc<glow::Context>) {
@@ -247,7 +247,7 @@ impl EntityRenderer {
                 (1.0 * -zoom) * 2.0,
                 (-1.0 * -zoom) * 2.0,
                 -50.0,
-                1000.0,
+                2500.0,
             )
         } else {
             glam::Mat4::perspective_rh_gl(
