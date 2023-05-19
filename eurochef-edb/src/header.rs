@@ -42,6 +42,7 @@ pub struct EXGeoHeader {
     #[br(args(version))]
     pub entity_list: EXGeoHashArray<EXGeoEntityHeader>, // 0x50
     pub anim_list: EXGeoHashArray<EXGeoAnimHeader>,
+    #[br(args(version))]
     pub animskin_list: EXGeoHashArray<EXGeoAnimSkinHeader>, // 0x60
     pub script_list: EXGeoHashArray<EXGeoScriptHeader>,
     pub map_list: EXGeoHashArray<EXGeoMapHeader>, // 0x70

@@ -139,11 +139,11 @@ pub struct EXGeoSpreadSheetHeader {
 
 #[binrw]
 #[derive(Debug)]
-#[br(import(version: u32))]
+#[brw(import(version: u32))]
 pub struct EXGeoEntityHeader {
     pub common: EXGeoCommonArrayElement,
     pub unk_4: u32,
-    #[br(if(version <= 221))]
+    #[brw(if(version <= 221))]
     pub ext: Option<EntityHeaderExt>,
 }
 
@@ -180,9 +180,12 @@ pub struct EXGeoAnimSetHeader {
 
 #[binrw]
 #[derive(Debug)]
+#[brw(import(version: u32))]
 pub struct EXGeoAnimSkinHeader {
     pub common: EXGeoCommonArrayElement,
     pub base_skin_num: u32,
     pub mip_ref: u32,
     pub mip_distance: u32,
+    #[brw(if(version.eq(&248)))]
+    pub unk: [u32; 2],
 }
