@@ -21,8 +21,6 @@ use crate::entity_renderer::{EntityFrame, EntityRenderer};
 
 pub struct EntityListPanel {
     gl: Arc<glow::Context>,
-    // TODO: replace with drawing clock icon from FA dynamically
-    missing_texture: egui::TextureHandle,
     entity_renderer: Option<EntityFrame>,
 
     entity_previews: FnvHashMap<u32, Option<egui::TextureHandle>>,
@@ -31,6 +29,7 @@ pub struct EntityListPanel {
     skins: Vec<(u32, EXGeoBaseAnimSkin)>,
     ref_entities: Vec<(u32, EXGeoEntity, ProcessedEntityMesh)>,
     framebuffer: (glow::Framebuffer, glow::Texture),
+    framebuffer_msaa: (glow::Framebuffer, glow::Texture),
 }
 
 pub struct ProcessedEntityMesh {
@@ -41,22 +40,12 @@ pub struct ProcessedEntityMesh {
 
 impl EntityListPanel {
     pub fn new(
-        ctx: &egui::Context,
+        _ctx: &egui::Context,
         gl: Arc<glow::Context>,
         entities: Vec<(u32, EXGeoEntity, ProcessedEntityMesh)>,
         skins: Vec<(u32, EXGeoBaseAnimSkin)>,
         ref_entities: Vec<(u32, EXGeoEntity, ProcessedEntityMesh)>,
     ) -> Self {
-        const MAGENTA_CHECKER: [u8; 4 * 4] = [
-            255, 0, 255, 255, 0, 0, 0, 255, 0, 0, 0, 255, 255, 0, 255, 255,
-        ];
-
-        let texture = ctx.load_texture(
-            "argh",
-            egui::ColorImage::from_rgba_unmultiplied([2, 2], &MAGENTA_CHECKER),
-            egui::TextureOptions::NEAREST,
-        );
-
         let mut entity_previews = FnvHashMap::default();
         for (hashcode, _, _) in entities.iter() {
             entity_previews.insert(*hashcode, None);
@@ -69,9 +58,9 @@ impl EntityListPanel {
         }
 
         EntityListPanel {
-            framebuffer: unsafe { Self::create_preview_framebuffer(&gl) },
+            framebuffer_msaa: unsafe { Self::create_preview_framebuffer(&gl, true) },
+            framebuffer: unsafe { Self::create_preview_framebuffer(&gl, false) },
             gl,
-            missing_texture: texture,
             entity_renderer: None,
             entities,
             skins,
@@ -150,7 +139,11 @@ impl EntityListPanel {
                     ui.spacing_mut().item_spacing = [4., 4.].into();
                     ui.vertical(|ui| {
                         let response = if let Some(Some(tex)) = self.entity_previews.get(&i) {
-                            egui::Image::new(tex.id(), [256., 256. - 22.])
+                            egui::Image::new(tex.id(), [256., 230.])
+                                .uv(egui::Rect::from_min_size(
+                                    egui::Pos2::ZERO,
+                                    [1.0, 0.9].into(),
+                                ))
                                 .sense(egui::Sense::click())
                                 .ui(ui)
                         } else {
@@ -260,13 +253,12 @@ impl EntityListPanel {
                 unsafe {
                     let mesh_center = er.load_mesh(&self.gl, mesh);
                     self.gl
-                        .bind_framebuffer(glow::FRAMEBUFFER, Some(self.framebuffer.0));
+                        .bind_framebuffer(glow::FRAMEBUFFER, Some(self.framebuffer_msaa.0));
                     self.gl.clear_color(0.0, 0.0, 0.0, 1.0);
                     self.gl
                         .clear(glow::COLOR_BUFFER_BIT | glow::DEPTH_BUFFER_BIT);
                     self.gl.viewport(0, 0, 256, 256);
 
-                    self.gl.line_width(2.0);
                     er.draw(
                         &self.gl,
                         egui::vec2(1., -1.),
@@ -275,6 +267,27 @@ impl EntityListPanel {
                         paint_info,
                         mesh_center,
                     );
+
+                    // Blit the MSAA framebuffer to a normal one so we can copy it
+                    self.gl
+                        .bind_framebuffer(glow::READ_FRAMEBUFFER, Some(self.framebuffer_msaa.0));
+                    self.gl
+                        .bind_framebuffer(glow::DRAW_FRAMEBUFFER, Some(self.framebuffer.0));
+                    self.gl.blit_framebuffer(
+                        0,
+                        0,
+                        256,
+                        256,
+                        0,
+                        0,
+                        256,
+                        256,
+                        glow::COLOR_BUFFER_BIT,
+                        glow::NEAREST,
+                    );
+
+                    self.gl
+                        .bind_framebuffer(glow::FRAMEBUFFER, Some(self.framebuffer.0));
 
                     self.gl.read_pixels(
                         0,
@@ -291,12 +304,10 @@ impl EntityListPanel {
 
                 let mut out_flipped = vec![0u8; 256 * 256 * 3];
                 for y in 0..256 {
-                    for x in 0..256 {
-                        let i = y * 256 + x;
-                        let i_flipped = (256 - y - 1) * 256 + x;
-                        out_flipped[i_flipped * 3..i_flipped * 3 + 3]
-                            .copy_from_slice(&out[i * 3..i * 3 + 3]);
-                    }
+                    let i = y * 256 * 3;
+                    let i_flipped = (256 - y - 1) * 256 * 3;
+                    out_flipped[i_flipped..i_flipped + 256 * 3]
+                        .copy_from_slice(&out[i..i + 256 * 3]);
                 }
 
                 let image =
@@ -312,42 +323,54 @@ impl EntityListPanel {
         }
     }
 
-    const PREVIEW_DIMENSIONS: (u32, u32) = (256, 256);
-    unsafe fn create_preview_framebuffer(gl: &glow::Context) -> (glow::Framebuffer, glow::Texture) {
+    unsafe fn create_preview_framebuffer(
+        gl: &glow::Context,
+        msaa: bool,
+    ) -> (glow::Framebuffer, glow::Texture) {
         // Create framebuffer object
         let framebuffer = gl
             .create_framebuffer()
             .expect("Failed to create framebuffer");
         gl.bind_framebuffer(glow::FRAMEBUFFER, Some(framebuffer));
 
+        let texture_target: u32 = if msaa {
+            glow::TEXTURE_2D_MULTISAMPLE
+        } else {
+            glow::TEXTURE_2D
+        };
+
         // Create color texture
         let color_texture = gl.create_texture().expect("Failed to create color texture");
-        gl.bind_texture(glow::TEXTURE_2D, Some(color_texture));
-        gl.tex_image_2d(
-            glow::TEXTURE_2D,
-            0,
-            glow::RGB as i32, // Assuming RGB format, adjust as needed
-            256,
-            256,
-            0,
-            glow::RGB,
-            glow::UNSIGNED_BYTE,
-            None,
-        );
+        gl.bind_texture(texture_target, Some(color_texture));
+        if msaa {
+            gl.tex_image_2d_multisample(texture_target, 4, glow::RGB as i32, 256, 256, true);
+        } else {
+            gl.tex_image_2d(
+                texture_target,
+                0,
+                glow::RGB as i32,
+                256,
+                256,
+                0,
+                glow::RGB,
+                glow::UNSIGNED_BYTE,
+                None,
+            );
+        }
         gl.tex_parameter_i32(
-            glow::TEXTURE_2D,
+            texture_target,
             glow::TEXTURE_MIN_FILTER,
             glow::LINEAR as i32,
         );
         gl.tex_parameter_i32(
-            glow::TEXTURE_2D,
+            texture_target,
             glow::TEXTURE_MAG_FILTER,
             glow::LINEAR as i32,
         );
         gl.framebuffer_texture_2d(
             glow::FRAMEBUFFER,
             glow::COLOR_ATTACHMENT0,
-            glow::TEXTURE_2D,
+            texture_target,
             Some(color_texture),
             0,
         );
@@ -357,7 +380,17 @@ impl EntityListPanel {
             .create_renderbuffer()
             .expect("Failed to create depth renderbuffer");
         gl.bind_renderbuffer(glow::RENDERBUFFER, Some(depth_renderbuffer));
-        gl.renderbuffer_storage(glow::RENDERBUFFER, glow::DEPTH24_STENCIL8, 256, 256);
+        if msaa {
+            gl.renderbuffer_storage_multisample(
+                glow::RENDERBUFFER,
+                4,
+                glow::DEPTH24_STENCIL8,
+                256,
+                256,
+            );
+        } else {
+            gl.renderbuffer_storage(glow::RENDERBUFFER, glow::DEPTH24_STENCIL8, 256, 256);
+        }
         gl.bind_renderbuffer(glow::RENDERBUFFER, None);
         gl.framebuffer_renderbuffer(
             glow::FRAMEBUFFER,
