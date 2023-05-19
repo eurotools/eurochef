@@ -108,26 +108,32 @@ impl EntityListPanel {
                 .always_show_scroll(true)
                 .auto_shrink([false, false])
                 .show(ui, |ui| {
-                    ui.spacing_mut().item_spacing = [16., 2.].into();
-                    ui.heading(format!("{} Skeletons", fa::WALKING));
-                    ui.spacing_mut().item_spacing = [16., 8.].into();
-                    ui.separator();
-                    let skin_ids = self.skins.iter().map(|(v, _)| *v).collect();
-                    self.show_section(ui, skin_ids, 2);
+                    if !self.skins.is_empty() {
+                        ui.spacing_mut().item_spacing = [16., 2.].into();
+                        ui.heading(format!("{} Skeletons", fa::WALKING));
+                        ui.spacing_mut().item_spacing = [16., 8.].into();
+                        ui.separator();
+                        let skin_ids = self.skins.iter().map(|(v, _)| *v).collect();
+                        self.show_section(ui, skin_ids, 2);
+                    }
 
-                    ui.spacing_mut().item_spacing = [16., 2.].into();
-                    ui.heading("\u{e52f} Ref Meshes");
-                    ui.spacing_mut().item_spacing = [16., 8.].into();
-                    ui.separator();
-                    let refent_ids = self.ref_entities.iter().map(|(v, _, _)| *v).collect();
-                    self.show_section(ui, refent_ids, 1);
+                    if !self.ref_entities.is_empty() {
+                        ui.spacing_mut().item_spacing = [16., 2.].into();
+                        ui.heading("\u{e52f} Ref Meshes");
+                        ui.spacing_mut().item_spacing = [16., 8.].into();
+                        ui.separator();
+                        let refent_ids = self.ref_entities.iter().map(|(v, _, _)| *v).collect();
+                        self.show_section(ui, refent_ids, 1);
+                    }
 
-                    ui.spacing_mut().item_spacing = [16., 2.].into();
-                    ui.heading(format!("{} Meshes", fa::CUBE));
-                    ui.spacing_mut().item_spacing = [16., 8.].into();
-                    ui.separator();
-                    let entity_ids = self.entities.iter().map(|(v, _, _)| *v).collect();
-                    self.show_section(ui, entity_ids, 0);
+                    if !self.entities.is_empty() {
+                        ui.spacing_mut().item_spacing = [16., 2.].into();
+                        ui.heading(format!("{} Meshes", fa::CUBE));
+                        ui.spacing_mut().item_spacing = [16., 8.].into();
+                        ui.separator();
+                        let entity_ids = self.entities.iter().map(|(v, _, _)| *v).collect();
+                        self.show_section(ui, entity_ids, 0);
+                    }
                 });
         }
 
@@ -269,7 +275,7 @@ impl EntityListPanel {
                     let mesh_center = er.load_mesh(&self.gl, mesh);
                     self.gl
                         .bind_framebuffer(glow::FRAMEBUFFER, Some(self.framebuffer.0));
-                    self.gl.clear_color(1.0, 0.0, 0.0, 1.0);
+                    self.gl.clear_color(0.0, 0.0, 0.0, 1.0);
                     self.gl
                         .clear(glow::COLOR_BUFFER_BIT | glow::DEPTH_BUFFER_BIT);
 

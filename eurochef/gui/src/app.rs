@@ -86,8 +86,8 @@ impl EurochefApp {
     }
 
     pub fn load_file<P: AsRef<std::path::Path>>(&mut self, path: P, ctx: &egui::Context) {
-        // self.current_panel = Panel::FileInfo;
-        self.current_panel = Panel::Entities;
+        self.current_panel = Panel::FileInfo;
+        // self.current_panel = Panel::Entities;
         self.spreadsheetlist = None;
         self.fileinfo = None;
         self.textures = None;
@@ -115,13 +115,15 @@ impl EurochefApp {
         }
 
         let (entities, skins, ref_entities) = entities::read_from_file(&mut file, platform);
-        self.entities = Some(entities::EntityListPanel::new(
-            ctx,
-            self.gl.clone(),
-            entities,
-            skins,
-            ref_entities,
-        ));
+        if entities.len() + skins.len() + ref_entities.len() > 0 {
+            self.entities = Some(entities::EntityListPanel::new(
+                ctx,
+                self.gl.clone(),
+                entities,
+                skins,
+                ref_entities,
+            ));
+        }
 
         self.textures = Some(textures::TextureList::new(textures::read_from_file(
             &mut file, platform,
@@ -260,7 +262,9 @@ impl eframe::App for EurochefApp {
                     ui.selectable_value(current_panel, Panel::Spreadsheets, "Spreadsheets");
                 }
 
-                ui.selectable_value(current_panel, Panel::Entities, "Entities");
+                if entities.is_some() {
+                    ui.selectable_value(current_panel, Panel::Entities, "Entities");
+                }
 
                 if textures.is_some() {
                     ui.selectable_value(current_panel, Panel::Textures, "Textures");
