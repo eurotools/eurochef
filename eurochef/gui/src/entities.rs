@@ -14,8 +14,10 @@ use eurochef_edb::{
 use eurochef_shared::entities::{read_entity, TriStrip, UXVertex};
 use fnv::FnvHashMap;
 use font_awesome as fa;
+use glam::Vec3;
+use glow::HasContext;
 
-use crate::entity_renderer::EntityFrame;
+use crate::entity_renderer::{EntityFrame, EntityRenderer};
 
 pub struct EntityListPanel {
     gl: Arc<glow::Context>,
@@ -23,11 +25,12 @@ pub struct EntityListPanel {
     missing_texture: egui::TextureHandle,
     entity_renderer: Option<EntityFrame>,
 
-    entity_previews: FnvHashMap<String, Option<egui::TextureHandle>>,
+    entity_previews: FnvHashMap<u32, Option<egui::TextureHandle>>,
 
     entities: Vec<(u32, EXGeoEntity, ProcessedEntityMesh)>,
     skins: Vec<(u32, EXGeoBaseAnimSkin)>,
     ref_entities: Vec<(u32, EXGeoEntity, ProcessedEntityMesh)>,
+    framebuffer: (glow::Framebuffer, glow::Texture),
 }
 
 pub struct ProcessedEntityMesh {
@@ -56,16 +59,17 @@ impl EntityListPanel {
 
         let mut entity_previews = FnvHashMap::default();
         for (hashcode, _, _) in entities.iter() {
-            entity_previews.insert(format!("{hashcode:x}"), None);
+            entity_previews.insert(*hashcode, None);
         }
-        for (hashcode, _) in skins.iter() {
-            entity_previews.insert(format!("{hashcode:x}"), None);
-        }
+        // for (hashcode, _) in skins.iter() {
+        //     entity_previews.insert(format!("{hashcode:x}"), None);
+        // }
         for (index, _, _) in ref_entities.iter() {
-            entity_previews.insert(format!("ref_{index}"), None);
+            entity_previews.insert(*index, None);
         }
 
         EntityListPanel {
+            framebuffer: unsafe { Self::create_preview_framebuffer(&gl) },
             gl,
             missing_texture: texture,
             entity_renderer: None,
@@ -76,7 +80,7 @@ impl EntityListPanel {
         }
     }
 
-    pub fn show(&mut self, ui: &mut egui::Ui) {
+    pub fn show(&mut self, context: &egui::Context, ui: &mut egui::Ui) {
         if self.entity_renderer.is_some() {
             ui.horizontal(|ui| {
                 if ui.button("Back").clicked() {
@@ -109,30 +113,32 @@ impl EntityListPanel {
                     ui.spacing_mut().item_spacing = [16., 8.].into();
                     ui.separator();
                     let skin_ids = self.skins.iter().map(|(v, _)| *v).collect();
-                    self.show_things(ui, skin_ids, 2);
+                    self.show_section(ui, skin_ids, 2);
 
                     ui.spacing_mut().item_spacing = [16., 2.].into();
                     ui.heading("\u{e52f} Ref Meshes");
                     ui.spacing_mut().item_spacing = [16., 8.].into();
                     ui.separator();
                     let refent_ids = self.ref_entities.iter().map(|(v, _, _)| *v).collect();
-                    self.show_things(ui, refent_ids, 1);
+                    self.show_section(ui, refent_ids, 1);
 
                     ui.spacing_mut().item_spacing = [16., 2.].into();
                     ui.heading(format!("{} Meshes", fa::CUBE));
                     ui.spacing_mut().item_spacing = [16., 8.].into();
                     ui.separator();
                     let entity_ids = self.entities.iter().map(|(v, _, _)| *v).collect();
-                    self.show_things(ui, entity_ids, 0);
+                    self.show_section(ui, entity_ids, 0);
                 });
         }
 
         if ui.input(|i| i.key_pressed(egui::Key::Escape)) {
             self.entity_renderer = None;
         }
+
+        self.render_previews(context);
     }
 
-    fn show_things(&mut self, ui: &mut egui::Ui, ids: Vec<u32>, ty: i32) {
+    fn show_section(&mut self, ui: &mut egui::Ui, ids: Vec<u32>, ty: i32) {
         ui.horizontal_wrapped(|ui| {
             ui.spacing_mut().item_spacing = [16., 16.].into();
             for i in ids {
@@ -149,8 +155,7 @@ impl EntityListPanel {
                             _ => unreachable!(),
                         };
 
-                        let response = if let Some(tex) = self.entity_previews.get(&label).unwrap()
-                        {
+                        let response = if let Some(Some(tex)) = self.entity_previews.get(&i) {
                             egui::Image::new(tex.id(), [256., 256. - 22.])
                                 .sense(egui::Sense::click())
                                 .ui(ui)
@@ -234,6 +239,137 @@ impl EntityListPanel {
             }
         });
         ui.add_space(16.0);
+    }
+
+    const PREVIEW_RENDERS_PER_FRAME: usize = 2;
+    fn render_previews(&mut self, context: &egui::Context) {
+        for _ in 0..Self::PREVIEW_RENDERS_PER_FRAME {
+            if let Some((hc, t)) = self.entity_previews.iter_mut().find(|t| t.1.is_none()) {
+                // Create a 256x256 framebuffer and bind it
+                println!("Rendering preview for 0x{hc:x}");
+
+                let (_, ent, mesh) = self
+                    .entities
+                    .iter()
+                    .find(|(v, _, _)| v == hc)
+                    .or(self.ref_entities.iter().find(|(v, _, _)| v == hc))
+                    .unwrap();
+
+                let paint_info = egui::PaintCallbackInfo {
+                    pixels_per_point: 1.0,
+                    screen_size_px: [256, 256],
+                    clip_rect: egui::Rect::from_min_size(egui::Pos2::ZERO, [256., 256.].into()),
+                    viewport: egui::Rect::from_min_size(egui::pos2(-1., -1.), [2., 2.].into()),
+                };
+
+                let mut er = EntityRenderer::new(&self.gl);
+                er.orthographic = false;
+                let mut out = vec![0u8; 256 * 256 * 3];
+                unsafe {
+                    let mesh_center = er.load_mesh(&self.gl, mesh);
+                    self.gl
+                        .bind_framebuffer(glow::FRAMEBUFFER, Some(self.framebuffer.0));
+                    self.gl.clear_color(1.0, 0.0, 0.0, 1.0);
+                    self.gl
+                        .clear(glow::COLOR_BUFFER_BIT | glow::DEPTH_BUFFER_BIT);
+
+                    er.draw(
+                        &self.gl,
+                        egui::vec2(0., -1.),
+                        Vec3::ZERO,
+                        1.0,
+                        paint_info,
+                        mesh_center,
+                    );
+
+                    self.gl.read_pixels(
+                        0,
+                        0,
+                        256,
+                        256,
+                        glow::RGB,
+                        glow::UNSIGNED_BYTE,
+                        glow::PixelPackData::Slice(&mut out),
+                    );
+
+                    self.gl.bind_framebuffer(glow::FRAMEBUFFER, None);
+                }
+
+                let image = egui::ImageData::Color(egui::ColorImage::from_rgb([256, 256], &out));
+                *t = Some(context.load_texture(
+                    hc.to_string(),
+                    image,
+                    egui::TextureOptions::default(),
+                ));
+            } else {
+                break;
+            }
+        }
+    }
+
+    const PREVIEW_DIMENSIONS: (u32, u32) = (256, 256);
+    unsafe fn create_preview_framebuffer(gl: &glow::Context) -> (glow::Framebuffer, glow::Texture) {
+        // Create framebuffer object
+        let framebuffer = gl
+            .create_framebuffer()
+            .expect("Failed to create framebuffer");
+        gl.bind_framebuffer(glow::FRAMEBUFFER, Some(framebuffer));
+
+        // Create color texture
+        let color_texture = gl.create_texture().expect("Failed to create color texture");
+        gl.bind_texture(glow::TEXTURE_2D, Some(color_texture));
+        gl.tex_image_2d(
+            glow::TEXTURE_2D,
+            0,
+            glow::RGB as i32, // Assuming RGB format, adjust as needed
+            256,
+            256,
+            0,
+            glow::RGB,
+            glow::UNSIGNED_BYTE,
+            None,
+        );
+        gl.tex_parameter_i32(
+            glow::TEXTURE_2D,
+            glow::TEXTURE_MIN_FILTER,
+            glow::LINEAR as i32,
+        );
+        gl.tex_parameter_i32(
+            glow::TEXTURE_2D,
+            glow::TEXTURE_MAG_FILTER,
+            glow::LINEAR as i32,
+        );
+        gl.framebuffer_texture_2d(
+            glow::FRAMEBUFFER,
+            glow::COLOR_ATTACHMENT0,
+            glow::TEXTURE_2D,
+            Some(color_texture),
+            0,
+        );
+
+        // Create depth renderbuffer
+        let depth_renderbuffer = gl
+            .create_renderbuffer()
+            .expect("Failed to create depth renderbuffer");
+        gl.bind_renderbuffer(glow::RENDERBUFFER, Some(depth_renderbuffer));
+        gl.renderbuffer_storage(glow::RENDERBUFFER, glow::DEPTH24_STENCIL8, 256, 256);
+        gl.bind_renderbuffer(glow::RENDERBUFFER, None);
+        gl.framebuffer_renderbuffer(
+            glow::FRAMEBUFFER,
+            glow::DEPTH_ATTACHMENT,
+            glow::RENDERBUFFER,
+            Some(depth_renderbuffer),
+        );
+
+        // Check framebuffer completeness
+        if gl.check_framebuffer_status(glow::FRAMEBUFFER) != glow::FRAMEBUFFER_COMPLETE {
+            panic!("Framebuffer is not complete");
+        }
+
+        // Unbind framebuffer
+        gl.bind_framebuffer(glow::FRAMEBUFFER, None);
+
+        (framebuffer, color_texture)
     }
 }
 

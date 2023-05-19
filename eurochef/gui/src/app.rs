@@ -4,6 +4,7 @@ use crossbeam::atomic::AtomicCell;
 use eframe::CreationContext;
 use egui::{Color32, FontData, FontDefinitions, NumExt};
 use eurochef_edb::versions::Platform;
+use glow::HasContext;
 
 use crate::{entities, fileinfo, spreadsheet, textures};
 
@@ -53,6 +54,17 @@ impl EurochefApp {
             .insert(1, "font_awesome".to_owned());
 
         cc.egui_ctx.set_fonts(fonts);
+
+        unsafe {
+            let gl = cc.gl.as_ref().unwrap();
+
+            gl.enable(glow::DEBUG_OUTPUT);
+            gl.enable(glow::DEBUG_OUTPUT_SYNCHRONOUS);
+            gl.debug_message_callback(|source, ty, id, severity, msg| {
+                println!("OpenGL s={source} t={ty} i={id} s={severity}: {msg}");
+            });
+            gl.debug_message_control(glow::DONT_CARE, glow::DONT_CARE, glow::DONT_CARE, &[], true);
+        }
 
         let s = Self {
             gl: cc.gl.clone().unwrap(),
@@ -168,7 +180,7 @@ impl eframe::App for EurochefApp {
 
         // Run the app at refresh rate on the texture panel (for animated textures)
         match current_panel {
-            Panel::Textures => ctx.request_repaint(),
+            Panel::Entities | Panel::Textures => ctx.request_repaint(),
             _ => {
                 ctx.request_repaint_after(std::time::Duration::from_secs_f32(1.));
             }
@@ -259,7 +271,7 @@ impl eframe::App for EurochefApp {
             match current_panel {
                 Panel::FileInfo => fileinfo.as_mut().map(|s| s.show(ui)),
                 Panel::Textures => textures.as_mut().map(|s| s.show(ui)),
-                Panel::Entities => entities.as_mut().map(|s| s.show(ui)),
+                Panel::Entities => entities.as_mut().map(|s| s.show(ctx, ui)),
                 Panel::Spreadsheets => spreadsheetlist.as_mut().map(|s| s.show(ui)),
             };
         });

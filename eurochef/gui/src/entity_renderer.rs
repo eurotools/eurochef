@@ -94,7 +94,7 @@ impl EntityRenderer {
     }
 
     /// Returns the center of the model (average of all points)
-    unsafe fn load_mesh(&mut self, gl: &glow::Context, mesh: &ProcessedEntityMesh) -> Vec3 {
+    pub unsafe fn load_mesh(&mut self, gl: &glow::Context, mesh: &ProcessedEntityMesh) -> Vec3 {
         let ProcessedEntityMesh {
             vertex_data,
             indices,
@@ -211,10 +211,10 @@ impl EntityRenderer {
     ) {
         let projection = if self.orthographic {
             glam::Mat4::orthographic_rh_gl(
-                info.viewport.aspect_ratio() * -zoom,
-                -info.viewport.aspect_ratio() * -zoom,
-                1.0 * -zoom,
-                -1.0 * -zoom,
+                (info.viewport.aspect_ratio() * -zoom) * 2.0,
+                (-info.viewport.aspect_ratio() * -zoom) * 2.0,
+                (1.0 * -zoom) * 2.0,
+                (-1.0 * -zoom) * 2.0,
                 0.0,
                 1000.0,
             )
