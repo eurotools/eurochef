@@ -149,16 +149,6 @@ impl EntityListPanel {
                 ui.allocate_ui(Vec2::splat(256.), |ui| {
                     ui.spacing_mut().item_spacing = [4., 4.].into();
                     ui.vertical(|ui| {
-                        let label = match ty {
-                            0 | 2 => {
-                                format!("{i:x}")
-                            }
-                            1 => {
-                                format!("ref_{i}")
-                            }
-                            _ => unreachable!(),
-                        };
-
                         let response = if let Some(Some(tex)) = self.entity_previews.get(&i) {
                             egui::Image::new(tex.id(), [256., 256. - 22.])
                                 .sense(egui::Sense::click())
@@ -250,9 +240,7 @@ impl EntityListPanel {
         for _ in 0..Self::PREVIEW_RENDERS_PER_FRAME {
             if let Some((hc, t)) = self.entity_previews.iter_mut().find(|t| t.1.is_none()) {
                 // Create a 256x256 framebuffer and bind it
-                println!("Rendering preview for 0x{hc:x}");
-
-                let (_, ent, mesh) = self
+                let (_, _ent, mesh) = self
                     .entities
                     .iter()
                     .find(|(v, _, _)| v == hc)
@@ -267,7 +255,7 @@ impl EntityListPanel {
                 };
 
                 let mut er = EntityRenderer::new(&self.gl);
-                er.orthographic = false;
+                er.orthographic = true;
                 let mut out = vec![0u8; 256 * 256 * 3];
                 unsafe {
                     let mesh_center = er.load_mesh(&self.gl, mesh);
@@ -276,10 +264,12 @@ impl EntityListPanel {
                     self.gl.clear_color(0.0, 0.0, 0.0, 1.0);
                     self.gl
                         .clear(glow::COLOR_BUFFER_BIT | glow::DEPTH_BUFFER_BIT);
+                    self.gl.viewport(0, 0, 256, 256);
 
+                    self.gl.line_width(2.0);
                     er.draw(
                         &self.gl,
-                        egui::vec2(0., -1.),
+                        egui::vec2(1., -1.),
                         Vec3::ZERO,
                         1.0,
                         paint_info,
@@ -299,7 +289,18 @@ impl EntityListPanel {
                     self.gl.bind_framebuffer(glow::FRAMEBUFFER, None);
                 }
 
-                let image = egui::ImageData::Color(egui::ColorImage::from_rgb([256, 256], &out));
+                let mut out_flipped = vec![0u8; 256 * 256 * 3];
+                for y in 0..256 {
+                    for x in 0..256 {
+                        let i = y * 256 + x;
+                        let i_flipped = (256 - y - 1) * 256 + x;
+                        out_flipped[i_flipped * 3..i_flipped * 3 + 3]
+                            .copy_from_slice(&out[i * 3..i * 3 + 3]);
+                    }
+                }
+
+                let image =
+                    egui::ImageData::Color(egui::ColorImage::from_rgb([256, 256], &out_flipped));
                 *t = Some(context.load_texture(
                     hc.to_string(),
                     image,

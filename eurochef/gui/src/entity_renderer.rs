@@ -23,7 +23,7 @@ impl EntityFrame {
         let mut s = Self {
             hashcode,
             renderer: Arc::new(Mutex::new(EntityRenderer::new(gl))),
-            orientation: egui::vec2(0., -1.),
+            orientation: egui::vec2(1., -1.),
             origin: Vec3::ZERO,
             zoom: 1.0,
             mesh_center: Vec3::ZERO,
@@ -238,7 +238,6 @@ impl EntityRenderer {
         gl.clear(glow::DEPTH_BUFFER_BIT);
         gl.enable(glow::DEPTH_TEST);
 
-        gl.line_width(1.0);
         gl.use_program(Some(self.grid));
         gl.uniform_matrix_4_f32_slice(
             gl.get_uniform_location(self.grid, "u_view").as_ref(),
