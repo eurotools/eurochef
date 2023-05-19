@@ -45,6 +45,19 @@ pub struct ProcessedEntityMesh {
     pub strips: Vec<TriStrip>,
 }
 
+impl ProcessedEntityMesh {
+    pub fn bounding_box(&self) -> (Vec3, Vec3) {
+        let mut min = Vec3::splat(f32::MAX);
+        let mut max = Vec3::splat(f32::MIN);
+        for v in &self.vertex_data {
+            min = min.min(v.pos.into());
+            max = max.max(v.pos.into());
+        }
+
+        (min, max)
+    }
+}
+
 impl EntityListPanel {
     pub fn new(
         _ctx: &egui::Context,
@@ -272,6 +285,9 @@ impl EntityListPanel {
                     .or(self.ref_entities.iter().find(|(v, _, _)| v == hc))
                     .unwrap();
 
+                let bb = mesh.bounding_box();
+                let maximum_extent = (bb.1.x - bb.0.x).max(bb.1.y - bb.0.y).max(bb.1.z - bb.0.z);
+
                 let paint_info = egui::PaintCallbackInfo {
                     pixels_per_point: 1.0,
                     screen_size_px: [256, 256],
@@ -295,7 +311,7 @@ impl EntityListPanel {
                         &self.gl,
                         egui::vec2(1., -1.),
                         Vec3::ZERO,
-                        1.0,
+                        0.30 * maximum_extent,
                         paint_info,
                         mesh_center,
                     );

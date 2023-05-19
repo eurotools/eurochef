@@ -36,7 +36,7 @@ impl EntityFrame {
             renderer: Arc::new(Mutex::new(EntityRenderer::new(gl, textures))),
             orientation: egui::vec2(1., -1.),
             origin: Vec3::ZERO,
-            zoom: 1.0,
+            zoom: 5.0,
             mesh_center: Vec3::ZERO,
         };
 
@@ -63,8 +63,8 @@ impl EntityFrame {
         //     self.pan_camera(response.drag_delta() * 0.015);
         // }
 
-        self.zoom += -ui.input(|i| i.scroll_delta).y * 0.005;
-        self.zoom = self.zoom.clamp(0.1, 50.0);
+        self.zoom += -ui.input(|i| i.scroll_delta).y * 0.05;
+        self.zoom = self.zoom.clamp(0.1, 250.0);
 
         let orientation = self.orientation;
         let zoom = self.zoom;
@@ -123,6 +123,9 @@ impl EntityRenderer {
             indices,
             strips,
         } = mesh;
+
+        let bounding_box = mesh.bounding_box();
+        let center = (bounding_box.0 + bounding_box.1) / 2.0;
 
         let vertex_array = gl.create_vertex_array().unwrap();
         gl.bind_vertex_array(Some(vertex_array));
@@ -185,12 +188,13 @@ impl EntityRenderer {
 
         self.mesh = Some((indices.len(), vertex_array, index_buffer, strips.to_vec()));
 
-        (vertex_data
-            .iter()
-            .map(|v| DVec3::new(v.pos[0] as f64, v.pos[1] as f64, v.pos[2] as f64))
-            .sum::<DVec3>()
-            / vertex_data.len() as f64)
-            .as_vec3()
+        // (vertex_data
+        //     .iter()
+        //     .map(|v| DVec3::new(v.pos[0] as f64, v.pos[1] as f64, v.pos[2] as f64))
+        //     .sum::<DVec3>()
+        //     / vertex_data.len() as f64)
+        //     .as_vec3()
+        center
     }
 
     unsafe fn create_grid_program(gl: &glow::Context) -> Result<glow::Program, String> {
@@ -238,7 +242,7 @@ impl EntityRenderer {
                 (-info.viewport.aspect_ratio() * -zoom) * 2.0,
                 (1.0 * -zoom) * 2.0,
                 (-1.0 * -zoom) * 2.0,
-                0.0,
+                -50.0,
                 1000.0,
             )
         } else {
@@ -252,7 +256,7 @@ impl EntityRenderer {
 
         let view = glam::Mat4::from_rotation_translation(
             glam::Quat::from_rotation_x(orientation.y) * glam::Quat::from_rotation_z(orientation.x),
-            glam::vec3(0.0, 0.0, -5.0 * zoom),
+            glam::vec3(0.0, 0.0, -zoom),
         );
 
         gl.depth_mask(true);

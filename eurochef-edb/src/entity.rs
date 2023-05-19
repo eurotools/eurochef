@@ -4,7 +4,6 @@ use serde::Serialize;
 
 use crate::{
     common::{EXRelPtr, EXVector},
-    error::EurochefError,
     versions::Platform,
 };
 
