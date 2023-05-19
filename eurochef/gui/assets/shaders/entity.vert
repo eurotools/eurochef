@@ -18,23 +18,12 @@ out vec4 f_color;
 //     return vec4(float(r) * divisor, float(g) * divisor, float(b) * divisor, float(a) * divisor);
 // }
 
-// Converts a color from linear light gamma to sRGB gamma
-vec4 fromLinear(vec4 linearRGB)
-{
-    bvec4 cutoff = lessThan(linearRGB, vec4(0.0031308));
-    vec4 higher = vec4(1.055)*pow(linearRGB, vec4(1.0/2.4)) - vec4(0.055);
-    vec4 lower = linearRGB * vec4(12.92);
-
-    return mix(higher, lower, cutoff);
-}
-
 uniform mat4 u_view;
 uniform mat4 u_model;
 void main()
 {
     f_uv = a_uv;
-    // o_col = unpackRGBA(a_col);
-    f_color = fromLinear(a_col);
+    f_color = a_col * 2.0;
     vec3 new_pos = (u_model * vec4(a_pos.zxy, 1.0)).xyz;
     new_pos.x = -new_pos.x;
 

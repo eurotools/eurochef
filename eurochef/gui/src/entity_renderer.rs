@@ -255,13 +255,11 @@ impl EntityRenderer {
             glam::vec3(0.0, 0.0, -5.0 * zoom),
         );
 
-        // gl.enable(glow::CULL_FACE);
         gl.depth_mask(true);
         gl.enable(glow::DEPTH_TEST);
         gl.cull_face(glow::BACK);
         gl.clear_depth_f32(1.0);
         gl.clear(glow::DEPTH_BUFFER_BIT);
-        // gl.depth_func(glow::GEQUAL);
 
         gl.use_program(Some(self.grid));
         gl.uniform_matrix_4_f32_slice(

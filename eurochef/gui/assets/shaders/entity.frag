@@ -9,5 +9,5 @@ void main() {
     vec4 texel = texture(u_texture, f_uv);
     if(texel.a <= u_cutoutThreshold) discard;
 
-    o_color = f_color * texel;
+    o_color = vec4(texel.xyz * f_color.xyz, f_color.a * texel.a);
 }
