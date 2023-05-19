@@ -15,6 +15,7 @@ pub struct TriStrip {
     pub index_count: u32,
     pub texture_index: u32,
     pub transparency: u16,
+    pub flags: u16,
 }
 
 #[derive(Debug, Copy, Clone, Pod, Zeroable)]
@@ -156,12 +157,6 @@ pub fn read_entity<R: Read + Seek>(
                     break;
                 }
 
-                // Skip transparent surfaces that use additive blending
-                if t.trans_type == 1 {
-                    index_offset_local += t.tricount + 2;
-                    continue;
-                }
-
                 let texture_index = if mesh.base.flags & 0x1 != 0 {
                     // Index from texture list instead of the "global" array
                     if t.texture_index < mesh.texture_list.textures.len() as i32 {
@@ -179,6 +174,7 @@ pub fn read_entity<R: Read + Seek>(
                     index_count: t.tricount * 3,
                     texture_index: texture_index as u32,
                     transparency: t.trans_type,
+                    flags: t.flags,
                 });
 
                 for i in (index_offset_local as usize)..(index_offset_local + t.tricount) as usize {

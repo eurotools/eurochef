@@ -21,7 +21,7 @@ use glam::Vec3;
 use glow::HasContext;
 
 use crate::{
-    entity_renderer::{EntityFrame, EntityRenderer},
+    entity_renderer::{EntityFrame, EntityRenderer, RenderableTexture},
     gl_helper,
 };
 
@@ -36,7 +36,7 @@ pub struct EntityListPanel {
     ref_entities: Vec<(u32, EXGeoEntity, ProcessedEntityMesh)>,
     framebuffer: (glow::Framebuffer, glow::Texture),
     framebuffer_msaa: (glow::Framebuffer, glow::Texture),
-    textures: Vec<glow::Texture>,
+    textures: Vec<RenderableTexture>,
 }
 
 pub struct ProcessedEntityMesh {
@@ -78,17 +78,22 @@ impl EntityListPanel {
         }
     }
 
-    fn load_textures(gl: &glow::Context, textures: &[UXGeoTexture]) -> Vec<glow::Texture> {
+    fn load_textures(gl: &glow::Context, textures: &[UXGeoTexture]) -> Vec<RenderableTexture> {
         textures
             .iter()
             .map(|t| unsafe {
-                gl_helper::load_texture(
+                let handle = gl_helper::load_texture(
                     gl,
                     t.width as i32,
                     t.height as i32,
                     &t.frames[0],
                     glow::RGBA,
-                )
+                );
+
+                RenderableTexture {
+                    handle,
+                    flags: t.flags,
+                }
             })
             .collect()
     }
@@ -175,10 +180,8 @@ impl EntityListPanel {
                                 .sense(egui::Sense::click())
                                 .ui(ui)
                         } else {
-                            let (rect, response) = ui.allocate_exact_size(
-                                [256., 256. - 22.].into(),
-                                egui::Sense::click(),
-                            );
+                            let (rect, response) =
+                                ui.allocate_exact_size([256., 230.].into(), egui::Sense::click());
 
                             ui.painter().rect_filled(
                                 rect,

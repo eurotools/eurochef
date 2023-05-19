@@ -117,8 +117,8 @@ impl TextureList {
                         let response = egui::Image::new(current, [128. * self.zoom, 128. * self.zoom]).sense(egui::Sense::click()).ui(ui)
                             .on_hover_ui(|ui| {
                                 ui.label(format!(
-                                    "Hashcode: {:08x}\nFormat (internal): 0x{:x}\nDimensions: {}x{}x{}\nScroll: {} {}\nFlags: 0x{:x}\n",
-                                    t.hashcode, t.format_internal, t.width, t.height, t.depth, t.scroll[0], t.scroll[1], t.game_flags
+                                    "Hashcode: {:08x}\nFormat (internal): 0x{:x}\nDimensions: {}x{}x{}\nScroll: {} {}\nFlags: 0x{:x}\nGameflags: 0x{:x}\nIndex: {i}\n",
+                                    t.hashcode, t.format_internal, t.width, t.height, t.depth, t.scroll[0], t.scroll[1], t.flags, t.game_flags
                                 ));
 
                                 if frames.len() > 1 {

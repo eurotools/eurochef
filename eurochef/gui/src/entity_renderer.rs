@@ -18,12 +18,18 @@ pub struct EntityFrame {
     // model_origin: Vec3,
 }
 
+#[derive(Clone, Copy)]
+pub struct RenderableTexture {
+    pub handle: glow::Texture,
+    pub flags: u32,
+}
+
 impl EntityFrame {
     pub fn new(
         gl: &glow::Context,
         hashcode: u32,
         mesh: &ProcessedEntityMesh,
-        textures: Vec<glow::Texture>,
+        textures: Vec<RenderableTexture>,
     ) -> Self {
         let mut s = Self {
             hashcode,
@@ -80,18 +86,27 @@ impl EntityFrame {
     }
 }
 
+#[derive(PartialEq, Eq, Clone, Copy)]
+pub enum BlendMode {
+    None,
+    Cutout,
+    Blend,
+    Additive,
+    ReverseSubtract,
+}
+
 pub struct EntityRenderer {
     grid: glow::Program, // (usize, glow::VertexArray),
     mesh_shader: glow::Program,
     mesh: Option<(usize, glow::VertexArray, glow::Buffer, Vec<TriStrip>)>,
 
-    textures: Vec<glow::Texture>,
+    textures: Vec<RenderableTexture>,
 
     pub orthographic: bool,
 }
 
 impl EntityRenderer {
-    pub fn new(gl: &glow::Context, textures: Vec<glow::Texture>) -> Self {
+    pub fn new(gl: &glow::Context, textures: Vec<RenderableTexture>) -> Self {
         Self {
             grid: unsafe { Self::create_grid_program(gl).unwrap() },
             mesh_shader: unsafe { Self::create_mesh_program(gl).unwrap() },
@@ -240,11 +255,13 @@ impl EntityRenderer {
             glam::vec3(0.0, 0.0, -5.0 * zoom),
         );
 
-        gl.enable(glow::CULL_FACE);
+        // gl.enable(glow::CULL_FACE);
+        gl.depth_mask(true);
+        gl.enable(glow::DEPTH_TEST);
         gl.cull_face(glow::BACK);
         gl.clear_depth_f32(1.0);
         gl.clear(glow::DEPTH_BUFFER_BIT);
-        gl.enable(glow::DEPTH_TEST);
+        // gl.depth_func(glow::GEQUAL);
 
         gl.use_program(Some(self.grid));
         gl.uniform_matrix_4_f32_slice(
@@ -280,10 +297,55 @@ impl EntityRenderer {
             gl.bind_buffer(glow::ELEMENT_ARRAY_BUFFER, Some(*index_buffer));
 
             for t in strips {
+                // TODO(cohae): Transparency seems broken on newer games
+                let mut transparency = match t.transparency & 0xff {
+                    2 => BlendMode::ReverseSubtract,
+                    1 => BlendMode::Additive,
+                    0 | _ => BlendMode::None,
+                };
+
+                if (t.flags & 0x8) != 0 && (t.flags & 0x1) == 0 {
+                    transparency = BlendMode::Blend;
+                }
+
+                if (t.flags & 0x40) != 0 {
+                    gl.disable(glow::CULL_FACE);
+                } else {
+                    gl.enable(glow::CULL_FACE);
+                }
+
                 gl.active_texture(glow::TEXTURE0);
-                gl.bind_texture(
-                    glow::TEXTURE_2D,
-                    Some(self.textures[t.texture_index as usize]),
+                if (t.texture_index as usize) < self.textures.len() {
+                    let tex = &self.textures[t.texture_index as usize];
+                    // Cubemap texture
+                    if (tex.flags & 0x30000) != 0 {
+                        continue;
+                    }
+
+                    gl.bind_texture(glow::TEXTURE_2D, Some(tex.handle));
+                    if (((tex.flags >> 0x18) >> 5) & 0b11) != 0 {
+                        transparency = BlendMode::Cutout;
+                    }
+                } else {
+                    gl.bind_texture(glow::TEXTURE_2D, None);
+                }
+
+                // Skip transparent surfaces on newer games
+                if t.transparency > 0xff {
+                    continue;
+                }
+
+                gl.depth_mask(transparency != BlendMode::Additive);
+                self.set_blending_mode(gl, transparency);
+
+                gl.uniform_1_f32(
+                    gl.get_uniform_location(self.mesh_shader, "u_cutoutThreshold")
+                        .as_ref(),
+                    if transparency == BlendMode::Cutout {
+                        0.5
+                    } else {
+                        0.0
+                    },
                 );
 
                 gl.draw_elements(
@@ -292,6 +354,50 @@ impl EntityRenderer {
                     glow::UNSIGNED_INT,
                     t.start_index as i32 * std::mem::size_of::<u32>() as i32,
                 );
+            }
+        }
+    }
+
+    fn set_blending_mode(&self, gl: &glow::Context, blend: BlendMode) {
+        unsafe {
+            match blend {
+                BlendMode::None | BlendMode::Cutout => {
+                    gl.disable(glow::BLEND);
+                }
+                _ => gl.enable(glow::BLEND),
+            }
+
+            match blend {
+                BlendMode::Cutout => {
+                    gl.enable(glow::SAMPLE_ALPHA_TO_COVERAGE);
+                }
+                _ => gl.disable(glow::SAMPLE_ALPHA_TO_COVERAGE),
+            }
+
+            if blend != BlendMode::None && blend != BlendMode::Cutout {
+                let blend_src = match blend {
+                    BlendMode::Blend => glow::SRC_ALPHA,
+                    BlendMode::Additive => glow::SRC_ALPHA,
+                    BlendMode::ReverseSubtract => glow::SRC_ALPHA,
+                    _ => unreachable!(),
+                };
+
+                let blend_dst = match blend {
+                    BlendMode::Blend => glow::ONE_MINUS_SRC_ALPHA,
+                    BlendMode::Additive => glow::ONE,
+                    BlendMode::ReverseSubtract => glow::ONE,
+                    _ => unreachable!(),
+                };
+
+                let blend_func = match blend {
+                    BlendMode::Blend => glow::FUNC_ADD,
+                    BlendMode::Additive => glow::FUNC_ADD,
+                    BlendMode::ReverseSubtract => glow::FUNC_REVERSE_SUBTRACT,
+                    _ => unreachable!(),
+                };
+
+                gl.blend_equation(blend_func);
+                gl.blend_func(blend_src, blend_dst);
             }
         }
     }
