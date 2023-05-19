@@ -8,6 +8,8 @@ use color_eyre::eyre::Result;
 fn main() -> Result<()> {
     use color_eyre::Report;
 
+    // Force enable backtraces
+    std::env::set_var("RUST_BACKTRACE", "1");
     eurochef_gui::panic_dialog::setup();
 
     // Log to stdout (if you run with `RUST_LOG=debug`).
