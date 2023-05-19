@@ -210,11 +210,11 @@ pub fn add_mesh_to_scene(
     }
 
     for t in strips {
-        if !material_map.contains_key(&t.texture_hash) {
+        if !material_map.contains_key(&t.texture_index) {
             let (img_uri, transparency) = texture_map
-                .get(&t.texture_hash)
+                .get(&t.texture_index)
                 .map(|v| v.clone())
-                .unwrap_or((format!("{:08x}.png", t.texture_hash), Transparency::Opaque));
+                .unwrap_or((format!("{:08x}.png", t.texture_index), Transparency::Opaque));
 
             root.images.push(gjson::Image {
                 uri: Some(img_uri),
@@ -222,7 +222,7 @@ pub fn add_mesh_to_scene(
                 extensions: None,
                 extras: Default::default(),
                 mime_type: None,
-                name: Some(format!("{:08x}_{:08x}.png", t.texture_hash, file_hash)),
+                name: Some(format!("{:08x}_{:08x}.png", t.texture_index, file_hash)),
             });
 
             root.textures.push(gjson::Texture {
@@ -260,7 +260,7 @@ pub fn add_mesh_to_scene(
                     }),
                     ..Default::default()
                 },
-                name: Some(format!("{:08x}_{:08x}.png", t.texture_hash, file_hash)),
+                name: Some(format!("{:08x}_{:08x}.png", t.texture_index, file_hash)),
                 extensions: Some(gjson::extensions::material::Material {
                     pbr_specular_glossiness: Some(
                         gjson::extensions::material::PbrSpecularGlossiness {
@@ -283,10 +283,10 @@ pub fn add_mesh_to_scene(
             });
 
             let material_index = root.materials.len() as u32 - 1;
-            material_map.insert(t.texture_hash, material_index);
+            material_map.insert(t.texture_index, material_index);
         }
 
-        let material_id = material_map.get(&t.texture_hash).unwrap();
+        let material_id = material_map.get(&t.texture_index).unwrap();
 
         let index_buffer_view = gjson::buffer::View {
             buffer: gjson::Index::new(index_buffer_index),

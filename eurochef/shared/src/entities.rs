@@ -13,7 +13,7 @@ use tracing::error;
 pub struct TriStrip {
     pub start_index: u32,
     pub index_count: u32,
-    pub texture_hash: u32,
+    pub texture_index: u32,
     pub transparency: u16,
 }
 
@@ -177,7 +177,7 @@ pub fn read_entity<R: Read + Seek>(
                 strips.push(TriStrip {
                     start_index: indices.len() as u32,
                     index_count: t.tricount * 3,
-                    texture_hash: texture_index as u32,
+                    texture_index: texture_index as u32,
                     transparency: t.trans_type,
                 });
 

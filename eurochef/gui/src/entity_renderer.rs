@@ -19,10 +19,15 @@ pub struct EntityFrame {
 }
 
 impl EntityFrame {
-    pub fn new(gl: &glow::Context, hashcode: u32, mesh: &ProcessedEntityMesh) -> Self {
+    pub fn new(
+        gl: &glow::Context,
+        hashcode: u32,
+        mesh: &ProcessedEntityMesh,
+        textures: Vec<glow::Texture>,
+    ) -> Self {
         let mut s = Self {
             hashcode,
-            renderer: Arc::new(Mutex::new(EntityRenderer::new(gl))),
+            renderer: Arc::new(Mutex::new(EntityRenderer::new(gl, textures))),
             orientation: egui::vec2(1., -1.),
             origin: Vec3::ZERO,
             zoom: 1.0,
@@ -80,16 +85,19 @@ pub struct EntityRenderer {
     mesh_shader: glow::Program,
     mesh: Option<(usize, glow::VertexArray, glow::Buffer, Vec<TriStrip>)>,
 
+    textures: Vec<glow::Texture>,
+
     pub orthographic: bool,
 }
 
 impl EntityRenderer {
-    pub fn new(gl: &glow::Context) -> Self {
+    pub fn new(gl: &glow::Context, textures: Vec<glow::Texture>) -> Self {
         Self {
             grid: unsafe { Self::create_grid_program(gl).unwrap() },
             mesh_shader: unsafe { Self::create_mesh_program(gl).unwrap() },
             mesh: None,
             orthographic: false,
+            textures,
         }
     }
 
@@ -246,7 +254,7 @@ impl EntityRenderer {
         );
         gl.draw_arrays(glow::LINES, 0, (25 + 1) * 2 * 2); // 10 lines (+1), 2 points each, 2 sides (horizontal/vertical)
 
-        if let Some((index_count, vertex_array, index_buffer, _strips)) = self.mesh.as_ref() {
+        if let Some((_index_count, vertex_array, index_buffer, strips)) = self.mesh.as_ref() {
             gl.use_program(Some(self.mesh_shader));
             gl.uniform_matrix_4_f32_slice(
                 gl.get_uniform_location(self.mesh_shader, "u_view").as_ref(),
@@ -262,9 +270,29 @@ impl EntityRenderer {
                 &model.to_cols_array(),
             );
 
+            gl.uniform_1_i32(
+                gl.get_uniform_location(self.mesh_shader, "u_texture")
+                    .as_ref(),
+                0,
+            );
+
             gl.bind_vertex_array(Some(*vertex_array));
             gl.bind_buffer(glow::ELEMENT_ARRAY_BUFFER, Some(*index_buffer));
-            gl.draw_elements(glow::TRIANGLES, *index_count as i32, glow::UNSIGNED_INT, 0);
+
+            for t in strips {
+                gl.active_texture(glow::TEXTURE0);
+                gl.bind_texture(
+                    glow::TEXTURE_2D,
+                    Some(self.textures[t.texture_index as usize]),
+                );
+
+                gl.draw_elements(
+                    glow::TRIANGLES,
+                    t.index_count as i32,
+                    glow::UNSIGNED_INT,
+                    t.start_index as i32 * std::mem::size_of::<u32>() as i32,
+                );
+            }
         }
     }
 }

@@ -11,13 +11,19 @@ use eurochef_edb::{
     header::EXGeoHeader,
     versions::Platform,
 };
-use eurochef_shared::entities::{read_entity, TriStrip, UXVertex};
+use eurochef_shared::{
+    entities::{read_entity, TriStrip, UXVertex},
+    textures::UXGeoTexture,
+};
 use fnv::FnvHashMap;
 use font_awesome as fa;
 use glam::Vec3;
 use glow::HasContext;
 
-use crate::entity_renderer::{EntityFrame, EntityRenderer};
+use crate::{
+    entity_renderer::{EntityFrame, EntityRenderer},
+    gl_helper,
+};
 
 pub struct EntityListPanel {
     gl: Arc<glow::Context>,
@@ -30,6 +36,7 @@ pub struct EntityListPanel {
     ref_entities: Vec<(u32, EXGeoEntity, ProcessedEntityMesh)>,
     framebuffer: (glow::Framebuffer, glow::Texture),
     framebuffer_msaa: (glow::Framebuffer, glow::Texture),
+    textures: Vec<glow::Texture>,
 }
 
 pub struct ProcessedEntityMesh {
@@ -45,6 +52,7 @@ impl EntityListPanel {
         entities: Vec<(u32, EXGeoEntity, ProcessedEntityMesh)>,
         skins: Vec<(u32, EXGeoBaseAnimSkin)>,
         ref_entities: Vec<(u32, EXGeoEntity, ProcessedEntityMesh)>,
+        textures: &[UXGeoTexture],
     ) -> Self {
         let mut entity_previews = FnvHashMap::default();
         for (hashcode, _, _) in entities.iter() {
@@ -60,6 +68,7 @@ impl EntityListPanel {
         EntityListPanel {
             framebuffer_msaa: unsafe { Self::create_preview_framebuffer(&gl, true) },
             framebuffer: unsafe { Self::create_preview_framebuffer(&gl, false) },
+            textures: Self::load_textures(&gl, textures),
             gl,
             entity_renderer: None,
             entities,
@@ -67,6 +76,21 @@ impl EntityListPanel {
             ref_entities,
             entity_previews,
         }
+    }
+
+    fn load_textures(gl: &glow::Context, textures: &[UXGeoTexture]) -> Vec<glow::Texture> {
+        textures
+            .iter()
+            .map(|t| unsafe {
+                gl_helper::load_texture(
+                    gl,
+                    t.width as i32,
+                    t.height as i32,
+                    &t.frames[0],
+                    glow::RGBA,
+                )
+            })
+            .collect()
     }
 
     pub fn show(&mut self, context: &egui::Context, ui: &mut egui::Ui) {
@@ -126,6 +150,10 @@ impl EntityListPanel {
 
         if ui.input(|i| i.key_pressed(egui::Key::Escape)) {
             self.entity_renderer = None;
+        }
+
+        if ui.input(|i| i.key_pressed(egui::Key::F5)) {
+            self.entity_previews.iter_mut().for_each(|(_, v)| *v = None);
         }
 
         self.render_previews(context);
@@ -191,6 +219,7 @@ impl EntityListPanel {
                                             .unwrap()
                                             .2
                                     },
+                                    self.textures.to_vec(),
                                 ));
                             }
                         }
@@ -228,7 +257,7 @@ impl EntityListPanel {
         ui.add_space(16.0);
     }
 
-    const PREVIEW_RENDERS_PER_FRAME: usize = 2;
+    const PREVIEW_RENDERS_PER_FRAME: usize = 4;
     fn render_previews(&mut self, context: &egui::Context) {
         for _ in 0..Self::PREVIEW_RENDERS_PER_FRAME {
             if let Some((hc, t)) = self.entity_previews.iter_mut().find(|t| t.1.is_none()) {
@@ -247,7 +276,7 @@ impl EntityListPanel {
                     viewport: egui::Rect::from_min_size(egui::pos2(-1., -1.), [2., 2.].into()),
                 };
 
-                let mut er = EntityRenderer::new(&self.gl);
+                let mut er = EntityRenderer::new(&self.gl, self.textures.clone());
                 er.orthographic = true;
                 let mut out = vec![0u8; 256 * 256 * 3];
                 unsafe {
@@ -419,6 +448,7 @@ pub fn read_from_file<R: Read + Seek>(
     Vec<(u32, EXGeoEntity, ProcessedEntityMesh)>,
     Vec<(u32, EXGeoBaseAnimSkin)>,
     Vec<(u32, EXGeoEntity, ProcessedEntityMesh)>,
+    Vec<UXGeoTexture>,
 ) {
     reader.seek(std::io::SeekFrom::Start(0)).ok();
     let endian = if reader.read_ne::<u8>().unwrap() == 0x47 {
@@ -532,5 +562,7 @@ pub fn read_from_file<R: Read + Seek>(
         ));
     }
 
-    (entities, skins, refents)
+    let textures = UXGeoTexture::read_all(&header, reader, platform).unwrap();
+
+    (entities, skins, refents, textures)
 }

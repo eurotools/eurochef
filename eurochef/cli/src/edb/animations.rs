@@ -196,8 +196,10 @@ pub fn execute_command(
 
             // Look up texture hashcodes
             for t in &mut strips {
-                if t.texture_hash != u32::MAX {
-                    t.texture_hash = header.texture_list[t.texture_hash as usize].common.hashcode;
+                if t.texture_index != u32::MAX {
+                    t.texture_index = header.texture_list[t.texture_index as usize]
+                        .common
+                        .hashcode;
                 }
             }
 

@@ -86,8 +86,8 @@ impl EurochefApp {
     }
 
     pub fn load_file<P: AsRef<std::path::Path>>(&mut self, path: P, ctx: &egui::Context) {
-        self.current_panel = Panel::FileInfo;
-        // self.current_panel = Panel::Entities;
+        // self.current_panel = Panel::FileInfo;
+        self.current_panel = Panel::Entities;
         self.spreadsheetlist = None;
         self.fileinfo = None;
         self.textures = None;
@@ -114,7 +114,8 @@ impl EurochefApp {
             self.spreadsheetlist = Some(spreadsheet::TextItemList::new(spreadsheets[0].clone()));
         }
 
-        let (entities, skins, ref_entities) = entities::read_from_file(&mut file, platform);
+        let (entities, skins, ref_entities, textures) =
+            entities::read_from_file(&mut file, platform);
         if entities.len() + skins.len() + ref_entities.len() > 0 {
             self.entities = Some(entities::EntityListPanel::new(
                 ctx,
@@ -122,6 +123,7 @@ impl EurochefApp {
                 entities,
                 skins,
                 ref_entities,
+                &textures,
             ));
         }
 
