@@ -37,6 +37,10 @@ impl EntityFrame {
     }
 
     pub fn show(&mut self, ui: &mut egui::Ui, gl: Arc<glow::Context>) {
+        ui.checkbox(
+            &mut self.renderer.lock().unwrap().orthographic,
+            "Orthographic",
+        );
         let (rect, response) =
             ui.allocate_exact_size(ui.available_size(), egui::Sense::click_and_drag());
 
@@ -75,6 +79,8 @@ pub struct EntityRenderer {
     grid: glow::Program, // (usize, glow::VertexArray),
     mesh_shader: glow::Program,
     mesh: Option<(usize, glow::VertexArray, glow::Buffer, Vec<TriStrip>)>,
+
+    pub orthographic: bool,
 }
 
 impl EntityRenderer {
@@ -83,6 +89,7 @@ impl EntityRenderer {
             grid: unsafe { Self::create_grid_program(gl).unwrap() },
             mesh_shader: unsafe { Self::create_mesh_program(gl).unwrap() },
             mesh: None,
+            orthographic: false,
         }
     }
 
@@ -202,12 +209,24 @@ impl EntityRenderer {
         info: egui::PaintCallbackInfo,
         mesh_center: Vec3,
     ) {
-        let projection = glam::Mat4::perspective_rh_gl(
-            90.0_f32.to_radians(),
-            info.viewport.aspect_ratio(),
-            0.1,
-            1000.0,
-        );
+        let projection = if self.orthographic {
+            glam::Mat4::orthographic_rh_gl(
+                info.viewport.aspect_ratio() * -zoom,
+                -info.viewport.aspect_ratio() * -zoom,
+                1.0 * -zoom,
+                -1.0 * -zoom,
+                0.0,
+                1000.0,
+            )
+        } else {
+            glam::Mat4::perspective_rh_gl(
+                90.0_f32.to_radians(),
+                info.viewport.aspect_ratio(),
+                0.1,
+                1000.0,
+            )
+        };
+
         let view = glam::Mat4::from_rotation_translation(
             glam::Quat::from_rotation_x(orientation.y) * glam::Quat::from_rotation_z(orientation.x),
             glam::vec3(0.0, 0.0, -5.0 * zoom),
