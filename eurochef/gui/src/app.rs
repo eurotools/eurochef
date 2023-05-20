@@ -126,23 +126,32 @@ impl EurochefApp {
             self.spreadsheetlist = Some(spreadsheet::TextItemList::new(spreadsheets[0].clone()));
         }
 
-        let (entities, skins, ref_entities, textures) = entities::read_from_file(reader, platform);
-        if entities.len() + skins.len() + ref_entities.len() > 0 {
-            self.entities = Some(entities::EntityListPanel::new(
-                ctx,
-                self.gl.clone(),
-                entities,
-                skins,
-                ref_entities,
-                &textures,
-            ));
+        if [Platform::Xbox, Platform::Xbox360, Platform::Pc].contains(&platform) {
+            let (entities, skins, ref_entities, textures) =
+                entities::read_from_file(reader, platform);
+            if entities.len() + skins.len() + ref_entities.len() > 0 {
+                self.entities = Some(entities::EntityListPanel::new(
+                    ctx,
+                    self.gl.clone(),
+                    entities,
+                    skins,
+                    ref_entities,
+                    &textures,
+                ));
+            }
+        } else {
+            self.entities = None;
         }
 
-        self.textures = Some(textures::TextureList::new(textures::read_from_file(
-            reader, platform,
-        )));
+        if ![Platform::Ps2].contains(&platform) {
+            self.textures = Some(textures::TextureList::new(textures::read_from_file(
+                reader, platform,
+            )));
 
-        self.textures.as_mut().unwrap().load_textures(ctx);
+            self.textures.as_mut().unwrap().load_textures(ctx);
+        } else {
+            self.textures = None;
+        }
 
         self.state = AppState::Ready;
     }
