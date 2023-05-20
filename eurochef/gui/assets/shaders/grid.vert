@@ -1,3 +1,4 @@
+precision mediump float;
 #define GRID_SIZE 25+1
 
 const vec2 verts[3] = vec2[3](
@@ -17,7 +18,7 @@ void main() {
         vert.x += float(GRID_SIZE-1);
     }
 
-    vert -= vec3(vec2(float(GRID_SIZE) / 2), 0.0);
+    vert -= vec3(vec2(float(GRID_SIZE) / 2.0), 0.0);
     vert *= 2.0;
 
     if(is_horizontal) {

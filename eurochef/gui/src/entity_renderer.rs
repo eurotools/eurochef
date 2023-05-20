@@ -76,11 +76,15 @@ impl EntityFrame {
         let mesh_center = self.mesh_center;
 
         let renderer = self.renderer.clone();
-        let cb = egui_glow::CallbackFn::new(move |info, _painter| unsafe {
-            renderer
-                .lock()
-                .unwrap()
-                .draw(&gl, orientation, origin, zoom, info, mesh_center);
+        let cb = egui_glow::CallbackFn::new(move |info, painter| unsafe {
+            renderer.lock().unwrap().draw(
+                painter.gl(),
+                orientation,
+                origin,
+                zoom,
+                info,
+                mesh_center,
+            );
         });
         let callback = egui::PaintCallback {
             rect,

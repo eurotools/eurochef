@@ -6,6 +6,8 @@ extern crate tracing;
 mod app;
 pub use app::EurochefApp;
 
+#[cfg(not(target_arch = "wasm32"))]
+pub mod panic_dialog;
 #[cfg(target_arch = "wasm32")]
 mod web;
 
@@ -13,6 +15,5 @@ mod entities;
 mod entity_renderer;
 mod fileinfo;
 mod gl_helper;
-pub mod panic_dialog;
 mod spreadsheet;
 mod textures;

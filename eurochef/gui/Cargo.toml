@@ -30,7 +30,6 @@ eframe = { version = "0.21.0", default-features = false, features = [
 fnv = "1.0"
 instant = "0.1"
 rfd = "0.11.2" # TODO: Can this be replaced by native-dialog?
-native-dialog = "0.6.3"
 color-eyre = { version = "0.6.2", features = ["issue-url"] }
 crossbeam = "0.8.2"
 font-awesome = "0.2"
@@ -40,6 +39,7 @@ glam = "0.24.0"
 
 # native:
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+native-dialog = "0.6.3"
 tracing-subscriber = "0.3"
 
 # web:

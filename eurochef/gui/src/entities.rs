@@ -78,8 +78,13 @@ impl EntityListPanel {
             entity_previews.insert(*index, None);
         }
 
+        #[cfg(not(target_family = "wasm"))]
+        let framebuffer_msaa = unsafe { Self::create_preview_framebuffer(&gl, true) };
+        #[cfg(target_family = "wasm")]
+        let framebuffer_msaa = unsafe { Self::create_preview_framebuffer(&gl, false) };
+
         EntityListPanel {
-            framebuffer_msaa: unsafe { Self::create_preview_framebuffer(&gl, true) },
+            framebuffer_msaa,
             framebuffer: unsafe { Self::create_preview_framebuffer(&gl, false) },
             textures: Self::load_textures(&gl, textures),
             gl,
@@ -297,11 +302,16 @@ impl EntityListPanel {
 
                 let mut er = EntityRenderer::new(&self.gl, self.textures.clone());
                 er.orthographic = true;
-                let mut out = vec![0u8; 256 * 256 * 3];
+                let mut out = vec![0u8; 256 * 256 * 4];
                 unsafe {
                     let mesh_center = er.load_mesh(&self.gl, mesh);
+                    #[cfg(not(target_family = "wasm"))]
                     self.gl
                         .bind_framebuffer(glow::FRAMEBUFFER, Some(self.framebuffer_msaa.0));
+                    #[cfg(target_family = "wasm")]
+                    self.gl
+                        .bind_framebuffer(glow::FRAMEBUFFER, Some(self.framebuffer.0));
+
                     self.gl.clear_color(0.0, 0.0, 0.0, 1.0);
                     self.gl
                         .clear(glow::COLOR_BUFFER_BIT | glow::DEPTH_BUFFER_BIT);
@@ -317,32 +327,37 @@ impl EntityListPanel {
                     );
 
                     // Blit the MSAA framebuffer to a normal one so we can copy it
-                    self.gl
-                        .bind_framebuffer(glow::READ_FRAMEBUFFER, Some(self.framebuffer_msaa.0));
-                    self.gl
-                        .bind_framebuffer(glow::DRAW_FRAMEBUFFER, Some(self.framebuffer.0));
-                    self.gl.blit_framebuffer(
-                        0,
-                        0,
-                        256,
-                        256,
-                        0,
-                        0,
-                        256,
-                        256,
-                        glow::COLOR_BUFFER_BIT,
-                        glow::NEAREST,
-                    );
+                    #[cfg(not(target_family = "wasm"))]
+                    {
+                        self.gl.bind_framebuffer(
+                            glow::READ_FRAMEBUFFER,
+                            Some(self.framebuffer_msaa.0),
+                        );
+                        self.gl
+                            .bind_framebuffer(glow::DRAW_FRAMEBUFFER, Some(self.framebuffer.0));
+                        self.gl.blit_framebuffer(
+                            0,
+                            0,
+                            256,
+                            256,
+                            0,
+                            0,
+                            256,
+                            256,
+                            glow::COLOR_BUFFER_BIT,
+                            glow::NEAREST,
+                        );
 
-                    self.gl
-                        .bind_framebuffer(glow::FRAMEBUFFER, Some(self.framebuffer.0));
+                        self.gl
+                            .bind_framebuffer(glow::FRAMEBUFFER, Some(self.framebuffer.0));
+                    }
 
                     self.gl.read_pixels(
                         0,
                         0,
                         256,
                         256,
-                        glow::RGB,
+                        glow::RGBA,
                         glow::UNSIGNED_BYTE,
                         glow::PixelPackData::Slice(&mut out),
                     );
@@ -350,16 +365,18 @@ impl EntityListPanel {
                     self.gl.bind_framebuffer(glow::FRAMEBUFFER, None);
                 }
 
-                let mut out_flipped = vec![0u8; 256 * 256 * 3];
+                let mut out_flipped = vec![0u8; 256 * 256 * 4];
                 for y in 0..256 {
-                    let i = y * 256 * 3;
-                    let i_flipped = (256 - y - 1) * 256 * 3;
-                    out_flipped[i_flipped..i_flipped + 256 * 3]
-                        .copy_from_slice(&out[i..i + 256 * 3]);
+                    let i = y * 256 * 4;
+                    let i_flipped = (256 - y - 1) * 256 * 4;
+                    out_flipped[i_flipped..i_flipped + 256 * 4]
+                        .copy_from_slice(&out[i..i + 256 * 4]);
                 }
 
-                let image =
-                    egui::ImageData::Color(egui::ColorImage::from_rgb([256, 256], &out_flipped));
+                let image = egui::ImageData::Color(egui::ColorImage::from_rgba_unmultiplied(
+                    [256, 256],
+                    &out_flipped,
+                ));
                 *t = Some(context.load_texture(
                     hc.to_string(),
                     image,

@@ -1,4 +1,8 @@
-use std::sync::Arc;
+use std::{
+    fs::File,
+    io::{Cursor, Read, Seek},
+    sync::Arc,
+};
 
 use crossbeam::atomic::AtomicCell;
 use eframe::CreationContext;
@@ -11,6 +15,7 @@ use crate::{entities, fileinfo, spreadsheet, textures};
 /// Basic app tracking state
 pub enum AppState {
     Ready,
+    SelectPlatform,
     Loading(String),
     Error(anyhow::Error),
 }
@@ -34,7 +39,9 @@ pub struct EurochefApp {
     textures: Option<textures::TextureList>,
     entities: Option<entities::EntityListPanel>,
 
-    load_input: Arc<AtomicCell<Option<String>>>,
+    load_input: Arc<AtomicCell<Option<(Vec<u8>, String)>>>,
+    pending_file: Option<(Vec<u8>, Option<Platform>)>,
+    selected_platform: Platform,
 }
 
 impl EurochefApp {
@@ -55,6 +62,7 @@ impl EurochefApp {
 
         cc.egui_ctx.set_fonts(fonts);
 
+        #[cfg(not(target_arch = "wasm32"))]
         unsafe {
             let gl = cc.gl.as_ref().unwrap();
 
@@ -66,7 +74,7 @@ impl EurochefApp {
             gl.debug_message_control(glow::DONT_CARE, glow::DONT_CARE, glow::DONT_CARE, &[], true);
         }
 
-        let s = Self {
+        let mut s = Self {
             gl: cc.gl.clone().unwrap(),
             state: AppState::Ready,
             current_panel: Panel::FileInfo,
@@ -75,47 +83,50 @@ impl EurochefApp {
             textures: None,
             entities: None,
             load_input: Arc::new(AtomicCell::new(None)),
+            pending_file: None,
+            selected_platform: Platform::Ps2,
         };
 
         if let Some(path) = path {
-            // s.load_file(path);
-            s.load_input.store(Some(path));
+            s.load_file_with_path(path);
         }
 
         s
     }
 
-    pub fn load_file<P: AsRef<std::path::Path>>(&mut self, path: P, ctx: &egui::Context) {
-        // self.current_panel = Panel::FileInfo;
-        self.current_panel = Panel::Entities;
+    // TODO: Error handling
+    pub fn load_file_with_path<P: AsRef<std::path::Path>>(&mut self, path: P) {
+        let platform = Platform::from_path(&path);
+
+        let mut f = File::open(path).unwrap();
+        let mut data = vec![];
+        f.read_to_end(&mut data).unwrap();
+        self.pending_file = Some((data, platform));
+    }
+
+    // TODO: Error handling
+    pub fn load_file<R: Read + Seek>(
+        &mut self,
+        platform: Platform,
+        reader: &mut R,
+        ctx: &egui::Context,
+    ) {
+        self.current_panel = Panel::FileInfo;
         self.spreadsheetlist = None;
         self.fileinfo = None;
         self.textures = None;
 
-        let platform = match Platform::from_path(&path) {
-            Some(p) => p,
-            None => {
-                self.state = AppState::Error(anyhow::anyhow!(
-                    "Couldn't derive platform from path '{:?}'",
-                    &path.as_ref()
-                ));
-                return;
-            }
-        };
-
         // TODO(cohae): should loader functions be in the struct impls?
-        let mut file = std::fs::File::open(path).unwrap();
         self.fileinfo = Some(fileinfo::FileInfoPanel::new(fileinfo::read_from_file(
-            &mut file,
+            reader,
         )));
 
-        let spreadsheets = spreadsheet::read_from_file(&mut file);
+        let spreadsheets = spreadsheet::read_from_file(reader);
         if spreadsheets.len() > 0 {
             self.spreadsheetlist = Some(spreadsheet::TextItemList::new(spreadsheets[0].clone()));
         }
 
-        let (entities, skins, ref_entities, textures) =
-            entities::read_from_file(&mut file, platform);
+        let (entities, skins, ref_entities, textures) = entities::read_from_file(reader, platform);
         if entities.len() + skins.len() + ref_entities.len() > 0 {
             self.entities = Some(entities::EntityListPanel::new(
                 ctx,
@@ -128,10 +139,12 @@ impl EurochefApp {
         }
 
         self.textures = Some(textures::TextureList::new(textures::read_from_file(
-            &mut file, platform,
+            reader, platform,
         )));
 
         self.textures.as_mut().unwrap().load_textures(ctx);
+
+        self.state = AppState::Ready;
     }
 }
 
@@ -142,8 +155,23 @@ impl eframe::App for EurochefApp {
     /// Called each time the UI needs repainting, which may be many times per second.
     /// Put your widgets into a `SidePanel`, `TopPanel`, `CentralPanel`, `Window` or `Area`.
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        if let Some(load_path) = self.load_input.take() {
-            self.load_file(load_path, ctx);
+        if let Some((data, load_path)) = self.load_input.take() {
+            let platform = Platform::from_path(&load_path);
+            self.pending_file = Some((data, platform));
+        }
+
+        if let Some((data, platform)) = self.pending_file.as_ref() {
+            if let Some(platform) = platform {
+                info!(
+                    "Loading file of {} bytes with platform {platform}",
+                    data.len()
+                );
+                let mut cur = Cursor::new(data.clone()); // FIXME: Cloning the data hurts my soul
+                self.load_file(*platform, &mut cur, ctx);
+                self.pending_file = None;
+            } else {
+                self.state = AppState::SelectPlatform;
+            }
         }
 
         let Self {
@@ -154,6 +182,7 @@ impl eframe::App for EurochefApp {
             textures,
             load_input,
             entities,
+            selected_platform,
             ..
         } = self;
 
@@ -163,14 +192,34 @@ impl eframe::App for EurochefApp {
                 ui.menu_button("File", |ui| {
                     if ui.button("Open").clicked() {
                         // TODO(cohae): drag and drop loading
-                        // TODO(cohae): async loading (will allow WASM support)
+                        // // TODO(cohae): async loading (will allow WASM support)
+
+                        #[cfg(target_arch = "wasm32")]
+                        {
+                            wasm_bindgen_futures::spawn_local(async move {
+                                let future = rfd::AsyncFileDialog::new()
+                                    .add_filter("Eurocom DB", &["edb"])
+                                    .pick_file();
+                                if let Some(file) = future.await {
+                                    let data = file.read().await;
+                                    info!("{}", file.file_name());
+                                    load_clone.store(Some((data, file.file_name())));
+                                } else {
+                                }
+                            });
+                        }
+
                         #[cfg(not(target_arch = "wasm32"))]
                         std::thread::spawn(move || {
                             if let Some(path) = rfd::FileDialog::new()
                                 .add_filter("Eurocom DB", &["edb"])
                                 .pick_file()
                             {
-                                load_clone.store(Some(path.to_string_lossy().to_string()));
+                                let mut f = File::open("path").unwrap();
+                                let mut data = vec![];
+                                f.read_to_end(&mut data).unwrap();
+
+                                load_clone.store(Some((data, path.to_string_lossy().to_string())));
                             } else {
                                 load_clone.store(None);
                             }
@@ -205,6 +254,71 @@ impl eframe::App for EurochefApp {
                         ui.horizontal(|ui| {
                             ui.spinner();
                             ui.label(s.as_str());
+                        });
+                    });
+            }
+            AppState::SelectPlatform => {
+                let screen_rect = ctx.screen_rect();
+                let max_height = 320.0.at_most(screen_rect.height());
+                egui::Window::new("Select platform")
+                    .title_bar(false)
+                    .pivot(egui::Align2::CENTER_TOP)
+                    .fixed_pos(screen_rect.center() - 0.5 * max_height * egui::Vec2::Y)
+                    .frame(egui::Frame::window(&ctx.style()).inner_margin(16.))
+                    .resizable(false)
+                    .show(ctx, |ui| {
+                        ui.heading("Please select the platform for this file");
+                        ui.separator();
+                        ui.add_space(4.0);
+                        ui.horizontal(|ui| {
+                            ui.strong("Platform: ");
+                            egui::ComboBox::from_label("")
+                                .selected_text(selected_platform.to_string())
+                                .show_ui(ui, |ui| {
+                                    ui.selectable_value(
+                                        selected_platform,
+                                        Platform::GameCube,
+                                        "GameCube",
+                                    );
+                                    ui.selectable_value(selected_platform, Platform::Pc, "PC");
+                                    ui.selectable_value(
+                                        selected_platform,
+                                        Platform::Ps2,
+                                        "Playstation 2",
+                                    );
+                                    ui.selectable_value(
+                                        selected_platform,
+                                        Platform::Ps3,
+                                        "Playstation 3",
+                                    );
+                                    ui.selectable_value(
+                                        selected_platform,
+                                        Platform::ThreeDS,
+                                        "3DS",
+                                    );
+                                    ui.selectable_value(selected_platform, Platform::Wii, "Wii");
+                                    ui.selectable_value(selected_platform, Platform::WiiU, "Wii U");
+                                    ui.selectable_value(selected_platform, Platform::Xbox, "Xbox");
+                                    ui.selectable_value(
+                                        selected_platform,
+                                        Platform::Xbox360,
+                                        "Xbox 360",
+                                    );
+                                });
+                        });
+
+                        ui.horizontal(|ui| {
+                            if ui.button("Load").clicked() {
+                                if let Some((_, platform)) = self.pending_file.as_mut() {
+                                    *platform = Some(*selected_platform);
+                                }
+                                self.state = AppState::Loading("Loading file".to_string());
+                            }
+
+                            if ui.button("Cancel").clicked() {
+                                self.pending_file = None;
+                                self.state = AppState::Ready;
+                            }
                         });
                     });
             }

@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::{fmt::Display, path::Path};
 
 use binrw::Endian;
 
@@ -78,6 +78,22 @@ impl Platform {
             Self::Ps2 => Endian::Little,
             Self::Ps3 => Endian::Big,
             Self::ThreeDS => Endian::Little,
+        }
+    }
+}
+
+impl Display for Platform {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Platform::Pc => f.write_str("PC"),
+            Platform::Xbox => f.write_str("Xbox"),
+            Platform::Xbox360 => f.write_str("Xbox 360"),
+            Platform::GameCube => f.write_str("GameCube"),
+            Platform::Wii => f.write_str("Wii"),
+            Platform::WiiU => f.write_str("Wii U"),
+            Platform::Ps2 => f.write_str("Playstation 2"),
+            Platform::Ps3 => f.write_str("Playstation 3"),
+            Platform::ThreeDS => f.write_str("3DS"),
         }
     }
 }

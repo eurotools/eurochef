@@ -1,3 +1,5 @@
+precision mediump float;
+
 in vec2 f_uv;
 in vec4 f_color;
 
