@@ -59,15 +59,14 @@ impl EntityFrame {
         let (rect, response) =
             ui.allocate_exact_size(ui.available_size(), egui::Sense::click_and_drag());
 
-        if response.dragged_by(egui::PointerButton::Middle) {
+        if let Some(multi_touch) = ui.ctx().multi_touch() {
+            self.zoom += -(multi_touch.zoom_delta - 1.0);
+        } else {
             self.orientation += response.drag_delta() * 0.005;
+
+            self.zoom += -ui.input(|i| i.scroll_delta).y * 0.005;
         }
 
-        // if response.dragged_by(egui::PointerButton::Secondary) {
-        //     self.pan_camera(response.drag_delta() * 0.015);
-        // }
-
-        self.zoom += -ui.input(|i| i.scroll_delta).y * 0.005;
         self.zoom = self.zoom.clamp(0.00, 250.0);
 
         let orientation = self.orientation;
@@ -267,6 +266,7 @@ impl EntityRenderer {
             glam::vec3(0.0, 0.0, -zoom),
         );
 
+        gl.enable(glow::FRAMEBUFFER_SRGB);
         gl.depth_mask(true);
         gl.enable(glow::DEPTH_TEST);
         gl.cull_face(glow::BACK);
