@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 
 use eurochef_shared::entities::{TriStrip, UXVertex};
-use glam::{DVec3, Mat4, Vec3, Vec3Swizzles};
+use glam::{Mat4, Vec3, Vec3Swizzles};
 use glow::HasContext;
 
 use crate::{entities::ProcessedEntityMesh, gl_helper};
@@ -51,7 +51,7 @@ impl EntityFrame {
         2.0f32.powf(zoom_level * std::f32::consts::LN_2) - 0.9
     }
 
-    pub fn show(&mut self, ui: &mut egui::Ui, gl: Arc<glow::Context>) {
+    pub fn show(&mut self, ui: &mut egui::Ui) {
         ui.checkbox(
             &mut self.renderer.lock().unwrap().orthographic,
             "Orthographic",
@@ -269,12 +269,15 @@ impl EntityRenderer {
             glam::vec3(0.0, 0.0, -zoom),
         );
 
-        gl.enable(glow::FRAMEBUFFER_SRGB);
-        gl.depth_mask(true);
-        gl.enable(glow::DEPTH_TEST);
-        gl.cull_face(glow::BACK);
         gl.clear_depth_f32(1.0);
         gl.clear(glow::DEPTH_BUFFER_BIT);
+
+        gl.cull_face(glow::BACK);
+        gl.enable(glow::FRAMEBUFFER_SRGB);
+        gl.enable(glow::DEPTH_TEST);
+        gl.depth_mask(true);
+
+        gl.depth_func(glow::LEQUAL);
 
         gl.use_program(Some(self.grid));
         gl.uniform_matrix_4_f32_slice(
@@ -309,7 +312,14 @@ impl EntityRenderer {
             gl.bind_vertex_array(Some(*vertex_array));
             gl.bind_buffer(glow::ELEMENT_ARRAY_BUFFER, Some(*index_buffer));
 
+            let mut rendering_transparent = false;
             for t in strips {
+                if t.transparency != 0 && !rendering_transparent {
+                    rendering_transparent = true;
+                }
+
+                debug_assert_eq!(t.transparency != 0, rendering_transparent);
+
                 // TODO(cohae): Transparency seems broken on newer games
                 let mut transparency = match t.transparency & 0xff {
                     2 => BlendMode::ReverseSubtract,
@@ -343,12 +353,11 @@ impl EntityRenderer {
                     gl.bind_texture(glow::TEXTURE_2D, None);
                 }
 
-                // Skip transparent surfaces on newer games
+                // Skip transparent surfaces on newer games for now
                 if t.transparency > 0xff {
                     continue;
                 }
 
-                gl.depth_mask(transparency != BlendMode::Additive);
                 self.set_blending_mode(gl, transparency);
 
                 gl.uniform_1_f32(
@@ -387,30 +396,33 @@ impl EntityRenderer {
                 _ => gl.disable(glow::SAMPLE_ALPHA_TO_COVERAGE),
             }
 
-            if blend != BlendMode::None && blend != BlendMode::Cutout {
-                let blend_src = match blend {
-                    BlendMode::Blend => glow::SRC_ALPHA,
-                    BlendMode::Additive => glow::SRC_ALPHA,
-                    BlendMode::ReverseSubtract => glow::SRC_ALPHA,
-                    _ => unreachable!(),
-                };
+            match blend {
+                BlendMode::Blend | BlendMode::Additive | BlendMode::ReverseSubtract => {
+                    let blend_src = match blend {
+                        BlendMode::Blend => glow::SRC_ALPHA,
+                        BlendMode::Additive => glow::SRC_ALPHA,
+                        BlendMode::ReverseSubtract => glow::SRC_ALPHA,
+                        _ => unreachable!(),
+                    };
 
-                let blend_dst = match blend {
-                    BlendMode::Blend => glow::ONE_MINUS_SRC_ALPHA,
-                    BlendMode::Additive => glow::ONE,
-                    BlendMode::ReverseSubtract => glow::ONE,
-                    _ => unreachable!(),
-                };
+                    let blend_dst = match blend {
+                        BlendMode::Blend => glow::ONE_MINUS_SRC_ALPHA,
+                        BlendMode::Additive => glow::ONE,
+                        BlendMode::ReverseSubtract => glow::ONE,
+                        _ => unreachable!(),
+                    };
 
-                let blend_func = match blend {
-                    BlendMode::Blend => glow::FUNC_ADD,
-                    BlendMode::Additive => glow::FUNC_ADD,
-                    BlendMode::ReverseSubtract => glow::FUNC_REVERSE_SUBTRACT,
-                    _ => unreachable!(),
-                };
+                    let blend_func = match blend {
+                        BlendMode::Blend => glow::FUNC_ADD,
+                        BlendMode::Additive => glow::FUNC_ADD,
+                        BlendMode::ReverseSubtract => glow::FUNC_REVERSE_SUBTRACT,
+                        _ => unreachable!(),
+                    };
 
-                gl.blend_equation(blend_func);
-                gl.blend_func(blend_src, blend_dst);
+                    gl.blend_equation(blend_func);
+                    gl.blend_func(blend_src, blend_dst);
+                }
+                _ => {}
             }
         }
     }

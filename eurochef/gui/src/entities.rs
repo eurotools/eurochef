@@ -141,7 +141,7 @@ impl EntityListPanel {
             ui.separator();
 
             egui::Frame::canvas(ui.style()).show(ui, |ui| {
-                er.show(ui, self.gl.clone());
+                er.show(ui);
             });
         } else {
             egui::ScrollArea::vertical()
