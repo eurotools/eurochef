@@ -37,6 +37,9 @@ pub struct EntityListPanel {
     framebuffer: (glow::Framebuffer, glow::Texture),
     framebuffer_msaa: (glow::Framebuffer, glow::Texture),
     textures: Vec<RenderableTexture>,
+
+    /// Preview thumbnail width, in pixels
+    preview_size: i32,
 }
 
 pub struct ProcessedEntityMesh {
@@ -60,7 +63,7 @@ impl ProcessedEntityMesh {
 
 impl EntityListPanel {
     pub fn new(
-        _ctx: &egui::Context,
+        ctx: &egui::Context,
         gl: Arc<glow::Context>,
         entities: Vec<(u32, EXGeoEntity, ProcessedEntityMesh)>,
         skins: Vec<(u32, EXGeoBaseAnimSkin)>,
@@ -78,14 +81,17 @@ impl EntityListPanel {
             entity_previews.insert(*index, None);
         }
 
+        let preview_size = (256.0 * ctx.pixels_per_point()) as i32;
+
         #[cfg(not(target_family = "wasm"))]
-        let framebuffer_msaa = unsafe { Self::create_preview_framebuffer(&gl, true) };
+        let framebuffer_msaa = unsafe { Self::create_preview_framebuffer(&gl, true, preview_size) };
         #[cfg(target_family = "wasm")]
-        let framebuffer_msaa = unsafe { Self::create_preview_framebuffer(&gl, false) };
+        let framebuffer_msaa =
+            unsafe { Self::create_preview_framebuffer(&gl, false, preview_size) };
 
         EntityListPanel {
             framebuffer_msaa,
-            framebuffer: unsafe { Self::create_preview_framebuffer(&gl, false) },
+            framebuffer: unsafe { Self::create_preview_framebuffer(&gl, false, preview_size) },
             textures: Self::load_textures(&gl, textures),
             gl,
             entity_renderer: None,
@@ -93,6 +99,7 @@ impl EntityListPanel {
             skins,
             ref_entities,
             entity_previews,
+            preview_size,
         }
     }
 
@@ -278,11 +285,14 @@ impl EntityListPanel {
         ui.add_space(16.0);
     }
 
-    const PREVIEW_RENDERS_PER_FRAME: usize = 4;
+    #[cfg(not(target_family = "wasm"))]
+    const PREVIEW_RENDERS_PER_FRAME: usize = 6;
+    #[cfg(target_family = "wasm")]
+    const PREVIEW_RENDERS_PER_FRAME: usize = 2;
+
     fn render_previews(&mut self, context: &egui::Context) {
         for _ in 0..Self::PREVIEW_RENDERS_PER_FRAME {
             if let Some((hc, t)) = self.entity_previews.iter_mut().find(|t| t.1.is_none()) {
-                // Create a 256x256 framebuffer and bind it
                 let (_, _ent, mesh) = self
                     .entities
                     .iter()
@@ -295,14 +305,17 @@ impl EntityListPanel {
 
                 let paint_info = egui::PaintCallbackInfo {
                     pixels_per_point: 1.0,
-                    screen_size_px: [256, 256],
-                    clip_rect: egui::Rect::from_min_size(egui::Pos2::ZERO, [256., 256.].into()),
+                    screen_size_px: [self.preview_size as u32, self.preview_size as u32],
+                    clip_rect: egui::Rect::from_min_size(
+                        egui::Pos2::ZERO,
+                        [self.preview_size as f32, self.preview_size as f32].into(),
+                    ),
                     viewport: egui::Rect::from_min_size(egui::pos2(-1., -1.), [2., 2.].into()),
                 };
 
                 let mut er = EntityRenderer::new(&self.gl, self.textures.clone());
                 er.orthographic = true;
-                let mut out = vec![0u8; 256 * 256 * 4];
+                let mut out = vec![0u8; (self.preview_size * self.preview_size * 4) as usize];
                 unsafe {
                     let mesh_center = er.load_mesh(&self.gl, mesh);
                     #[cfg(not(target_family = "wasm"))]
@@ -315,7 +328,7 @@ impl EntityListPanel {
                     self.gl.clear_color(0.0, 0.0, 0.0, 1.0);
                     self.gl
                         .clear(glow::COLOR_BUFFER_BIT | glow::DEPTH_BUFFER_BIT);
-                    self.gl.viewport(0, 0, 256, 256);
+                    self.gl.viewport(0, 0, self.preview_size, self.preview_size);
 
                     er.draw(
                         &self.gl,
@@ -338,12 +351,12 @@ impl EntityListPanel {
                         self.gl.blit_framebuffer(
                             0,
                             0,
-                            256,
-                            256,
+                            self.preview_size,
+                            self.preview_size,
                             0,
                             0,
-                            256,
-                            256,
+                            self.preview_size,
+                            self.preview_size,
                             glow::COLOR_BUFFER_BIT,
                             glow::NEAREST,
                         );
@@ -355,8 +368,8 @@ impl EntityListPanel {
                     self.gl.read_pixels(
                         0,
                         0,
-                        256,
-                        256,
+                        self.preview_size,
+                        self.preview_size,
                         glow::RGBA,
                         glow::UNSIGNED_BYTE,
                         glow::PixelPackData::Slice(&mut out),
@@ -365,16 +378,16 @@ impl EntityListPanel {
                     self.gl.bind_framebuffer(glow::FRAMEBUFFER, None);
                 }
 
-                let mut out_flipped = vec![0u8; 256 * 256 * 4];
-                for y in 0..256 {
-                    let i = y * 256 * 4;
-                    let i_flipped = (256 - y - 1) * 256 * 4;
-                    out_flipped[i_flipped..i_flipped + 256 * 4]
-                        .copy_from_slice(&out[i..i + 256 * 4]);
+                let mut out_flipped = vec![0u8; out.len()];
+                for y in 0..self.preview_size {
+                    let i = (y * self.preview_size * 4) as usize;
+                    let i_flipped = ((self.preview_size - y - 1) * self.preview_size * 4) as usize;
+                    out_flipped[i_flipped..i_flipped + self.preview_size as usize * 4]
+                        .copy_from_slice(&out[i..i + self.preview_size as usize * 4]);
                 }
 
                 let image = egui::ImageData::Color(egui::ColorImage::from_rgba_unmultiplied(
-                    [256, 256],
+                    [self.preview_size as usize, self.preview_size as usize],
                     &out_flipped,
                 ));
                 *t = Some(context.load_texture(
@@ -391,6 +404,7 @@ impl EntityListPanel {
     unsafe fn create_preview_framebuffer(
         gl: &glow::Context,
         msaa: bool,
+        size: i32,
     ) -> (glow::Framebuffer, glow::Texture) {
         // Create framebuffer object
         let framebuffer = gl
@@ -408,14 +422,14 @@ impl EntityListPanel {
         let color_texture = gl.create_texture().expect("Failed to create color texture");
         gl.bind_texture(texture_target, Some(color_texture));
         if msaa {
-            gl.tex_image_2d_multisample(texture_target, 4, glow::RGB as i32, 256, 256, true);
+            gl.tex_image_2d_multisample(texture_target, 4, glow::RGB as i32, size, size, true);
         } else {
             gl.tex_image_2d(
                 texture_target,
                 0,
                 glow::RGB as i32,
-                256,
-                256,
+                size,
+                size,
                 0,
                 glow::RGB,
                 glow::UNSIGNED_BYTE,
@@ -450,11 +464,11 @@ impl EntityListPanel {
                 glow::RENDERBUFFER,
                 4,
                 glow::DEPTH24_STENCIL8,
-                256,
-                256,
+                size,
+                size,
             );
         } else {
-            gl.renderbuffer_storage(glow::RENDERBUFFER, glow::DEPTH24_STENCIL8, 256, 256);
+            gl.renderbuffer_storage(glow::RENDERBUFFER, glow::DEPTH24_STENCIL8, size, size);
         }
         gl.bind_renderbuffer(glow::RENDERBUFFER, None);
         gl.framebuffer_renderbuffer(
