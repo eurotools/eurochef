@@ -15,12 +15,13 @@ pub struct EntityFrame {
     zoom: f32,
 
     mesh_center: Vec3,
-    // model_origin: Vec3,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub struct RenderableTexture {
-    pub handle: glow::Texture,
+    pub frames: Vec<glow::Texture>,
+    pub framerate: usize,
+    pub frame_count: usize,
     pub flags: u32,
 }
 
@@ -73,6 +74,7 @@ impl EntityFrame {
         let zoom = Self::zoom_factor(self.zoom);
         let origin = self.origin;
         let mesh_center = self.mesh_center;
+        let time = ui.input(|t| t.time);
 
         let renderer = self.renderer.clone();
         let cb = egui_glow::CallbackFn::new(move |info, painter| unsafe {
@@ -83,6 +85,7 @@ impl EntityFrame {
                 zoom,
                 info,
                 mesh_center,
+                time,
             );
         });
         let callback = egui::PaintCallback {
@@ -245,6 +248,7 @@ impl EntityRenderer {
         zoom: f32,
         info: egui::PaintCallbackInfo,
         mesh_center: Vec3,
+        time: f64,
     ) {
         let projection = if self.orthographic {
             glam::Mat4::orthographic_rh_gl(
@@ -345,7 +349,13 @@ impl EntityRenderer {
                         continue;
                     }
 
-                    gl.bind_texture(glow::TEXTURE_2D, Some(tex.handle));
+                    let frametime_scale = tex.frame_count as f32 / tex.frames.len() as f32;
+                    let frame_time = (1. / tex.framerate as f32) * frametime_scale;
+
+                    gl.bind_texture(
+                        glow::TEXTURE_2D,
+                        Some(tex.frames[(time as f32 / frame_time) as usize % tex.frames.len()]),
+                    );
                     if (((tex.flags >> 0x18) >> 5) & 0b11) != 0 {
                         transparency = BlendMode::Cutout;
                     }

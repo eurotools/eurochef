@@ -107,16 +107,23 @@ impl EntityListPanel {
         textures
             .iter()
             .map(|t| unsafe {
-                let handle = gl_helper::load_texture(
-                    gl,
-                    t.width as i32,
-                    t.height as i32,
-                    &t.frames[0],
-                    glow::RGBA,
-                );
+                let mut frames = vec![];
+
+                for d in &t.frames {
+                    let handle = gl_helper::load_texture(
+                        gl,
+                        t.width as i32,
+                        t.height as i32,
+                        &d,
+                        glow::RGBA,
+                    );
+                    frames.push(handle);
+                }
 
                 RenderableTexture {
-                    handle,
+                    frames,
+                    framerate: t.framerate as usize,
+                    frame_count: t.frame_count as usize,
                     flags: t.flags,
                 }
             })
@@ -337,6 +344,7 @@ impl EntityListPanel {
                         0.30 * maximum_extent,
                         paint_info,
                         mesh_center,
+                        0.0, // Thumbnails are static so we don't need time
                     );
 
                     // Blit the MSAA framebuffer to a normal one so we can copy it
