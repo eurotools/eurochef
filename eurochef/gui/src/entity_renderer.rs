@@ -277,7 +277,6 @@ impl EntityRenderer {
         gl.clear(glow::DEPTH_BUFFER_BIT);
 
         gl.cull_face(glow::BACK);
-        gl.enable(glow::FRAMEBUFFER_SRGB);
         gl.enable(glow::DEPTH_TEST);
         gl.depth_mask(true);
 
