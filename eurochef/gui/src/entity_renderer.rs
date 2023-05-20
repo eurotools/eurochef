@@ -193,7 +193,10 @@ impl EntityRenderer {
 
         gl.bind_vertex_array(None);
 
-        self.mesh = Some((indices.len(), vertex_array, index_buffer, strips.to_vec()));
+        let mut strips_sorted = strips.to_vec();
+        strips_sorted.sort_by(|a, b| a.transparency.cmp(&b.transparency));
+
+        self.mesh = Some((indices.len(), vertex_array, index_buffer, strips_sorted));
 
         // (vertex_data
         //     .iter()
