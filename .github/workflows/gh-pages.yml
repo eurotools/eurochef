@@ -15,7 +15,6 @@ env:
 
 jobs:
   build-github-pages:
-    if: ${{ false }}
     runs-on: ubuntu-latest
     defaults:
       run:
