@@ -57,10 +57,12 @@ impl EntityFrame {
     }
 
     pub fn show(&mut self, ui: &mut egui::Ui) {
-        ui.checkbox(
-            &mut self.renderer.lock().unwrap().orthographic,
-            "Orthographic",
-        );
+        {
+            let mut render_temp = self.renderer.lock().unwrap();
+            ui.checkbox(&mut render_temp.orthographic, "Orthographic");
+            ui.checkbox(&mut render_temp.show_grid, "Show grid");
+        }
+
         let (rect, response) =
             ui.allocate_exact_size(ui.available_size(), egui::Sense::click_and_drag());
 
@@ -117,6 +119,7 @@ pub struct EntityRenderer {
     textures: Vec<RenderableTexture>,
 
     pub orthographic: bool,
+    pub show_grid: bool,
 }
 
 impl EntityRenderer {
@@ -126,6 +129,7 @@ impl EntityRenderer {
             mesh_shader: unsafe { Self::create_mesh_program(gl).unwrap() },
             mesh: None,
             orthographic: false,
+            show_grid: true,
             textures,
         }
     }
@@ -267,7 +271,9 @@ impl EntityRenderer {
         gl.enable(glow::DEPTH_TEST);
         gl.depth_func(glow::LEQUAL);
 
-        self.grid.draw(&uniforms, gl);
+        if self.show_grid {
+            self.grid.draw(&uniforms, gl);
+        }
 
         if let Some((_index_count, vertex_array, index_buffer, strips)) = self.mesh.as_ref() {
             gl.use_program(Some(self.mesh_shader));

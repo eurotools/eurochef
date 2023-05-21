@@ -322,6 +322,7 @@ impl EntityListPanel {
 
                 let mut er = EntityRenderer::new(&self.gl, self.textures.clone());
                 er.orthographic = true;
+                er.show_grid = false;
                 let mut out = vec![0u8; (self.preview_size * self.preview_size * 4) as usize];
                 unsafe {
                     let mesh_center = er.load_mesh(&self.gl, mesh);
