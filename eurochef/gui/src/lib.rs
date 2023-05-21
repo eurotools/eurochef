@@ -8,8 +8,6 @@ pub use app::EurochefApp;
 
 #[cfg(not(target_arch = "wasm32"))]
 pub mod panic_dialog;
-#[cfg(target_arch = "wasm32")]
-mod web;
 
 mod entities;
 mod entity_renderer;
