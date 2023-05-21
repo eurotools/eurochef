@@ -260,11 +260,11 @@ impl EntityRenderer {
             view: projection * view,
         };
 
+        gl.depth_mask(true);
         gl.clear_depth_f32(1.0);
         gl.clear(glow::DEPTH_BUFFER_BIT);
         gl.cull_face(glow::BACK);
         gl.enable(glow::DEPTH_TEST);
-        gl.depth_mask(true);
         gl.depth_func(glow::LEQUAL);
 
         self.grid.draw(&uniforms, gl);
@@ -297,6 +297,7 @@ impl EntityRenderer {
             let mut rendering_transparent = false;
             for t in strips {
                 if t.transparency != 0 && !rendering_transparent {
+                    gl.depth_mask(false);
                     rendering_transparent = true;
                 }
 
