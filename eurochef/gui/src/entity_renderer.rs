@@ -13,7 +13,7 @@ use crate::{
 pub struct EntityFrame {
     pub hashcode: u32,
 
-    renderer: Arc<Mutex<EntityRenderer>>,
+    pub renderer: Arc<Mutex<EntityRenderer>>,
     orientation: egui::Vec2,
     origin: Vec3,
     zoom: f32,
@@ -57,12 +57,6 @@ impl EntityFrame {
     }
 
     pub fn show(&mut self, ui: &mut egui::Ui) {
-        {
-            let mut render_temp = self.renderer.lock().unwrap();
-            ui.checkbox(&mut render_temp.orthographic, "Orthographic");
-            ui.checkbox(&mut render_temp.show_grid, "Show grid");
-        }
-
         let (rect, response) =
             ui.allocate_exact_size(ui.available_size(), egui::Sense::click_and_drag());
 

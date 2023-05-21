@@ -147,6 +147,12 @@ impl EntityListPanel {
         if let Some(er) = self.entity_renderer.as_mut() {
             ui.separator();
 
+            ui.horizontal(|ui| {
+                let mut render_temp = er.renderer.lock().unwrap();
+                ui.checkbox(&mut render_temp.orthographic, "Orthographic");
+                ui.checkbox(&mut render_temp.show_grid, "Show grid");
+            });
+
             egui::Frame::canvas(ui.style()).show(ui, |ui| {
                 er.show(ui);
             });
