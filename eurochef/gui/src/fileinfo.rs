@@ -45,6 +45,7 @@ impl FileInfoPanel {
 
         ui.label(egui::RichText::new(format!("{} EDB File Info", fa::INFO_CIRCLE)).heading());
         quick_info!("Version", self.header.version.to_string());
+        quick_info!("Hashcode", format!("{:x}", self.header.hashcode));
         quick_info!(
             "Base file size",
             format!("{}KB", self.header.base_file_size / 1024)
