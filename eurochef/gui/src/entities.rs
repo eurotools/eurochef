@@ -125,6 +125,7 @@ impl EntityListPanel {
                     framerate: t.framerate as usize,
                     frame_count: t.frame_count as usize,
                     flags: t.flags,
+                    scroll: Vec2::new(t.scroll[0] as f32, t.scroll[1] as f32) / 300.0,
                 }
             })
             .collect()

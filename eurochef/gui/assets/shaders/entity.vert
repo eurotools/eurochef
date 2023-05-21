@@ -19,11 +19,12 @@ out vec4 f_color;
 //     return vec4(float(r) * divisor, float(g) * divisor, float(b) * divisor, float(a) * divisor);
 // }
 
+uniform vec2 u_scroll;
 uniform mat4 u_view;
 uniform mat4 u_model;
 void main()
 {
-    f_uv = a_uv;
+    f_uv = a_uv + u_scroll;
     f_color = a_col * 1.5;
 
     vec3 new_pos = (u_model * vec4(a_pos.zxy, 1.0)).xyz;

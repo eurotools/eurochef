@@ -1,5 +1,6 @@
 use std::sync::{Arc, Mutex};
 
+use egui::Vec2;
 use eurochef_shared::entities::{TriStrip, UXVertex};
 use glam::{Mat4, Vec3, Vec3Swizzles};
 use glow::HasContext;
@@ -27,6 +28,7 @@ pub struct RenderableTexture {
     pub framerate: usize,
     pub frame_count: usize,
     pub flags: u32,
+    pub scroll: Vec2,
 }
 
 impl EntityFrame {
@@ -320,6 +322,8 @@ impl EntityRenderer {
                     gl.enable(glow::CULL_FACE);
                 }
 
+                let mut scroll = Vec2::ZERO;
+
                 gl.active_texture(glow::TEXTURE0);
                 if (t.texture_index as usize) < self.textures.len() {
                     let tex = &self.textures[t.texture_index as usize];
@@ -330,6 +334,8 @@ impl EntityRenderer {
 
                     let frametime_scale = tex.frame_count as f32 / tex.frames.len() as f32;
                     let frame_time = (1. / tex.framerate as f32) * frametime_scale;
+
+                    scroll = tex.scroll * time as f32;
 
                     gl.bind_texture(
                         glow::TEXTURE_2D,
@@ -346,6 +352,13 @@ impl EntityRenderer {
                 if t.transparency > 0xff {
                     continue;
                 }
+
+                gl.uniform_2_f32(
+                    gl.get_uniform_location(self.mesh_shader, "u_scroll")
+                        .as_ref(),
+                    scroll.x,
+                    scroll.y,
+                );
 
                 self.set_blending_mode(gl, transparency);
 
