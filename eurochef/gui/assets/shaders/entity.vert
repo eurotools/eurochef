@@ -24,7 +24,8 @@ uniform mat4 u_model;
 void main()
 {
     f_uv = a_uv;
-    f_color = a_col; // * 2.0;
+    f_color = a_col * 1.5;
+
     vec3 new_pos = (u_model * vec4(a_pos.zxy, 1.0)).xyz;
     new_pos.x = -new_pos.x;
 
