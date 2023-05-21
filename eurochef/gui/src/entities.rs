@@ -444,16 +444,6 @@ impl EntityListPanel {
                 None,
             );
         }
-        gl.tex_parameter_i32(
-            texture_target,
-            glow::TEXTURE_MIN_FILTER,
-            glow::LINEAR as i32,
-        );
-        gl.tex_parameter_i32(
-            texture_target,
-            glow::TEXTURE_MAG_FILTER,
-            glow::LINEAR as i32,
-        );
         gl.framebuffer_texture_2d(
             glow::FRAMEBUFFER,
             glow::COLOR_ATTACHMENT0,

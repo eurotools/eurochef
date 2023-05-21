@@ -15,5 +15,6 @@ mod entities;
 mod entity_renderer;
 mod fileinfo;
 mod gl_helper;
+mod render;
 mod spreadsheet;
 mod textures;

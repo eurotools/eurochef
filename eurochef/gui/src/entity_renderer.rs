@@ -4,7 +4,11 @@ use eurochef_shared::entities::{TriStrip, UXVertex};
 use glam::{Mat4, Vec3, Vec3Swizzles};
 use glow::HasContext;
 
-use crate::{entities::ProcessedEntityMesh, gl_helper};
+use crate::{
+    entities::ProcessedEntityMesh,
+    gl_helper,
+    render::{grid::GridRenderer, RenderUniforms},
+};
 
 pub struct EntityFrame {
     pub hashcode: u32,
@@ -106,7 +110,7 @@ pub enum BlendMode {
 }
 
 pub struct EntityRenderer {
-    grid: glow::Program, // (usize, glow::VertexArray),
+    grid: GridRenderer,
     mesh_shader: glow::Program,
     mesh: Option<(usize, glow::VertexArray, glow::Buffer, Vec<TriStrip>)>,
 
@@ -118,7 +122,7 @@ pub struct EntityRenderer {
 impl EntityRenderer {
     pub fn new(gl: &glow::Context, textures: Vec<RenderableTexture>) -> Self {
         Self {
-            grid: unsafe { Self::create_grid_program(gl).unwrap() },
+            grid: GridRenderer::new(gl, 30),
             mesh_shader: unsafe { Self::create_mesh_program(gl).unwrap() },
             mesh: None,
             orthographic: false,
@@ -201,28 +205,7 @@ impl EntityRenderer {
 
         self.mesh = Some((indices.len(), vertex_array, index_buffer, strips_sorted));
 
-        // (vertex_data
-        //     .iter()
-        //     .map(|v| DVec3::new(v.pos[0] as f64, v.pos[1] as f64, v.pos[2] as f64))
-        //     .sum::<DVec3>()
-        //     / vertex_data.len() as f64)
-        //     .as_vec3()
         center
-    }
-
-    unsafe fn create_grid_program(gl: &glow::Context) -> Result<glow::Program, String> {
-        let shader_sources = [
-            (
-                glow::VERTEX_SHADER,
-                include_str!("../assets/shaders/grid.vert"),
-            ),
-            (
-                glow::FRAGMENT_SHADER,
-                include_str!("../assets/shaders/grid.frag"),
-            ),
-        ];
-
-        gl_helper::compile_shader(gl, &shader_sources)
     }
 
     unsafe fn create_mesh_program(gl: &glow::Context) -> Result<glow::Program, String> {
@@ -273,29 +256,25 @@ impl EntityRenderer {
             glam::vec3(0.0, 0.0, -zoom),
         );
 
+        let uniforms = RenderUniforms {
+            view: projection * view,
+        };
+
         gl.clear_depth_f32(1.0);
         gl.clear(glow::DEPTH_BUFFER_BIT);
-
         gl.cull_face(glow::BACK);
         gl.enable(glow::DEPTH_TEST);
         gl.depth_mask(true);
-
         gl.depth_func(glow::LEQUAL);
 
-        gl.use_program(Some(self.grid));
-        gl.uniform_matrix_4_f32_slice(
-            gl.get_uniform_location(self.grid, "u_view").as_ref(),
-            false,
-            &(projection * view).to_cols_array(),
-        );
-        gl.draw_arrays(glow::LINES, 0, (25 + 1) * 2 * 2); // 10 lines (+1), 2 points each, 2 sides (horizontal/vertical)
+        self.grid.draw(&uniforms, gl);
 
         if let Some((_index_count, vertex_array, index_buffer, strips)) = self.mesh.as_ref() {
             gl.use_program(Some(self.mesh_shader));
             gl.uniform_matrix_4_f32_slice(
                 gl.get_uniform_location(self.mesh_shader, "u_view").as_ref(),
                 false,
-                &(projection * view).to_cols_array(),
+                &uniforms.view.to_cols_array(),
             );
 
             let model = Mat4::from_translation(-mesh_center.zxy());
