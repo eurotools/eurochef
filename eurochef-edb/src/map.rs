@@ -66,7 +66,6 @@ pub struct EXGeoMapZone {
 }
 
 // TODO(cohae): A lot of these structures might need to be split up into separate files
-
 #[binrw]
 #[derive(Debug, Serialize, Clone)]
 pub struct EXGeoPortalInfo {
@@ -88,9 +87,9 @@ pub struct EXGeoTriggerHeader {
     // TODO(cohae): custom parser
     #[br(count = if triggers.len() != 0 { triggers.iter().map(|v| v.trigger.type_index).max().unwrap()+1 } else { 0 })]
     pub trigger_types: EXRelPtr<Vec<EXGeoTriggerType>>,
-    // pub trigger_types: EXRelPtr<()>, // Last element is marked by a trig_type of -1
+    // pub trigger_types: EXRelPtr<()>, // Last element is marked by a trig_type of -1?
 
-    // #[br(count = triggers.array_size)]
+    // pub trigger_collisions: EXRelPtr<Vec<EXGeoBaseDatum>>,
     pub trigger_collisions: EXRelPtr<()>,
 }
 

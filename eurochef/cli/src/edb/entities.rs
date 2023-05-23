@@ -119,7 +119,8 @@ pub fn execute_command(
                 t.flags
             );
 
-            // cohae: This is wrong on a few levels, but it's just for transparency
+            // TODO(cohae): This is very wrong, textures only specify whether they're cutout. see GUI entity renderer for more info
+            // ~~cohae: This is wrong on a few levels, but it's just for transparency~~
             let flags_shift = if header.version == 248 { 0x19 } else { 0x18 };
 
             let is_transparent_blend = (((t.flags >> flags_shift) >> 6) & 1) != 0;

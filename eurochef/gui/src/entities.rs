@@ -22,7 +22,7 @@ use glow::HasContext;
 
 use crate::{
     entity_frame::{EntityFrame, RenderableTexture},
-    render::{entity::EntityRenderer, gl_helper, RenderUniforms},
+    render::{self, entity::EntityRenderer, gl_helper, RenderUniforms},
 };
 
 pub struct EntityListPanel {
@@ -149,8 +149,7 @@ impl EntityListPanel {
             ui.separator();
 
             ui.horizontal(|ui| {
-                let mut render_temp = er.renderer.lock().unwrap();
-                ui.checkbox(&mut render_temp.orthographic, "Orthographic");
+                ui.checkbox(&mut er.orthographic, "Orthographic");
                 ui.checkbox(&mut er.show_grid, "Show grid");
             });
 
@@ -251,7 +250,7 @@ impl EntityListPanel {
                                 self.entity_renderer = Some(EntityFrame::new(
                                     &self.gl,
                                     i,
-                                    if ty == 0 {
+                                    &[if ty == 0 {
                                         &self.entities.iter().find(|(v, _, _)| *v == i).unwrap().2
                                     } else {
                                         &self
@@ -260,7 +259,27 @@ impl EntityListPanel {
                                             .find(|(v, _, _)| *v == i)
                                             .unwrap()
                                             .2
-                                    },
+                                    }],
+                                    self.textures.to_vec(),
+                                ));
+                            } else {
+                                let mut combined_entities = vec![];
+                                let skin = &self.skins.iter().find(|(v, _)| *v == i).unwrap().1;
+                                let entity_indices: Vec<u32> = skin
+                                    .entities
+                                    .iter()
+                                    .chain(skin.more_entities.iter())
+                                    .map(|d| d.entity_index & 0x00ffffff)
+                                    .collect();
+
+                                for i in entity_indices {
+                                    combined_entities.push(&self.entities[i as usize].2);
+                                }
+
+                                self.entity_renderer = Some(EntityFrame::new(
+                                    &self.gl,
+                                    i,
+                                    &combined_entities,
                                     self.textures.to_vec(),
                                 ));
                             }
@@ -317,18 +336,7 @@ impl EntityListPanel {
                 let bb = mesh.bounding_box();
                 let maximum_extent = (bb.1.x - bb.0.x).max(bb.1.y - bb.0.y).max(bb.1.z - bb.0.z);
 
-                let paint_info = egui::PaintCallbackInfo {
-                    pixels_per_point: 1.0,
-                    screen_size_px: [self.preview_size as u32, self.preview_size as u32],
-                    clip_rect: egui::Rect::from_min_size(
-                        egui::Pos2::ZERO,
-                        [self.preview_size as f32, self.preview_size as f32].into(),
-                    ),
-                    viewport: egui::Rect::from_min_size(egui::pos2(-1., -1.), [2., 2.].into()),
-                };
-
-                let mut er = EntityRenderer::new(&self.gl, self.textures.clone());
-                er.orthographic = true;
+                let mut er = EntityRenderer::new(&self.gl);
                 let mut out = vec![0u8; (self.preview_size * self.preview_size * 4) as usize];
 
                 let uniforms =
@@ -343,6 +351,7 @@ impl EntityListPanel {
                     self.gl
                         .bind_framebuffer(glow::FRAMEBUFFER, Some(self.framebuffer.0));
 
+                    render::start_render(&self.gl);
                     self.gl.clear_color(0.0, 0.0, 0.0, 1.0);
                     self.gl
                         .clear(glow::COLOR_BUFFER_BIT | glow::DEPTH_BUFFER_BIT);
@@ -353,6 +362,7 @@ impl EntityListPanel {
                         &uniforms,
                         mesh_center,
                         0.0, // Thumbnails are static so we don't need time
+                        &self.textures,
                     );
 
                     // Blit the MSAA framebuffer to a normal one so we can copy it

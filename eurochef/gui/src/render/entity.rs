@@ -16,21 +16,16 @@ pub enum BlendMode {
 }
 
 pub struct EntityRenderer {
+    // TODO(cohae): We shouldn't be compiling shaders more than once (global program struct?)
     mesh_shader: glow::Program,
     mesh: Option<(usize, glow::VertexArray, glow::Buffer, Vec<TriStrip>)>,
-
-    textures: Vec<RenderableTexture>,
-
-    pub orthographic: bool,
 }
 
 impl EntityRenderer {
-    pub fn new(gl: &glow::Context, textures: Vec<RenderableTexture>) -> Self {
+    pub fn new(gl: &glow::Context) -> Self {
         Self {
             mesh_shader: unsafe { Self::create_mesh_program(gl).unwrap() },
             mesh: None,
-            orthographic: false,
-            textures,
         }
     }
 
@@ -156,9 +151,11 @@ impl EntityRenderer {
         uniforms: &RenderUniforms,
         mesh_center: Vec3,
         time: f64,
+        textures: &[RenderableTexture],
     ) {
-        self.draw_opaque(gl, uniforms, mesh_center, time);
-        self.draw_transparent(gl, uniforms, mesh_center, time);
+        self.draw_opaque(gl, uniforms, mesh_center, time, textures);
+        gl.depth_mask(false);
+        self.draw_transparent(gl, uniforms, mesh_center, time, textures);
     }
 
     pub unsafe fn draw_opaque(
@@ -167,6 +164,7 @@ impl EntityRenderer {
         uniforms: &RenderUniforms,
         mesh_center: Vec3,
         time: f64,
+        textures: &[RenderableTexture],
     ) {
         if let Some((_index_count, vertex_array, index_buffer, strips)) = self.mesh.as_ref() {
             self.init_draw(gl, mesh_center, uniforms);
@@ -174,7 +172,7 @@ impl EntityRenderer {
             gl.bind_buffer(glow::ELEMENT_ARRAY_BUFFER, Some(*index_buffer));
 
             for t in strips.iter().filter(|t| t.transparency == 0) {
-                self.draw_strip(gl, t, time);
+                self.draw_strip(gl, t, time, textures);
             }
         }
     }
@@ -185,6 +183,7 @@ impl EntityRenderer {
         uniforms: &RenderUniforms,
         mesh_center: Vec3,
         time: f64,
+        textures: &[RenderableTexture],
     ) {
         if let Some((_index_count, vertex_array, index_buffer, strips)) = self.mesh.as_ref() {
             self.init_draw(gl, mesh_center, uniforms);
@@ -192,12 +191,18 @@ impl EntityRenderer {
             gl.bind_buffer(glow::ELEMENT_ARRAY_BUFFER, Some(*index_buffer));
 
             for t in strips.iter().filter(|t| t.transparency != 0) {
-                self.draw_strip(gl, t, time);
+                self.draw_strip(gl, t, time, textures);
             }
         }
     }
 
-    unsafe fn draw_strip(&self, gl: &glow::Context, t: &TriStrip, time: f64) {
+    unsafe fn draw_strip(
+        &self,
+        gl: &glow::Context,
+        t: &TriStrip,
+        time: f64,
+        textures: &[RenderableTexture],
+    ) {
         // TODO(cohae): Transparency seems broken on newer games
         let mut transparency = match t.transparency & 0xff {
             2 => BlendMode::ReverseSubtract,
@@ -218,8 +223,8 @@ impl EntityRenderer {
         let mut scroll = Vec2::ZERO;
 
         gl.active_texture(glow::TEXTURE0);
-        if (t.texture_index as usize) < self.textures.len() {
-            let tex = &self.textures[t.texture_index as usize];
+        if (t.texture_index as usize) < textures.len() {
+            let tex = &textures[t.texture_index as usize];
             // Cubemap texture
             if (tex.flags & 0x30000) != 0 {
                 return;
