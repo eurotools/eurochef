@@ -74,9 +74,9 @@ impl EntityListPanel {
         for (hashcode, _, _) in entities.iter() {
             entity_previews.insert(*hashcode, None);
         }
-        // for (hashcode, _) in skins.iter() {
-        //     entity_previews.insert(format!("{hashcode:x}"), None);
-        // }
+        for (hashcode, _) in skins.iter() {
+            entity_previews.insert(*hashcode, None);
+        }
         for (index, _, _) in ref_entities.iter() {
             entity_previews.insert(*index, None);
         }
@@ -326,24 +326,48 @@ impl EntityListPanel {
     fn render_previews(&mut self, context: &egui::Context) {
         for _ in 0..Self::PREVIEW_RENDERS_PER_FRAME {
             if let Some((hc, t)) = self.entity_previews.iter_mut().find(|t| t.1.is_none()) {
-                let (_, _ent, mesh) = self
+                let mut meshes = vec![];
+
+                if let Some((_, _, mesh)) = self
                     .entities
                     .iter()
                     .find(|(v, _, _)| v == hc)
                     .or(self.ref_entities.iter().find(|(v, _, _)| v == hc))
-                    .unwrap();
+                {
+                    meshes.push(mesh)
+                } else {
+                    if let Some((_, skin)) = self.skins.iter().find(|(v, _)| v == hc) {
+                        let entity_indices: Vec<u32> = skin
+                            .entities
+                            .iter()
+                            .chain(skin.more_entities.iter())
+                            .map(|d| d.entity_index & 0x00ffffff)
+                            .collect();
+                        for i in entity_indices {
+                            meshes.push(&self.entities[i as usize].2);
+                        }
+                    } else {
+                        unreachable!("Thumbnail requested for nonexistent entity {hc:x}");
+                    }
+                }
 
-                let bb = mesh.bounding_box();
+                let mut bb = (Vec3::splat(f32::MAX), Vec3::splat(f32::MIN));
+                for m in &meshes {
+                    let bb2 = m.bounding_box();
+                    bb.0 = bb.0.min(bb2.0);
+                    bb.1 = bb.1.max(bb2.1);
+                }
+
+                let mesh_center = (bb.0 + bb.1) / 2.0;
+
                 let maximum_extent = (bb.1.x - bb.0.x).max(bb.1.y - bb.0.y).max(bb.1.z - bb.0.z);
 
-                let mut er = EntityRenderer::new(&self.gl);
                 let mut out = vec![0u8; (self.preview_size * self.preview_size * 4) as usize];
 
                 let uniforms =
-                    RenderUniforms::new(true, Vec2::new(-2., -1.), 0.30 * maximum_extent, 1.0);
+                    RenderUniforms::new(true, Vec2::new(-2., -1.), 0.39 * maximum_extent, 1.0);
 
                 unsafe {
-                    let mesh_center = er.load_mesh(&self.gl, mesh);
                     #[cfg(not(target_family = "wasm"))]
                     self.gl
                         .bind_framebuffer(glow::FRAMEBUFFER, Some(self.framebuffer_msaa.0));
@@ -357,13 +381,42 @@ impl EntityListPanel {
                         .clear(glow::COLOR_BUFFER_BIT | glow::DEPTH_BUFFER_BIT);
                     self.gl.viewport(0, 0, self.preview_size, self.preview_size);
 
-                    er.draw_both(
-                        &self.gl,
-                        &uniforms,
-                        mesh_center,
-                        0.0, // Thumbnails are static so we don't need time
-                        &self.textures,
-                    );
+                    if meshes.len() == 1 {
+                        let mut er = EntityRenderer::new(&self.gl);
+                        er.load_mesh(&self.gl, meshes[0]);
+                        er.draw_both(
+                            &self.gl,
+                            &uniforms,
+                            mesh_center,
+                            0.0, // Thumbnails are static so we don't need time
+                            &self.textures,
+                        );
+                    } else {
+                        let renderers: Vec<EntityRenderer> = meshes
+                            .iter()
+                            .map(|m| {
+                                let mut er = EntityRenderer::new(&self.gl);
+                                er.load_mesh(&self.gl, m);
+                                er
+                            })
+                            .collect();
+
+                        for r in &renderers {
+                            r.draw_opaque(&self.gl, &uniforms, mesh_center, 0.0, &self.textures);
+                        }
+
+                        self.gl.depth_mask(false);
+
+                        for r in &renderers {
+                            r.draw_transparent(
+                                &self.gl,
+                                &uniforms,
+                                mesh_center,
+                                0.0,
+                                &self.textures,
+                            );
+                        }
+                    }
 
                     // Blit the MSAA framebuffer to a normal one so we can copy it
                     #[cfg(not(target_family = "wasm"))]
