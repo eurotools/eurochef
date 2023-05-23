@@ -10,9 +10,8 @@ pub use app::EurochefApp;
 pub mod panic_dialog;
 
 mod entities;
-mod entity_renderer;
+mod entity_frame;
 mod fileinfo;
-mod gl_helper;
 mod render;
 mod spreadsheet;
 mod textures;

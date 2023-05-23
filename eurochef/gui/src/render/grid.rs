@@ -1,9 +1,8 @@
 use glow::HasContext;
 
-use crate::gl_helper;
+use super::{gl_helper, RenderUniforms};
 
-use super::RenderUniforms;
-
+#[derive(Clone)]
 pub struct GridRenderer {
     shader: glow::Program,
     size: i32,

@@ -3,7 +3,7 @@ use std::{
     sync::Arc,
 };
 
-use egui::{Color32, RichText, Vec2, Widget};
+use egui::{Color32, RichText, Widget};
 use eurochef_edb::{
     anim::EXGeoBaseAnimSkin,
     binrw::{BinReaderExt, Endian},
@@ -17,12 +17,12 @@ use eurochef_shared::{
 };
 use fnv::FnvHashMap;
 use font_awesome as fa;
-use glam::Vec3;
+use glam::{Vec2, Vec3};
 use glow::HasContext;
 
 use crate::{
-    entity_renderer::{EntityFrame, EntityRenderer, RenderableTexture},
-    gl_helper,
+    entity_frame::{EntityFrame, RenderableTexture},
+    render::{entity::EntityRenderer, gl_helper, RenderUniforms},
 };
 
 pub struct EntityListPanel {
@@ -151,7 +151,7 @@ impl EntityListPanel {
             ui.horizontal(|ui| {
                 let mut render_temp = er.renderer.lock().unwrap();
                 ui.checkbox(&mut render_temp.orthographic, "Orthographic");
-                ui.checkbox(&mut render_temp.show_grid, "Show grid");
+                ui.checkbox(&mut er.show_grid, "Show grid");
             });
 
             egui::Frame::canvas(ui.style()).show(ui, |ui| {
@@ -207,7 +207,7 @@ impl EntityListPanel {
         ui.horizontal_wrapped(|ui| {
             ui.spacing_mut().item_spacing = [16., 16.].into();
             for i in ids {
-                ui.allocate_ui(Vec2::splat(256.), |ui| {
+                ui.allocate_ui(egui::Vec2::splat(256.), |ui| {
                     ui.spacing_mut().item_spacing = [4., 4.].into();
                     ui.vertical(|ui| {
                         let response = if let Some(Some(tex)) = self.entity_previews.get(&i) {
@@ -329,8 +329,11 @@ impl EntityListPanel {
 
                 let mut er = EntityRenderer::new(&self.gl, self.textures.clone());
                 er.orthographic = true;
-                er.show_grid = false;
                 let mut out = vec![0u8; (self.preview_size * self.preview_size * 4) as usize];
+
+                let uniforms =
+                    RenderUniforms::new(true, Vec2::new(-2., -1.), 0.30 * maximum_extent, 1.0);
+
                 unsafe {
                     let mesh_center = er.load_mesh(&self.gl, mesh);
                     #[cfg(not(target_family = "wasm"))]
@@ -345,12 +348,9 @@ impl EntityListPanel {
                         .clear(glow::COLOR_BUFFER_BIT | glow::DEPTH_BUFFER_BIT);
                     self.gl.viewport(0, 0, self.preview_size, self.preview_size);
 
-                    er.draw(
+                    er.draw_both(
                         &self.gl,
-                        egui::vec2(-2., -1.),
-                        Vec3::ZERO,
-                        0.30 * maximum_extent,
-                        paint_info,
+                        &uniforms,
                         mesh_center,
                         0.0, // Thumbnails are static so we don't need time
                     );
