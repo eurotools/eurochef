@@ -315,6 +315,10 @@ class EcmLoader(bpy.types.Operator, ImportHelper):
                 if l != -1:
                     obj[f'links[{li}]'] = str(l)
 
+            for ei, e in enumerate(t['extra_data']):
+                if e != 0xffffffff:
+                    obj[f'extra_data[{ei}]'] = f"0x{e:x}"
+
             if self.trigger_visualizations:
                 trigger_vis.process_triggers(
                     t['data'], t['links'], obj, i, t['ttype'])

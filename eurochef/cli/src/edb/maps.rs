@@ -102,7 +102,7 @@ pub fn execute_command(
             }
         }
 
-        for t in map.trigger_header.triggers.iter() {
+        for (i, t) in map.trigger_header.triggers.iter().enumerate() {
             let trig = &t.trigger;
             let (ttype, tsubtype) = {
                 let t = &map.trigger_header.trigger_types[trig.type_index as usize];
@@ -110,7 +110,22 @@ pub fn execute_command(
                 (t.trig_type, t.trig_subtype)
             };
 
-            let (data, links) = parse_trigger_data(header.version, trig.trig_flags, &trig.data);
+            // FIXME: This requires triggers to be sorted. This is the case in official EDB files but it is not a requirement
+            let trigdata_size = {
+                if (i + 1) == map.trigger_header.triggers.len() {
+                    32
+                } else {
+                    let current_addr = trig.offset_absolute();
+                    let next_addr = map.trigger_header.triggers.data()[i + 1]
+                        .trigger
+                        .offset_absolute();
+
+                    ((next_addr - current_addr - 0x30) / 4) as usize
+                }
+            };
+
+            let (data, links, extra_data) =
+                parse_trigger_data(header.version, trig.trig_flags, &trig.data[..trigdata_size]);
             let mut trigger = EurochefMapTrigger {
                 link_ref: t.link_ref,
                 ttype: format!("Trig_{ttype}"),
@@ -125,7 +140,8 @@ pub fn execute_command(
                 position: trig.position,
                 rotation: trig.rotation,
                 scale: trig.scale,
-                raw_data: trig.data,
+                raw_data: trig.data[..trigdata_size].to_vec(),
+                extra_data,
                 data,
                 links,
             };
@@ -184,9 +200,10 @@ pub struct EurochefMapTrigger {
     pub rotation: [f32; 3],
     pub scale: [f32; 3],
 
-    pub raw_data: [u32; 32],
+    pub raw_data: Vec<u32>,
     pub data: Vec<u32>,
     pub links: Vec<i32>,
+    pub extra_data: Vec<u32>,
 }
 
 fn load_trigger_types<P: AsRef<Path>>(path: P) -> anyhow::Result<HashMap<u32, String>> {
@@ -212,7 +229,11 @@ fn load_trigger_types<P: AsRef<Path>>(path: P) -> anyhow::Result<HashMap<u32, St
     Ok(map)
 }
 
-fn parse_trigger_data(_version: u32, trig_flags: u32, raw_data: &[u32]) -> (Vec<u32>, Vec<i32>) {
+fn parse_trigger_data(
+    _version: u32,
+    trig_flags: u32,
+    raw_data: &[u32],
+) -> (Vec<u32>, Vec<i32>, Vec<u32>) {
     let mut data = vec![];
     let mut links = vec![];
 
@@ -242,5 +263,36 @@ fn parse_trigger_data(_version: u32, trig_flags: u32, raw_data: &[u32]) -> (Vec<
         flag_accessor <<= 1;
     }
 
-    (data, links)
+    let mut extra_data = vec![];
+    loop {
+        if (trig_flags & flag_accessor) != 0 {
+            if data_offset >= raw_data.len() {
+                warn!(
+                    "Trigger has more flags than data! ({} data)",
+                    raw_data.len()
+                );
+                extra_data = vec![];
+                break;
+            }
+
+            extra_data.push(raw_data[data_offset]);
+            data_offset += 1;
+        } else {
+            extra_data.push(u32::MAX);
+        }
+
+        if flag_accessor == (1 << 31) {
+            break;
+        }
+
+        flag_accessor <<= 1;
+    }
+
+    // let extra_data = if raw_data.len() == 32 {
+    //     vec![]
+    // } else {
+    //     raw_data[data_offset..].to_vec()
+    // };
+
+    (data, links, extra_data)
 }
