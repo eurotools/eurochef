@@ -58,6 +58,10 @@ impl UXGeoTexture {
             if let Some(external_file) = tex.external_file {
                 let external_texture = tex.frame_offsets[0].offset_absolute();
                 warn!("Texture is an external reference, skipping (texture 0x{external_texture:x} from file 0x{external_file:x})");
+                textures.push(Self {
+                    hashcode: t.common.hashcode,
+                    ..Default::default()
+                });
                 continue;
             }
 
@@ -70,6 +74,10 @@ impl UXGeoTexture {
                 Ok(cs) => cs,
                 Err(e) => {
                     error!("Failed to extract texture {:x}: {e}", t.common.hashcode);
+                    textures.push(Self {
+                        hashcode: t.common.hashcode,
+                        ..Default::default()
+                    });
                     continue;
                 }
             };
@@ -81,6 +89,10 @@ impl UXGeoTexture {
                     "Texture has no data? (calculated={}, data_size={:?})",
                     calculated_size, tex.data_size
                 );
+                textures.push(Self {
+                    hashcode: t.common.hashcode,
+                    ..Default::default()
+                });
                 continue;
             }
 
@@ -107,6 +119,11 @@ impl UXGeoTexture {
 
                 if let Err(e) = reader.read_exact(&mut data) {
                     error!("Failed to read texture {:x}.{i}: {e}", t.common.hashcode);
+                    textures.push(Self {
+                        hashcode: t.common.hashcode,
+                        ..Default::default()
+                    });
+                    continue;
                 }
 
                 if let Err(e) = texture_decoder.decode(
@@ -118,6 +135,10 @@ impl UXGeoTexture {
                     tex.format,
                 ) {
                     error!("Texture {:08x} failed to decode: {}", t.common.hashcode, e);
+                    textures.push(Self {
+                        hashcode: t.common.hashcode,
+                        ..Default::default()
+                    });
                     continue;
                 }
 
@@ -128,6 +149,10 @@ impl UXGeoTexture {
                         (t.width as usize * t.height as usize) * 4,
                         output.len()
                     );
+                    textures.push(Self {
+                        hashcode: t.common.hashcode,
+                        ..Default::default()
+                    });
 
                     continue;
                 }
@@ -139,5 +164,29 @@ impl UXGeoTexture {
         }
 
         Ok(textures)
+    }
+
+    pub fn is_valid(&self) -> bool {
+        self.flags != u32::MAX && self.game_flags != u16::MAX
+    }
+}
+
+impl Default for UXGeoTexture {
+    fn default() -> Self {
+        Self {
+            hashcode: u32::MAX,
+            width: 2,
+            height: 2,
+            depth: 1,
+            format_internal: 0,
+            flags: u32::MAX,
+            game_flags: u16::MAX,
+            scroll: [0, 0],
+            framerate: 0,
+            frame_count: 1,
+            frames: vec![vec![
+                255, 0, 255, 255, 0, 0, 0, 255, 0, 0, 0, 255, 255, 0, 255, 255,
+            ]],
+        }
     }
 }

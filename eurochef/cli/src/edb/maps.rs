@@ -288,11 +288,5 @@ fn parse_trigger_data(
         flag_accessor <<= 1;
     }
 
-    // let extra_data = if raw_data.len() == 32 {
-    //     vec![]
-    // } else {
-    //     raw_data[data_offset..].to_vec()
-    // };
-
     (data, links, extra_data)
 }
