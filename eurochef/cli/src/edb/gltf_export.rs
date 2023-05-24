@@ -278,7 +278,7 @@ pub fn add_mesh_to_scene(
                         },
                     ),
                 }),
-                double_sided: true,
+                double_sided: (t.flags & 0x40) != 0,
                 ..Default::default()
             });
 

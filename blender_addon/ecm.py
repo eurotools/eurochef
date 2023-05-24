@@ -89,9 +89,6 @@ class EcmLoader(bpy.types.Operator, ImportHelper):
             relink_object(obj, self.collection)
 
             if object_id not in object_cache:
-                # Make the material double-sided. We're only doing this for normal placements
-                for mat in obj.material_slots:
-                    mat.material.use_backface_culling = False
 
                 if self.autosmooth:
                     bpy.ops.object.shade_smooth()
@@ -116,10 +113,6 @@ class EcmLoader(bpy.types.Operator, ImportHelper):
             bpy.ops.import_scene.gltf(filepath=model_path)
             obj = bpy.context.active_object
             relink_object(obj, self.collection)
-
-            # Re-enable backface culling for some merged materials
-            for mat in obj.material_slots:
-                mat.material.use_backface_culling = True
 
             if self.autosmooth:
                 bpy.ops.object.shade_smooth()
