@@ -302,7 +302,7 @@ class EcmLoader(bpy.types.Operator, ImportHelper):
 
             for di, d in enumerate(t['data']):
                 if d != 0:
-                    obj[f'data[0x{di:x}]'] = f"0x{d:x}"
+                    obj[f'data[0x{di:X}]'] = f"0x{d:X}"
 
             for li, l in enumerate(t['links']):
                 if l != -1:
@@ -310,7 +310,7 @@ class EcmLoader(bpy.types.Operator, ImportHelper):
 
             for ei, e in enumerate(t['extra_data']):
                 if e != 0xffffffff:
-                    obj[f'extra_data[{ei}]'] = f"0x{e:x}"
+                    obj[f'extra_data[{ei}]'] = f"0x{e:X}"
 
             if self.trigger_visualizations:
                 trigger_vis.process_triggers(

@@ -62,7 +62,7 @@ pub fn execute_command(
         platform.clone(),
         Some(output_folder.clone()),
         false,
-        false,
+        true,
     )?;
 
     let platform = platform

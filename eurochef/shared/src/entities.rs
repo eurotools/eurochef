@@ -157,6 +157,11 @@ pub fn read_entity<R: Read + Seek>(
                     break;
                 }
 
+                if t.trans_type != 0 && remove_transparent {
+                    index_offset_local += t.tricount + 2;
+                    continue;
+                }
+
                 let texture_index = if mesh.base.flags & 0x1 != 0 {
                     // Index from texture list instead of the "global" array
                     if t.texture_index < mesh.texture_list.textures.len() as i32 {
