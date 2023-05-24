@@ -91,8 +91,8 @@ impl Display for Platform {
             Platform::GameCube => f.write_str("GameCube"),
             Platform::Wii => f.write_str("Wii"),
             Platform::WiiU => f.write_str("Wii U"),
-            Platform::Ps2 => f.write_str("Playstation 2"),
-            Platform::Ps3 => f.write_str("Playstation 3"),
+            Platform::Ps2 => f.write_str("PlayStation 2"),
+            Platform::Ps3 => f.write_str("PlayStation 3"),
             Platform::ThreeDS => f.write_str("3DS"),
         }
     }
