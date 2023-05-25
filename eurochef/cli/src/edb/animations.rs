@@ -184,6 +184,7 @@ pub fn execute_command(
                 &mut reader,
                 4,
                 false,
+                true,
             ) {
                 error!("Failed to extract entity: {err}");
                 continue;

@@ -271,8 +271,8 @@ impl EntityRenderer {
         );
 
         gl.draw_elements(
-            glow::TRIANGLES,
-            t.index_count as i32,
+            glow::TRIANGLE_STRIP,
+            (t.tri_count + 2) as i32,
             glow::UNSIGNED_INT,
             t.start_index as i32 * std::mem::size_of::<u32>() as i32,
         );

@@ -16,6 +16,7 @@ pub struct TriStrip {
     pub texture_index: u32,
     pub transparency: u16,
     pub flags: u16,
+    pub tri_count: u32,
 }
 
 #[derive(Debug, Copy, Clone, Pod, Zeroable)]
@@ -38,6 +39,7 @@ pub fn read_entity<R: Read + Seek>(
     data: &mut R,
     depth_limit: u32,
     remove_transparent: bool,
+    convert_strips: bool,
 ) -> anyhow::Result<()> {
     if depth_limit == 0 {
         anyhow::bail!("Entity recursion limit reached!");
@@ -57,6 +59,7 @@ pub fn read_entity<R: Read + Seek>(
                     data,
                     depth_limit - 1,
                     remove_transparent,
+                    convert_strips,
                 )?;
             }
         }
@@ -174,30 +177,54 @@ pub fn read_entity<R: Read + Seek>(
                     t.texture_index
                 };
 
-                strips.push(TriStrip {
-                    start_index: indices.len() as u32,
-                    index_count: t.tricount * 3,
-                    texture_index: texture_index as u32,
-                    transparency: t.trans_type,
-                    flags: t.flags,
-                });
+                if convert_strips {
+                    strips.push(TriStrip {
+                        start_index: indices.len() as u32,
+                        index_count: t.tricount * 3,
+                        texture_index: texture_index as u32,
+                        transparency: t.trans_type,
+                        flags: t.flags,
+                        tri_count: t.tricount,
+                    });
 
-                for i in (index_offset_local as usize)..(index_offset_local + t.tricount) as usize {
-                    if (i - index_offset_local as usize) % 2 == 0 {
-                        indices.extend([
-                            vertex_offset + new_indices[i + 2] as u32,
-                            vertex_offset + new_indices[i + 1] as u32,
-                            vertex_offset + new_indices[i] as u32,
-                        ])
-                    } else {
-                        indices.extend([
-                            vertex_offset + new_indices[i] as u32,
-                            vertex_offset + new_indices[i + 1] as u32,
-                            vertex_offset + new_indices[i + 2] as u32,
-                        ])
+                    for i in
+                        (index_offset_local as usize)..(index_offset_local + t.tricount) as usize
+                    {
+                        if (i - index_offset_local as usize) % 2 == 0 {
+                            indices.extend([
+                                vertex_offset + new_indices[i + 2] as u32,
+                                vertex_offset + new_indices[i + 1] as u32,
+                                vertex_offset + new_indices[i] as u32,
+                            ])
+                        } else {
+                            indices.extend([
+                                vertex_offset + new_indices[i] as u32,
+                                vertex_offset + new_indices[i + 1] as u32,
+                                vertex_offset + new_indices[i + 2] as u32,
+                            ])
+                        }
                     }
+                    index_offset_local += t.tricount + 2;
+                } else {
+                    strips.push(TriStrip {
+                        start_index: indices.len() as u32,
+                        index_count: t.tricount + 2,
+                        texture_index: texture_index as u32,
+                        transparency: t.trans_type,
+                        flags: t.flags,
+                        tri_count: t.tricount,
+                    });
+
+                    indices.extend_from_slice(
+                        &new_indices[(index_offset_local as usize)
+                            ..(index_offset_local + t.tricount + 2) as usize]
+                            .iter()
+                            .map(|v| vertex_offset + v)
+                            .collect::<Vec<u32>>(),
+                    );
+
+                    index_offset_local += t.tricount + 2;
                 }
-                index_offset_local += t.tricount + 2;
             }
         }
         EXGeoEntity::UnknownType(u) => {

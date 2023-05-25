@@ -606,6 +606,7 @@ pub fn read_from_file<R: Read + Seek>(
             reader,
             4,
             false,
+            false,
         ) {
             error!("Failed to extract entity: {err}");
             continue;
@@ -652,6 +653,7 @@ pub fn read_from_file<R: Read + Seek>(
                 platform,
                 reader,
                 4,
+                false,
                 false,
             ) {
                 error!("Failed to extract entity: {err}");

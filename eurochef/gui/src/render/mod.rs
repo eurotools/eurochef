@@ -39,7 +39,7 @@ pub unsafe fn start_render(gl: &glow::Context) {
     gl.depth_mask(true);
     gl.clear_depth_f32(1.0);
     gl.clear(glow::DEPTH_BUFFER_BIT);
-    gl.cull_face(glow::BACK);
+    gl.cull_face(glow::FRONT);
     gl.enable(glow::DEPTH_TEST);
     gl.depth_func(glow::LEQUAL);
 }

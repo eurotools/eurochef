@@ -216,6 +216,7 @@ pub fn execute_command(
             &mut reader,
             4,
             remove_transparent,
+            true,
         ) {
             error!("Failed to extract entity: {err}");
             continue;
