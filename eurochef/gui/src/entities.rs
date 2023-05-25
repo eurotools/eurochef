@@ -116,6 +116,7 @@ impl EntityListPanel {
                         t.height as i32,
                         &d,
                         glow::RGBA,
+                        t.flags,
                     );
                     frames.push(handle);
                 }

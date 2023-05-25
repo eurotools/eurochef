@@ -43,6 +43,7 @@ pub unsafe fn load_texture(
     height: i32,
     data: &[u8],
     format: u32,
+    flags: u32,
 ) -> glow::Texture {
     let texture = gl.create_texture().unwrap();
     gl.bind_texture(glow::TEXTURE_2D, Some(texture));
@@ -61,6 +62,22 @@ pub unsafe fn load_texture(
 
     gl.tex_parameter_i32(glow::TEXTURE_2D, glow::TEXTURE_WRAP_S, glow::REPEAT as i32);
     gl.tex_parameter_i32(glow::TEXTURE_2D, glow::TEXTURE_WRAP_T, glow::REPEAT as i32);
+
+    // TODO: Bitflags
+    if (flags & 0x100000) != 0 {
+        gl.tex_parameter_i32(
+            glow::TEXTURE_2D,
+            glow::TEXTURE_WRAP_S,
+            glow::CLAMP_TO_EDGE as i32,
+        );
+    }
+    if (flags & 0x200000) != 0 {
+        gl.tex_parameter_i32(
+            glow::TEXTURE_2D,
+            glow::TEXTURE_WRAP_T,
+            glow::CLAMP_TO_EDGE as i32,
+        );
+    }
 
     gl.generate_mipmap(glow::TEXTURE_2D);
 
