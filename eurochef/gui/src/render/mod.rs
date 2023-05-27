@@ -1,6 +1,9 @@
-use glam::{Mat4, Vec2};
+use glam::Mat4;
 use glow::HasContext;
 
+use self::camera::Camera3D;
+
+pub mod camera;
 pub mod entity;
 pub mod gl_helper;
 pub mod grid;
@@ -10,27 +13,22 @@ pub struct RenderUniforms {
 }
 
 impl RenderUniforms {
-    pub fn new(orthographic: bool, orientation: Vec2, zoom: f32, aspect_ratio: f32) -> Self {
+    pub fn new<C: Camera3D + ?Sized>(orthographic: bool, camera: &C, aspect_ratio: f32) -> Self {
         let projection = if orthographic {
             glam::Mat4::orthographic_rh_gl(
-                (aspect_ratio * -zoom) * 2.0,
-                (-aspect_ratio * -zoom) * 2.0,
-                (1.0 * -zoom) * 2.0,
-                (-1.0 * -zoom) * 2.0,
+                (aspect_ratio * -camera.zoom()) * 2.0,
+                (-aspect_ratio * -camera.zoom()) * 2.0,
+                (1.0 * -camera.zoom()) * 2.0,
+                (-1.0 * -camera.zoom()) * 2.0,
                 -50.0,
                 2500.0,
             )
         } else {
-            glam::Mat4::perspective_rh_gl(90.0_f32.to_radians(), aspect_ratio, 0.1, 1000.0)
+            glam::Mat4::perspective_rh_gl(90.0_f32.to_radians(), aspect_ratio, 0.1, 2000.0)
         };
 
-        let view = glam::Mat4::from_rotation_translation(
-            glam::Quat::from_rotation_x(orientation.y) * glam::Quat::from_rotation_z(orientation.x),
-            glam::vec3(0.0, 0.0, -zoom),
-        );
-
         Self {
-            view: projection * view,
+            view: projection * camera.calculate_matrix(),
         }
     }
 }

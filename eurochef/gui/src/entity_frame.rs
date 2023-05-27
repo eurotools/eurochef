@@ -1,11 +1,21 @@
-use std::sync::{Arc, Mutex};
+use std::{
+    ops::Deref,
+    sync::{Arc, Mutex},
+};
 
 use glam::{Vec2, Vec3};
 use glow::HasContext;
+use instant::Instant;
 
 use crate::{
     entities::ProcessedEntityMesh,
-    render::{self, entity::EntityRenderer, grid::GridRenderer, RenderUniforms},
+    render::{
+        self,
+        camera::{ArcBallCamera, Camera3D},
+        entity::EntityRenderer,
+        grid::GridRenderer,
+        RenderUniforms,
+    },
 };
 
 pub struct EntityFrame {
@@ -13,13 +23,14 @@ pub struct EntityFrame {
 
     pub textures: Vec<RenderableTexture>,
     pub renderers: Vec<Arc<Mutex<EntityRenderer>>>,
-    orientation: Vec2,
-    zoom: f32,
+    camera: Arc<Mutex<dyn Camera3D>>,
 
     grid: GridRenderer,
     mesh_center: Vec3,
     pub show_grid: bool,
     pub orthographic: bool,
+
+    last_frame: Instant,
 }
 
 #[derive(Clone)]
@@ -44,12 +55,12 @@ impl EntityFrame {
             hashcode,
             textures,
             renderers: vec![],
-            orientation: Vec2::new(-2., -1.),
-            zoom: 5.0,
+            camera: Arc::new(Mutex::new(ArcBallCamera::default())),
             mesh_center: Vec3::ZERO,
             show_grid: true,
             orthographic: false,
             grid: GridRenderer::new(gl, 30),
+            last_frame: Instant::now(),
         };
 
         unsafe {
@@ -69,26 +80,19 @@ impl EntityFrame {
         s
     }
 
-    fn zoom_factor(zoom_level: f32) -> f32 {
-        2.0f32.powf(zoom_level * std::f32::consts::LN_2) - 0.9
-    }
-
     pub fn show(&mut self, ui: &mut egui::Ui) {
         let (rect, response) =
             ui.allocate_exact_size(ui.available_size(), egui::Sense::click_and_drag());
 
-        if let Some(multi_touch) = ui.ctx().multi_touch() {
-            self.zoom += -(multi_touch.zoom_delta - 1.0);
-        } else {
-            self.orientation += Vec2::new(response.drag_delta().x, response.drag_delta().y) * 0.005;
+        self.camera.lock().unwrap().update(
+            ui,
+            Some(response),
+            (Instant::now() - self.last_frame).as_secs_f32(),
+        );
+        self.last_frame = Instant::now();
 
-            self.zoom += -ui.input(|i| i.scroll_delta).y * 0.005;
-        }
-
-        self.zoom = self.zoom.clamp(0.00, 250.0);
-
-        let orientation = self.orientation;
-        let zoom = Self::zoom_factor(self.zoom);
+        // let orientation = self.orientation;
+        // let zoom = Self::zoom_factor(self.zoom);
         let mesh_center = self.mesh_center;
         let time = ui.input(|t| t.time);
 
@@ -98,6 +102,7 @@ impl EntityFrame {
         // TODO(cohae): How do we get out of this situation
         let grid = self.grid.clone(); // FIXME: Ugh.
         let textures = self.textures.clone(); // FIXME: UUUUGH.
+        let camera = self.camera.clone();
 
         let renderers = self.renderers.clone();
         let cb = egui_glow::CallbackFn::new(move |info, painter| unsafe {
@@ -105,8 +110,7 @@ impl EntityFrame {
 
             let uniforms = RenderUniforms::new(
                 orthographic,
-                orientation,
-                zoom,
+                camera.lock().unwrap().deref(),
                 info.viewport.aspect_ratio(),
             );
 

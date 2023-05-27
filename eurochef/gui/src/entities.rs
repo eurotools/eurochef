@@ -22,7 +22,7 @@ use glow::HasContext;
 
 use crate::{
     entity_frame::{EntityFrame, RenderableTexture},
-    render::{self, entity::EntityRenderer, gl_helper, RenderUniforms},
+    render::{self, camera::ArcBallCamera, entity::EntityRenderer, gl_helper, RenderUniforms},
 };
 
 pub struct EntityListPanel {
@@ -207,20 +207,20 @@ impl EntityListPanel {
         ui.horizontal_wrapped(|ui| {
             ui.spacing_mut().item_spacing = [16., 16.].into();
             for i in ids {
-                ui.allocate_ui(egui::Vec2::splat(256.), |ui| {
+                ui.allocate_ui(egui::Vec2::new(256., 256. + 20.), |ui| {
                     ui.spacing_mut().item_spacing = [4., 4.].into();
                     ui.vertical(|ui| {
                         let response = if let Some(Some(tex)) = self.entity_previews.get(&i) {
-                            egui::Image::new(tex.id(), [256., 230.])
+                            egui::Image::new(tex.id(), [256., 256.])
                                 .uv(egui::Rect::from_min_size(
                                     egui::Pos2::ZERO,
-                                    [1.0, 0.9].into(),
+                                    [1.0, 1.0].into(),
                                 ))
                                 .sense(egui::Sense::click())
                                 .ui(ui)
                         } else {
                             let (rect, response) =
-                                ui.allocate_exact_size([256., 230.].into(), egui::Sense::click());
+                                ui.allocate_exact_size([256., 256.].into(), egui::Sense::click());
 
                             ui.painter().rect_filled(
                                 rect,
@@ -365,8 +365,12 @@ impl EntityListPanel {
 
                 let mut out = vec![0u8; (self.preview_size * self.preview_size * 4) as usize];
 
-                let uniforms =
-                    RenderUniforms::new(true, Vec2::new(-2., -1.), 0.39 * maximum_extent, 1.0);
+                let zoom = 0.3 * maximum_extent;
+                let uniforms = RenderUniforms::new(
+                    true,
+                    &ArcBallCamera::new(Vec2::new(-2., -1.), zoom, false),
+                    1.0,
+                );
 
                 unsafe {
                     #[cfg(not(target_family = "wasm"))]

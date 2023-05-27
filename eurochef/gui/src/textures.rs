@@ -78,7 +78,7 @@ impl TextureList {
             .auto_shrink([false, false])
             .show(ui, |ui| {
                 ui.horizontal_wrapped(|ui| {
-                    ui.spacing_mut().item_spacing = [4.; 2].into();
+                    ui.spacing_mut().item_spacing = [4. * self.zoom; 2].into();
                     for (i, t) in self.textures.iter().enumerate() {
                         if self.filter_animated && self.textures[i].frame_count <= 1 {
                             continue;
