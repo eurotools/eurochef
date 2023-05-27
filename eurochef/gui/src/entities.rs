@@ -28,6 +28,7 @@ use crate::{
 pub struct EntityListPanel {
     gl: Arc<glow::Context>,
     entity_renderer: Option<EntityFrame>,
+    entity_label: String,
 
     entity_previews: FnvHashMap<u32, Option<egui::TextureHandle>>,
 
@@ -95,6 +96,7 @@ impl EntityListPanel {
             textures: Self::load_textures(&gl, textures),
             gl,
             entity_renderer: None,
+            entity_label: String::new(),
             entities,
             skins,
             ref_entities,
@@ -139,10 +141,7 @@ impl EntityListPanel {
                     self.entity_renderer = None;
                     return;
                 }
-                ui.heading(format!(
-                    "{:x}",
-                    self.entity_renderer.as_ref().unwrap().hashcode
-                ));
+                ui.heading(&self.entity_label);
             });
         }
 
@@ -247,6 +246,13 @@ impl EntityListPanel {
                             .on_hover_cursor(egui::CursorIcon::PointingHand)
                             .clicked()
                         {
+                            self.entity_label = match ty {
+                                0 => format!("Entity {:x}", i),
+                                1 => format!("Ref Entity {}", i),
+                                2 => format!("Animation Skin {:x}", i),
+                                _ => unreachable!(),
+                            };
+
                             if ty != 2 {
                                 self.entity_renderer = Some(EntityFrame::new(
                                     &self.gl,
