@@ -221,10 +221,10 @@ impl eframe::App for EurochefApp {
                         #[cfg(not(target_arch = "wasm32"))]
                         std::thread::spawn(move || {
                             if let Some(path) = rfd::FileDialog::new()
-                                .add_filter("Eurocom DB", &["edb"])
+                                .add_filter("EngineX Database", &["edb"])
                                 .pick_file()
                             {
-                                let mut f = File::open("path").unwrap();
+                                let mut f = File::open(&path).unwrap();
                                 let mut data = vec![];
                                 f.read_to_end(&mut data).unwrap();
 
