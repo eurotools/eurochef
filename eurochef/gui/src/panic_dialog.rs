@@ -34,6 +34,9 @@ pub fn setup() {
         {
             eprintln!("Failed to show error dialog: {e}")
         }
+
+        // Make sure the application exits
+        std::process::exit(-1);
     }))
 }
 
