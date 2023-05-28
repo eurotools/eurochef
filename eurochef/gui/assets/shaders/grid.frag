@@ -2,7 +2,8 @@
     precision mediump float;
 #endif
 
+in vec4 line_color;
 out vec4 out_color;
 void main() {
-    out_color = vec4(0.25, 0.25, 0.25, 1.0);
+    out_color = line_color;
 }

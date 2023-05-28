@@ -1,5 +1,5 @@
 use eurochef_shared::entities::{TriStrip, UXVertex};
-use glam::{Mat4, Vec2, Vec3, Vec3Swizzles};
+use glam::{Mat4, Vec2, Vec3};
 use glow::HasContext;
 
 use crate::{entities::ProcessedEntityMesh, entity_frame::RenderableTexture};
@@ -130,7 +130,7 @@ impl EntityRenderer {
             &uniforms.view.to_cols_array(),
         );
 
-        let model = Mat4::from_translation(-mesh_center.zxy());
+        let model = Mat4::from_translation(-mesh_center);
         gl.uniform_matrix_4_f32_slice(
             gl.get_uniform_location(self.mesh_shader, "u_model")
                 .as_ref(),

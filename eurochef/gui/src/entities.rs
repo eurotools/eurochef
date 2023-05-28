@@ -151,6 +151,21 @@ impl EntityListPanel {
             ui.horizontal(|ui| {
                 ui.checkbox(&mut er.orthographic, "Orthographic");
                 ui.checkbox(&mut er.show_grid, "Show grid");
+
+                egui::ComboBox::from_label("Camera")
+                    .selected_text(er.selected_camera.to_string())
+                    .show_ui(ui, |ui| {
+                        ui.selectable_value(
+                            &mut er.selected_camera,
+                            crate::entity_frame::CameraType::Orbit,
+                            "Orbit",
+                        );
+                        ui.selectable_value(
+                            &mut er.selected_camera,
+                            crate::entity_frame::CameraType::Fly,
+                            "Fly",
+                        );
+                    });
             });
 
             egui::Frame::canvas(ui.style()).show(ui, |ui| {
@@ -374,7 +389,7 @@ impl EntityListPanel {
                 let zoom = 0.3 * maximum_extent;
                 let uniforms = RenderUniforms::new(
                     true,
-                    &ArcBallCamera::new(Vec2::new(-2., -1.), zoom, false),
+                    &ArcBallCamera::new(Vec2::new(2.5, 0.5), zoom, false),
                     1.0,
                 );
 

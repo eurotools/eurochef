@@ -1,4 +1,4 @@
-use glam::{Mat4, Vec2};
+use glam::{Mat4, Vec2, Vec3};
 
 pub trait Camera3D: Sync + Send {
     fn update(&mut self, ui: &egui::Ui, response: Option<egui::Response>, delta: f32);
@@ -33,7 +33,7 @@ impl ArcBallCamera {
 impl Default for ArcBallCamera {
     fn default() -> Self {
         ArcBallCamera {
-            orientation: Vec2::new(-2., -1.),
+            orientation: Vec2::new(2.5, 0.5),
             zoom: 5.0,
             log_zoom: true,
         }
@@ -58,7 +58,7 @@ impl Camera3D for ArcBallCamera {
     fn calculate_matrix(&self) -> Mat4 {
         glam::Mat4::from_rotation_translation(
             glam::Quat::from_rotation_x(self.orientation.y)
-                * glam::Quat::from_rotation_z(self.orientation.x),
+                * glam::Quat::from_rotation_y(self.orientation.x),
             glam::vec3(
                 0.0,
                 0.0,
@@ -77,5 +77,89 @@ impl Camera3D for ArcBallCamera {
         } else {
             self.zoom
         }
+    }
+}
+
+#[derive(Clone)]
+pub struct FpsCamera {
+    orientation: Vec2,
+    pub front: Vec3,
+    pub right: Vec3,
+    pub position: Vec3,
+    pub speed_mul: f32,
+}
+
+impl Default for FpsCamera {
+    fn default() -> Self {
+        Self {
+            front: Vec3::Y,
+            right: Vec3::Z,
+            position: Vec3::ZERO,
+            orientation: Vec2::ZERO,
+            speed_mul: 1.0,
+        }
+    }
+}
+
+impl FpsCamera {
+    fn update_vectors(&mut self) {
+        let mut front = Vec3::ZERO;
+        front.x = -self.orientation.x.to_radians().cos() * self.orientation.y.to_radians().sin();
+        front.y = -self.orientation.x.to_radians().sin();
+        front.z = self.orientation.x.to_radians().cos() * self.orientation.y.to_radians().cos();
+
+        self.front = front.normalize();
+        self.right = self.front.cross(Vec3::Y).normalize();
+    }
+}
+
+impl Camera3D for FpsCamera {
+    fn update(&mut self, ui: &egui::Ui, response: Option<egui::Response>, delta: f32) {
+        let scroll = ui.input(|i| i.scroll_delta);
+        self.speed_mul = (self.speed_mul + scroll.y * 0.005).clamp(0.0, 5.0);
+
+        if let Some(response) = response {
+            let mouse_delta = response.drag_delta();
+            self.orientation += Vec2::new(mouse_delta.y as f32 * 0.8, mouse_delta.x as f32) * 0.15;
+        }
+
+        let mut speed = delta * zoom_factor(self.speed_mul) * 10.0;
+        if ui.input(|i| i.modifiers.shift) {
+            speed *= 2.0;
+        }
+        if ui.input(|i| i.modifiers.ctrl) {
+            speed /= 2.0;
+        }
+
+        let mut direction = Vec3::ZERO;
+        if ui.input(|i| i.key_down(egui::Key::W)) {
+            direction += self.front;
+        }
+        if ui.input(|i| i.key_down(egui::Key::S)) {
+            direction -= self.front;
+        }
+
+        if ui.input(|i| i.key_down(egui::Key::D)) {
+            direction += self.right;
+        }
+        if ui.input(|i| i.key_down(egui::Key::A)) {
+            direction -= self.right;
+        }
+
+        self.position += direction * speed;
+
+        // self.fov_scale = if self.is_zoomed { 0.25 } else { 1.0 };
+
+        self.orientation.x = self.orientation.x.clamp(-89.9, 89.9);
+
+        self.update_vectors();
+    }
+
+    fn calculate_matrix(&self) -> Mat4 {
+        Mat4::look_at_rh(self.position, self.position + self.front, Vec3::Y)
+    }
+
+    fn zoom(&self) -> f32 {
+        1.
     }
 }
