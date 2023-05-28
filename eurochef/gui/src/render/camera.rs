@@ -146,6 +146,13 @@ impl Camera3D for FpsCamera {
             direction -= self.right;
         }
 
+        if ui.input(|i| i.key_down(egui::Key::Q)) {
+            direction -= Vec3::Y * 0.5;
+        }
+        if ui.input(|i| i.key_down(egui::Key::E)) {
+            direction += Vec3::Y * 0.5;
+        }
+
         self.position += direction * speed;
 
         self.orientation.x = self.orientation.x.clamp(-89.9, 89.9);
