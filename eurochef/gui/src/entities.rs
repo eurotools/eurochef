@@ -21,7 +21,7 @@ use glam::{Vec2, Vec3};
 use glow::HasContext;
 
 use crate::{
-    entity_frame::{EntityFrame, RenderableTexture},
+    entity_frame::{CameraType, EntityFrame, RenderableTexture},
     render::{self, camera::ArcBallCamera, entity::EntityRenderer, gl_helper, RenderUniforms},
 };
 
@@ -149,22 +149,16 @@ impl EntityListPanel {
             ui.separator();
 
             ui.horizontal(|ui| {
-                ui.checkbox(&mut er.orthographic, "Orthographic");
+                if er.selected_camera == CameraType::Orbit {
+                    ui.checkbox(&mut er.orthographic, "Orthographic");
+                }
                 ui.checkbox(&mut er.show_grid, "Show grid");
 
                 egui::ComboBox::from_label("Camera")
                     .selected_text(er.selected_camera.to_string())
                     .show_ui(ui, |ui| {
-                        ui.selectable_value(
-                            &mut er.selected_camera,
-                            crate::entity_frame::CameraType::Orbit,
-                            "Orbit",
-                        );
-                        ui.selectable_value(
-                            &mut er.selected_camera,
-                            crate::entity_frame::CameraType::Fly,
-                            "Fly",
-                        );
+                        ui.selectable_value(&mut er.selected_camera, CameraType::Orbit, "Orbit");
+                        ui.selectable_value(&mut er.selected_camera, CameraType::Fly, "Fly");
                     });
             });
 

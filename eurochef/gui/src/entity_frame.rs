@@ -116,8 +116,6 @@ impl EntityFrame {
         );
         self.last_frame = Instant::now();
 
-        // let orientation = self.orientation;
-        // let zoom = Self::zoom_factor(self.zoom);
         let mesh_center = self.mesh_center;
         let time = ui.input(|t| t.time);
 

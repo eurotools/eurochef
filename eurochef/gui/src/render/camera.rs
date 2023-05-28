@@ -148,8 +148,6 @@ impl Camera3D for FpsCamera {
 
         self.position += direction * speed;
 
-        // self.fov_scale = if self.is_zoomed { 0.25 } else { 1.0 };
-
         self.orientation.x = self.orientation.x.clamp(-89.9, 89.9);
 
         self.update_vectors();
