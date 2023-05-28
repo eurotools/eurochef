@@ -24,7 +24,7 @@ impl RenderUniforms {
                 2500.0,
             )
         } else {
-            glam::Mat4::perspective_rh_gl(90.0_f32.to_radians(), aspect_ratio, 0.1, 2000.0)
+            glam::Mat4::perspective_rh_gl(90.0_f32.to_radians(), aspect_ratio, 0.02, 2000.0)
         };
 
         Self {

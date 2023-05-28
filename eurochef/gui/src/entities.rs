@@ -162,6 +162,21 @@ impl EntityListPanel {
                     });
             });
 
+            if ui.input(|i| i.key_pressed(egui::Key::F)) {
+                er.selected_camera = match er.selected_camera {
+                    CameraType::Orbit => CameraType::Fly,
+                    CameraType::Fly => CameraType::Orbit,
+                };
+            }
+
+            if ui.input(|i| i.key_pressed(egui::Key::G)) {
+                er.show_grid = !er.show_grid;
+            }
+
+            if ui.input(|i| i.key_pressed(egui::Key::O)) {
+                er.orthographic = !er.orthographic;
+            }
+
             egui::Frame::canvas(ui.style()).show(ui, |ui| {
                 er.show(ui);
             });

@@ -120,7 +120,11 @@ impl EntityFrame {
         let time = ui.input(|t| t.time);
 
         let show_grid = self.show_grid;
-        let orthographic = self.orthographic;
+        let orthographic = if self.selected_camera == CameraType::Orbit {
+            self.orthographic
+        } else {
+            false
+        };
 
         // TODO(cohae): How do we get out of this situation
         let grid = self.grid.clone(); // FIXME: Ugh.
