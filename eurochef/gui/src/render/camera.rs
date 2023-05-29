@@ -52,7 +52,46 @@ impl Camera3D for ArcBallCamera {
             }
         }
 
+        // Front view
+        if ui.input(|i| i.key_pressed(egui::Key::Num1)) {
+            self.orientation = Vec2::new(0., 0.);
+        }
+
+        // Right view
+        if ui.input(|i| i.key_pressed(egui::Key::Num3)) {
+            self.orientation = Vec2::new(std::f32::consts::FRAC_PI_2, 0.);
+        }
+
+        // Top view
+        if ui.input(|i| i.key_pressed(egui::Key::Num7)) {
+            self.orientation = Vec2::new(0., std::f32::consts::FRAC_PI_2);
+        }
+
+        // Rotate right
+        if ui.input(|i| i.key_pressed(egui::Key::Num6)) {
+            self.orientation.x -= std::f32::consts::FRAC_PI_2 / 6.;
+        }
+
+        // Rotate left
+        if ui.input(|i| i.key_pressed(egui::Key::Num4)) {
+            self.orientation.x += std::f32::consts::FRAC_PI_2 / 6.;
+        }
+
+        // Rotate up
+        if ui.input(|i| i.key_pressed(egui::Key::Num8)) {
+            self.orientation.y += std::f32::consts::FRAC_PI_2 / 6.;
+        }
+
+        // Rotate down
+        if ui.input(|i| i.key_pressed(egui::Key::Num2)) {
+            self.orientation.y -= std::f32::consts::FRAC_PI_2 / 6.;
+        }
+
         self.zoom = self.zoom.clamp(0.00, 250.0);
+        self.orientation.y = self
+            .orientation
+            .y
+            .clamp(-std::f32::consts::FRAC_PI_2, std::f32::consts::FRAC_PI_2);
     }
 
     fn calculate_matrix(&self) -> Mat4 {

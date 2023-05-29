@@ -75,7 +75,7 @@ impl BaseViewer {
             self.show_grid = !self.show_grid;
         }
 
-        if ui.input(|i| i.key_pressed(egui::Key::O)) {
+        if ui.input(|i| i.key_pressed(egui::Key::O) || i.key_pressed(egui::Key::Num5)) {
             self.orthographic = !self.orthographic;
         }
     }
