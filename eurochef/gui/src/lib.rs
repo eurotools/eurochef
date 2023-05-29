@@ -12,6 +12,8 @@ pub mod panic_dialog;
 mod entities;
 mod entity_frame;
 mod fileinfo;
+mod map_frame;
+mod maps;
 mod render;
 mod spreadsheet;
 mod textures;

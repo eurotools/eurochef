@@ -7,13 +7,20 @@ pub mod camera;
 pub mod entity;
 pub mod gl_helper;
 pub mod grid;
+pub mod viewer;
 
+#[derive(Default)]
 pub struct RenderUniforms {
     pub view: Mat4,
 }
 
 impl RenderUniforms {
-    pub fn new<C: Camera3D + ?Sized>(orthographic: bool, camera: &C, aspect_ratio: f32) -> Self {
+    pub fn update<C: Camera3D + ?Sized>(
+        &mut self,
+        orthographic: bool,
+        camera: &C,
+        aspect_ratio: f32,
+    ) {
         let projection = if orthographic {
             glam::Mat4::orthographic_rh_gl(
                 (aspect_ratio * -camera.zoom()) * 2.0,
@@ -27,9 +34,7 @@ impl RenderUniforms {
             glam::Mat4::perspective_rh_gl(90.0_f32.to_radians(), aspect_ratio, 0.02, 2000.0)
         };
 
-        Self {
-            view: projection * camera.calculate_matrix(),
-        }
+        self.view = projection * camera.calculate_matrix();
     }
 }
 

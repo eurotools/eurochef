@@ -8,7 +8,7 @@ use eurochef_edb::{
 };
 
 pub struct FileInfoPanel {
-    header: EXGeoHeader,
+    pub header: EXGeoHeader,
 }
 
 impl FileInfoPanel {

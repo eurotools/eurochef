@@ -21,7 +21,7 @@ use glam::{Vec2, Vec3};
 use glow::HasContext;
 
 use crate::{
-    entity_frame::{CameraType, EntityFrame, RenderableTexture},
+    entity_frame::{EntityFrame, RenderableTexture},
     render::{self, camera::ArcBallCamera, entity::EntityRenderer, gl_helper, RenderUniforms},
 };
 
@@ -105,7 +105,7 @@ impl EntityListPanel {
         }
     }
 
-    fn load_textures(gl: &glow::Context, textures: &[UXGeoTexture]) -> Vec<RenderableTexture> {
+    pub fn load_textures(gl: &glow::Context, textures: &[UXGeoTexture]) -> Vec<RenderableTexture> {
         textures
             .iter()
             .map(|t| unsafe {
@@ -147,39 +147,7 @@ impl EntityListPanel {
 
         if let Some(er) = self.entity_renderer.as_mut() {
             ui.separator();
-
-            ui.horizontal(|ui| {
-                if er.selected_camera == CameraType::Orbit {
-                    ui.checkbox(&mut er.orthographic, "Orthographic");
-                }
-                ui.checkbox(&mut er.show_grid, "Show grid");
-
-                egui::ComboBox::from_label("Camera")
-                    .selected_text(er.selected_camera.to_string())
-                    .show_ui(ui, |ui| {
-                        ui.selectable_value(&mut er.selected_camera, CameraType::Orbit, "Orbit");
-                        ui.selectable_value(&mut er.selected_camera, CameraType::Fly, "Fly");
-                    });
-            });
-
-            if ui.input(|i| i.key_pressed(egui::Key::F)) {
-                er.selected_camera = match er.selected_camera {
-                    CameraType::Orbit => CameraType::Fly,
-                    CameraType::Fly => CameraType::Orbit,
-                };
-            }
-
-            if ui.input(|i| i.key_pressed(egui::Key::G)) {
-                er.show_grid = !er.show_grid;
-            }
-
-            if ui.input(|i| i.key_pressed(egui::Key::O)) {
-                er.orthographic = !er.orthographic;
-            }
-
-            egui::Frame::canvas(ui.style()).show(ui, |ui| {
-                er.show(ui);
-            });
+            er.show(ui);
         } else {
             egui::ScrollArea::vertical()
                 .id_source("section_scroll_area")
@@ -280,7 +248,6 @@ impl EntityListPanel {
                             if ty != 2 {
                                 self.entity_renderer = Some(EntityFrame::new(
                                     &self.gl,
-                                    i,
                                     &[if ty == 0 {
                                         &self.entities.iter().find(|(v, _, _)| *v == i).unwrap().2
                                     } else {
@@ -291,7 +258,7 @@ impl EntityListPanel {
                                             .unwrap()
                                             .2
                                     }],
-                                    self.textures.to_vec(),
+                                    &self.textures,
                                 ));
                             } else {
                                 let mut combined_entities = vec![];
@@ -309,9 +276,8 @@ impl EntityListPanel {
 
                                 self.entity_renderer = Some(EntityFrame::new(
                                     &self.gl,
-                                    i,
                                     &combined_entities,
-                                    self.textures.to_vec(),
+                                    &self.textures,
                                 ));
                             }
                         }
@@ -396,7 +362,8 @@ impl EntityListPanel {
                 let mut out = vec![0u8; (self.preview_size * self.preview_size * 4) as usize];
 
                 let zoom = 0.3 * maximum_extent;
-                let uniforms = RenderUniforms::new(
+                let mut uniforms = RenderUniforms::default();
+                uniforms.update(
                     true,
                     &ArcBallCamera::new(Vec2::new(2.5, 0.5), zoom, false),
                     1.0,
@@ -422,7 +389,9 @@ impl EntityListPanel {
                         er.draw_both(
                             &self.gl,
                             &uniforms,
-                            mesh_center,
+                            -mesh_center,
+                            Vec3::ZERO,
+                            Vec3::ONE,
                             0.0, // Thumbnails are static so we don't need time
                             &self.textures,
                         );
@@ -437,7 +406,15 @@ impl EntityListPanel {
                             .collect();
 
                         for r in &renderers {
-                            r.draw_opaque(&self.gl, &uniforms, mesh_center, 0.0, &self.textures);
+                            r.draw_opaque(
+                                &self.gl,
+                                &uniforms,
+                                -mesh_center,
+                                Vec3::ZERO,
+                                Vec3::ONE,
+                                0.0,
+                                &self.textures,
+                            );
                         }
 
                         self.gl.depth_mask(false);
@@ -446,7 +423,9 @@ impl EntityListPanel {
                             r.draw_transparent(
                                 &self.gl,
                                 &uniforms,
-                                mesh_center,
+                                -mesh_center,
+                                Vec3::ZERO,
+                                Vec3::ONE,
                                 0.0,
                                 &self.textures,
                             );

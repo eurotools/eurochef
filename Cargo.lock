@@ -1019,6 +1019,7 @@ dependencies = [
  "eurochef-edb",
  "eurochef-filelist",
  "image",
+ "serde",
  "squish",
  "tracing",
 ]

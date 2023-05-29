@@ -10,7 +10,7 @@ use egui::{Color32, FontData, FontDefinitions, NumExt};
 use eurochef_edb::versions::Platform;
 use glow::HasContext;
 
-use crate::{entities, fileinfo, spreadsheet, textures};
+use crate::{entities, fileinfo, maps, spreadsheet, textures};
 
 /// Basic app tracking state
 pub enum AppState {
@@ -23,6 +23,7 @@ pub enum AppState {
 #[derive(PartialEq)]
 enum Panel {
     FileInfo,
+    Maps,
     Entities,
     Textures,
     Spreadsheets,
@@ -38,6 +39,7 @@ pub struct EurochefApp {
     fileinfo: Option<fileinfo::FileInfoPanel>,
     textures: Option<textures::TextureList>,
     entities: Option<entities::EntityListPanel>,
+    maps: Option<maps::MapViewerPanel>,
 
     load_input: Arc<AtomicCell<Option<(Vec<u8>, String)>>>,
     pending_file: Option<(Vec<u8>, Option<Platform>)>,
@@ -82,6 +84,7 @@ impl EurochefApp {
             fileinfo: None,
             textures: None,
             entities: None,
+            maps: None,
             load_input: Arc::new(AtomicCell::new(None)),
             pending_file: None,
             selected_platform: Platform::Ps2,
@@ -138,6 +141,21 @@ impl EurochefApp {
                     ref_entities,
                     &textures,
                 ));
+
+                // FIXME(cohae): Reuse entity data (Dirt on my hands, guilty guilty)
+                let (entities, _, ref_entities, textures) =
+                    entities::read_from_file(reader, platform);
+                if self.fileinfo.as_ref().unwrap().header.map_list.len() > 0 {
+                    let map = maps::read_from_file(reader, platform);
+                    self.maps = Some(maps::MapViewerPanel::new(
+                        ctx,
+                        self.gl.clone(),
+                        map,
+                        entities,
+                        ref_entities,
+                        &textures,
+                    ));
+                }
             }
         } else {
             self.entities = None;
@@ -192,6 +210,7 @@ impl eframe::App for EurochefApp {
             load_input,
             entities,
             selected_platform,
+            maps,
             ..
         } = self;
 
@@ -242,7 +261,7 @@ impl eframe::App for EurochefApp {
 
         // Run the app at refresh rate on the texture panel (for animated textures)
         match current_panel {
-            Panel::Entities | Panel::Textures => ctx.request_repaint(),
+            Panel::Entities | Panel::Textures | Panel::Maps => ctx.request_repaint(),
             _ => {
                 ctx.request_repaint_after(std::time::Duration::from_secs_f32(1.));
             }
@@ -394,6 +413,10 @@ impl eframe::App for EurochefApp {
                 if textures.is_some() {
                     ui.selectable_value(current_panel, Panel::Textures, "Textures");
                 }
+
+                if maps.is_some() {
+                    ui.selectable_value(current_panel, Panel::Maps, "Maps");
+                }
             });
             ui.separator();
 
@@ -402,6 +425,7 @@ impl eframe::App for EurochefApp {
                 Panel::Textures => textures.as_mut().map(|s| s.show(ui)),
                 Panel::Entities => entities.as_mut().map(|s| s.show(ctx, ui)),
                 Panel::Spreadsheets => spreadsheetlist.as_mut().map(|s| s.show(ui)),
+                Panel::Maps => maps.as_mut().map(|s| s.show(ctx, ui)),
             };
         });
 

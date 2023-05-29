@@ -42,6 +42,7 @@ impl Default for ArcBallCamera {
 
 impl Camera3D for ArcBallCamera {
     fn update(&mut self, ui: &egui::Ui, response: Option<egui::Response>, _delta: f32) {
+        self.zoom += -ui.input(|i| i.scroll_delta).y * 0.005;
         if let Some(multi_touch) = ui.ctx().multi_touch() {
             self.zoom += -(multi_touch.zoom_delta - 1.0);
         } else {
@@ -49,7 +50,6 @@ impl Camera3D for ArcBallCamera {
                 self.orientation +=
                     Vec2::new(response.drag_delta().x, response.drag_delta().y) * 0.005;
             }
-            self.zoom += -ui.input(|i| i.scroll_delta).y * 0.005;
         }
 
         self.zoom = self.zoom.clamp(0.00, 250.0);
