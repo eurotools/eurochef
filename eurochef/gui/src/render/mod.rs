@@ -27,7 +27,7 @@ impl RenderUniforms {
                 (-aspect_ratio * -camera.zoom()) * 2.0,
                 (1.0 * -camera.zoom()) * 2.0,
                 (-1.0 * -camera.zoom()) * 2.0,
-                -50.0,
+                -2500.0,
                 2500.0,
             )
         } else {
