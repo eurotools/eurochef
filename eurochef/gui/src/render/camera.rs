@@ -7,6 +7,10 @@ pub trait Camera3D: Sync + Send {
     fn calculate_matrix(&mut self) -> Mat4;
 
     fn zoom(&self) -> f32;
+
+    fn position(&mut self) -> Vec3 {
+        (self.calculate_matrix() * Vec4::ONE).xyz()
+    }
 }
 
 fn zoom_factor(zoom_level: f32) -> f32 {
@@ -246,5 +250,9 @@ impl Camera3D for FpsCamera {
 
     fn zoom(&self) -> f32 {
         1.
+    }
+
+    fn position(&mut self) -> Vec3 {
+        self.position
     }
 }
