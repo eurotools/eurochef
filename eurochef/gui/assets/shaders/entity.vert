@@ -25,7 +25,7 @@ uniform mat4 u_model;
 void main()
 {
     f_uv = a_uv + u_scroll;
-    f_color = a_col * 1.5;
+    f_color = vec4(a_col.xyz * 1.5, a_col.a);
 
     vec3 new_pos = (u_model * vec4(a_pos, 1.0)).xyz;
     new_pos.x = -new_pos.x;

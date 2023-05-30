@@ -1,4 +1,4 @@
-use glam::{Mat3, Mat4, Quat, Vec2, Vec3, Vec4, Vec4Swizzles};
+use glam::{Mat4, Vec2, Vec3, Vec4, Vec4Swizzles};
 
 pub trait Camera3D: Sync + Send {
     fn update(&mut self, ui: &egui::Ui, response: Option<egui::Response>, delta: f32);

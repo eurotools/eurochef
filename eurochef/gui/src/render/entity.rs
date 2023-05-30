@@ -184,7 +184,10 @@ impl EntityRenderer {
             gl.bind_vertex_array(Some(*vertex_array));
             gl.bind_buffer(glow::ELEMENT_ARRAY_BUFFER, Some(*index_buffer));
 
-            for t in strips.iter().filter(|t| t.transparency == 0) {
+            for t in strips
+                .iter()
+                .filter(|t| t.transparency == 0 && (t.flags & 0x8) == 0)
+            {
                 self.draw_strip(gl, t, time, textures);
             }
         }
@@ -205,7 +208,10 @@ impl EntityRenderer {
             gl.bind_vertex_array(Some(*vertex_array));
             gl.bind_buffer(glow::ELEMENT_ARRAY_BUFFER, Some(*index_buffer));
 
-            for t in strips.iter().filter(|t| t.transparency != 0) {
+            for t in strips
+                .iter()
+                .filter(|t| t.transparency != 0 || (t.flags & 0x8) != 0)
+            {
                 self.draw_strip(gl, t, time, textures);
             }
         }
@@ -218,6 +224,24 @@ impl EntityRenderer {
         time: f64,
         textures: &[RenderableTexture],
     ) {
+        // For stripflags (EX):
+        // 0x1 - transparent / vertex blended?
+        // 0x2 - ?
+        // 0x4 - additive
+        // 0x8 - ? kinda like 0x1 but not really
+        // 0x10 - ?
+        // 0x20 - ?
+        // 0x40 - double sided (disable culling)
+        // 0x80 - seems to be used for anything that's not transparent OR using vertex color transparency stuck to the world
+        // 0x100 - ?
+        // 0x200 - mostly additive surfaces, but not all
+        // 0x400 - used by everything that isn't a floor
+        // 0x800 - unused
+        // 0x1000 - unused
+        // 0x2000 - unused
+        // 0x4000 - unused
+        // 0x8000 - unused
+
         // TODO(cohae): Transparency seems broken on newer games
         let mut transparency = match t.transparency & 0xff {
             2 => BlendMode::ReverseSubtract,
@@ -225,7 +249,7 @@ impl EntityRenderer {
             0 | _ => BlendMode::None,
         };
 
-        if (t.flags & 0x8) != 0 && (t.flags & 0x1) == 0 {
+        if ((t.flags & 0x8) != 0 || (t.flags & 0x1) != 0) && transparency == BlendMode::None {
             transparency = BlendMode::Blend;
         }
 
@@ -240,7 +264,7 @@ impl EntityRenderer {
         gl.active_texture(glow::TEXTURE0);
         if (t.texture_index as usize) < textures.len() {
             let tex = &textures[t.texture_index as usize];
-            // Cubemap texture
+            // Cubemap texture (EngineXT)
             if (tex.flags & 0x30000) != 0 {
                 return;
             }
@@ -254,7 +278,7 @@ impl EntityRenderer {
                 glow::TEXTURE_2D,
                 Some(tex.frames[(time as f32 / frame_time) as usize % tex.frames.len()]),
             );
-            if (((tex.flags >> 0x18) >> 5) & 0b11) != 0 && transparency == BlendMode::None {
+            if (((tex.flags >> 0x18) >> 5) & 0b11) != 0 && (t.flags & 0x8) == 0 {
                 transparency = BlendMode::Cutout;
             }
         } else {
