@@ -1,5 +1,6 @@
 use std::io::{Read, Seek};
 
+use egui::FontSelection;
 use eurochef_edb::{
     binrw::{BinReaderExt, Endian},
     header::EXGeoHeader,
@@ -33,6 +34,7 @@ impl TextItemList {
             ui.text_edit_singleline(&mut self.search_text);
             ui.label("Hashcode: ");
             egui::TextEdit::singleline(&mut self.search_hashcode)
+                .font(FontSelection::Style(egui::TextStyle::Monospace))
                 .desired_width(76.0)
                 .show(ui);
         });

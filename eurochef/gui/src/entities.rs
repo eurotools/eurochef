@@ -197,7 +197,7 @@ impl EntityListPanel {
     fn show_section(&mut self, ui: &mut egui::Ui, ids: Vec<u32>, ty: i32) {
         ui.horizontal_wrapped(|ui| {
             ui.spacing_mut().item_spacing = [16., 16.].into();
-            for i in ids {
+            for (ii, i) in ids.iter().enumerate() {
                 ui.allocate_ui(egui::Vec2::new(256., 256. + 20.), |ui| {
                     ui.spacing_mut().item_spacing = [4., 4.].into();
                     ui.vertical(|ui| {
@@ -234,6 +234,10 @@ impl EntityListPanel {
                             response
                         };
 
+                        let response = response.on_hover_ui(|ui| {
+                            ui.label(format!("Index: {ii}\nHashcode: {i:08x}"));
+                        });
+
                         if response
                             .on_hover_cursor(egui::CursorIcon::PointingHand)
                             .clicked()
@@ -249,12 +253,12 @@ impl EntityListPanel {
                                 self.entity_renderer = Some(EntityFrame::new(
                                     &self.gl,
                                     &[if ty == 0 {
-                                        &self.entities.iter().find(|(v, _, _)| *v == i).unwrap().2
+                                        &self.entities.iter().find(|(v, _, _)| *v == *i).unwrap().2
                                     } else {
                                         &self
                                             .ref_entities
                                             .iter()
-                                            .find(|(v, _, _)| *v == i)
+                                            .find(|(v, _, _)| *v == *i)
                                             .unwrap()
                                             .2
                                     }],
@@ -262,7 +266,7 @@ impl EntityListPanel {
                                 ));
                             } else {
                                 let mut combined_entities = vec![];
-                                let skin = &self.skins.iter().find(|(v, _)| *v == i).unwrap().1;
+                                let skin = &self.skins.iter().find(|(v, _)| *v == *i).unwrap().1;
                                 let entity_indices: Vec<u32> = skin
                                     .entities
                                     .iter()

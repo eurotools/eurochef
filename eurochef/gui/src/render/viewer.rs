@@ -50,20 +50,20 @@ impl BaseViewer {
     }
 
     pub fn show_toolbar(&mut self, ui: &mut egui::Ui) {
-        ui.horizontal(|ui| {
-            if self.selected_camera == CameraType::Orbit {
-                ui.checkbox(&mut self.orthographic, "Orthographic");
-            }
-            ui.checkbox(&mut self.show_grid, "Show grid");
+        if self.selected_camera == CameraType::Orbit {
+            ui.checkbox(&mut self.orthographic, "Orthographic");
+        }
+        ui.checkbox(&mut self.show_grid, "Show grid");
 
-            egui::ComboBox::from_label("Camera")
-                .selected_text(self.selected_camera.to_string())
-                .show_ui(ui, |ui| {
-                    ui.selectable_value(&mut self.selected_camera, CameraType::Orbit, "Orbit");
-                    ui.selectable_value(&mut self.selected_camera, CameraType::Fly, "Fly");
-                });
-        });
+        egui::ComboBox::from_label("Camera")
+            .selected_text(self.selected_camera.to_string())
+            .show_ui(ui, |ui| {
+                ui.selectable_value(&mut self.selected_camera, CameraType::Orbit, "Orbit");
+                ui.selectable_value(&mut self.selected_camera, CameraType::Fly, "Fly");
+            });
+    }
 
+    pub fn update(&mut self, ui: &mut egui::Ui, response: egui::Response) {
         if ui.input(|i| i.key_pressed(egui::Key::F)) {
             self.selected_camera = match self.selected_camera {
                 CameraType::Orbit => CameraType::Fly,
@@ -78,9 +78,7 @@ impl BaseViewer {
         if ui.input(|i| i.key_pressed(egui::Key::O) || i.key_pressed(egui::Key::Num5)) {
             self.orthographic = !self.orthographic;
         }
-    }
 
-    pub fn update(&mut self, ui: &mut egui::Ui, response: egui::Response) {
         let camera: &mut dyn Camera3D = match self.selected_camera {
             CameraType::Fly => &mut self.camera_fly,
             CameraType::Orbit => &mut self.camera_orbit,

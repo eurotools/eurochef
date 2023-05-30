@@ -21,6 +21,10 @@ pub struct MapFrame {
     pub placement_renderers: Vec<(u32, u32, Arc<Mutex<EntityRenderer>>)>,
 
     pub viewer: Arc<Mutex<BaseViewer>>,
+    sky_ent: String,
+
+    /// Used to prevent keybinds being triggered while a textfield is focused
+    textfield_focused: bool,
 }
 
 impl MapFrame {
@@ -37,6 +41,8 @@ impl MapFrame {
             ref_renderers: vec![],
             placement_renderers: vec![],
             viewer: Arc::new(Mutex::new(BaseViewer::new(gl))),
+            sky_ent: String::new(),
+            textfield_focused: false,
         };
 
         unsafe {
@@ -53,7 +59,8 @@ impl MapFrame {
                 let flags = match e {
                     EXGeoEntity::Mesh(e) => e.base.flags,
                     EXGeoEntity::Split(e) => e.base.flags,
-                    _ => unreachable!(),
+                    EXGeoEntity::MapZone(e) => e.base.flags,
+                    _ => 0,
                 };
 
                 s.placement_renderers.push((*i, flags, r));
@@ -64,7 +71,38 @@ impl MapFrame {
     }
 
     pub fn show(&mut self, ui: &mut egui::Ui, map: &ProcessedMap) {
-        self.viewer.lock().unwrap().show_toolbar(ui);
+        ui.horizontal(|ui| {
+            self.viewer.lock().unwrap().show_toolbar(ui);
+
+            ui.label("  |  ");
+
+            let response = egui::TextEdit::singleline(&mut self.sky_ent)
+                .desired_width(76.0)
+                .show(ui)
+                .response;
+
+            self.textfield_focused = response.has_focus();
+
+            if let Ok(hashcode) = u32::from_str_radix(&self.sky_ent, 16) {
+                if !self
+                    .placement_renderers
+                    .iter()
+                    .find(|(hc, _, _)| *hc == hashcode)
+                    .is_some()
+                {
+                    ui.strong(font_awesome::EXCLAMATION_TRIANGLE.to_string())
+                        .on_hover_ui(|ui| {
+                            ui.label("Entity was not found");
+                        });
+                }
+            } else {
+                ui.strong(font_awesome::EXCLAMATION_TRIANGLE.to_string())
+                    .on_hover_ui(|ui| {
+                        ui.label("String is not formatted as a valid hashcode");
+                    });
+            }
+            ui.label("Sky ent");
+        });
 
         egui::Frame::canvas(ui.style()).show(ui, |ui| self.show_canvas(ui, map));
     }
@@ -78,7 +116,10 @@ impl MapFrame {
         let viewer = self.viewer.clone();
         let camera_pos = {
             let mut v = viewer.lock().unwrap();
-            v.update(ui, response);
+            if !self.textfield_focused {
+                v.update(ui, response);
+            }
+
             let camera: &mut dyn Camera3D = match v.selected_camera {
                 CameraType::Fly => &mut v.camera_fly,
                 CameraType::Orbit => &mut v.camera_orbit,
@@ -86,10 +127,13 @@ impl MapFrame {
 
             camera.position()
         };
+        // TODO(cohae): Why is this necessary?
+        let camera_pos = Vec3::new(-camera_pos.x, camera_pos.y, camera_pos.z);
 
         // TODO(cohae): How do we get out of this situation
         let textures = self.textures.clone(); // FIXME: UUUUGH.
         let map = map.clone(); // FIXME(cohae): ugh.
+        let sky_ent = u32::from_str_radix(&self.sky_ent, 16).unwrap_or(u32::MAX);
 
         let placement_renderers = self.placement_renderers.clone();
         let renderers = self.ref_renderers.clone();
@@ -98,6 +142,24 @@ impl MapFrame {
                 .lock()
                 .unwrap()
                 .start_render(painter.gl(), info.viewport.aspect_ratio());
+
+            if let Some((_, _, sky_renderer)) =
+                placement_renderers.iter().find(|(hc, _, _)| *hc == sky_ent)
+            {
+                painter.gl().depth_mask(false);
+
+                sky_renderer.lock().unwrap().draw_both(
+                    painter.gl(),
+                    &viewer.lock().unwrap().uniforms,
+                    camera_pos,
+                    Vec3::ZERO,
+                    Vec3::ONE,
+                    time,
+                    &textures,
+                );
+
+                painter.gl().depth_mask(true);
+            }
 
             // Render base (ref) entities
             for r in &renderers {
@@ -121,8 +183,6 @@ impl MapFrame {
                     let mut rotation: Vec3 = p.rotation.into();
                     let position: Vec3 = p.position.into();
                     if (flags & 0x4) != 0 {
-                        let camera_pos = Vec3::new(-camera_pos.x, camera_pos.y, camera_pos.z);
-
                         rotation = look_at(position, camera_pos)
                             .to_euler(glam::EulerRot::XYZ)
                             .into();
@@ -164,8 +224,6 @@ impl MapFrame {
                     let mut rotation: Vec3 = p.rotation.into();
                     let position: Vec3 = p.position.into();
                     if (flags & 0x4) != 0 {
-                        let camera_pos = Vec3::new(-camera_pos.x, camera_pos.y, camera_pos.z);
-
                         rotation = look_at(position, camera_pos)
                             .to_euler(glam::EulerRot::XYZ)
                             .into();
