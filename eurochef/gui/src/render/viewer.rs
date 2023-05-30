@@ -99,9 +99,9 @@ impl BaseViewer {
             super::start_render(gl);
         }
 
-        let camera: &dyn Camera3D = match self.selected_camera {
-            CameraType::Fly => &self.camera_fly,
-            CameraType::Orbit => &self.camera_orbit,
+        let camera: &mut dyn Camera3D = match self.selected_camera {
+            CameraType::Fly => &mut self.camera_fly,
+            CameraType::Orbit => &mut self.camera_orbit,
         };
         self.uniforms.update(
             if self.selected_camera == CameraType::Orbit {

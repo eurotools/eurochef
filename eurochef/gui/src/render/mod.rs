@@ -18,7 +18,7 @@ impl RenderUniforms {
     pub fn update<C: Camera3D + ?Sized>(
         &mut self,
         orthographic: bool,
-        camera: &C,
+        camera: &mut C,
         aspect_ratio: f32,
     ) {
         let projection = if orthographic {

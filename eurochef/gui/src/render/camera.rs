@@ -1,10 +1,10 @@
-use glam::{Mat4, Vec2, Vec3};
+use glam::{Mat3, Mat4, Quat, Vec2, Vec3, Vec4, Vec4Swizzles};
 
 pub trait Camera3D: Sync + Send {
     fn update(&mut self, ui: &egui::Ui, response: Option<egui::Response>, delta: f32);
 
     /// Calculate the view matrix
-    fn calculate_matrix(&self) -> Mat4;
+    fn calculate_matrix(&mut self) -> Mat4;
 
     fn zoom(&self) -> f32;
 }
@@ -15,27 +15,50 @@ fn zoom_factor(zoom_level: f32) -> f32 {
 
 #[derive(Clone)]
 pub struct ArcBallCamera {
+    pivot: Vec3,
     orientation: Vec2,
     zoom: f32,
     log_zoom: bool,
+
+    camera_inv: Mat4,
 }
 
 impl ArcBallCamera {
-    pub fn new(orientation: Vec2, zoom: f32, log_zoom: bool) -> Self {
+    pub fn new(pivot: Vec3, orientation: Vec2, zoom: f32, log_zoom: bool) -> Self {
         ArcBallCamera {
+            pivot,
             orientation,
             zoom,
             log_zoom,
+            camera_inv: Mat4::IDENTITY,
         }
+    }
+
+    fn eye(&self) -> Vec3 {
+        (self.camera_inv * Vec4::W).xyz()
+    }
+
+    fn dir(&self) -> Vec3 {
+        (self.camera_inv * Vec4::Z).xyz().normalize()
+    }
+
+    fn up(&self) -> Vec3 {
+        (self.camera_inv * Vec4::Y).xyz().normalize()
+    }
+
+    fn right(&self) -> Vec3 {
+        self.dir().cross(self.up())
     }
 }
 
 impl Default for ArcBallCamera {
     fn default() -> Self {
         ArcBallCamera {
+            pivot: Vec3::ZERO,
             orientation: Vec2::new(2.5, 0.5),
             zoom: 5.0,
             log_zoom: true,
+            camera_inv: Mat4::IDENTITY,
         }
     }
 }
@@ -46,9 +69,20 @@ impl Camera3D for ArcBallCamera {
         if let Some(multi_touch) = ui.ctx().multi_touch() {
             self.zoom += -(multi_touch.zoom_delta - 1.0);
         } else {
-            if let Some(response) = response {
-                self.orientation +=
-                    Vec2::new(response.drag_delta().x, response.drag_delta().y) * 0.005;
+            if let Some(response) = &response {
+                if response.dragged_by(egui::PointerButton::Primary)
+                    || response.dragged_by(egui::PointerButton::Middle)
+                {
+                    self.orientation +=
+                        Vec2::new(response.drag_delta().x, response.drag_delta().y) * 0.005;
+                }
+            }
+        }
+
+        if let Some(response) = &response {
+            if response.dragged_by(egui::PointerButton::Secondary) {
+                self.pivot += (-self.up() * response.drag_delta().y * 0.0030) * self.zoom();
+                self.pivot += (-self.right() * response.drag_delta().x * 0.0030) * self.zoom();
             }
         }
 
@@ -94,20 +128,27 @@ impl Camera3D for ArcBallCamera {
             .clamp(-std::f32::consts::FRAC_PI_2, std::f32::consts::FRAC_PI_2);
     }
 
-    fn calculate_matrix(&self) -> Mat4 {
-        glam::Mat4::from_rotation_translation(
+    fn calculate_matrix(&mut self) -> Mat4 {
+        let rotation = Mat4::from_quat(
             glam::Quat::from_rotation_x(self.orientation.y)
                 * glam::Quat::from_rotation_y(self.orientation.x),
-            glam::vec3(
-                0.0,
-                0.0,
-                if self.log_zoom {
-                    -zoom_factor(self.zoom)
-                } else {
-                    -self.zoom
-                },
-            ),
-        )
+        );
+
+        let translation = Mat4::from_translation(self.pivot);
+        let zoom = Mat4::from_translation(glam::vec3(
+            0.0,
+            0.0,
+            if self.log_zoom {
+                -zoom_factor(self.zoom)
+            } else {
+                -self.zoom
+            },
+        ));
+
+        let view = zoom * rotation * translation;
+        self.camera_inv = view.inverse();
+
+        view
     }
 
     fn zoom(&self) -> f32 {
@@ -199,7 +240,7 @@ impl Camera3D for FpsCamera {
         self.update_vectors();
     }
 
-    fn calculate_matrix(&self) -> Mat4 {
+    fn calculate_matrix(&mut self) -> Mat4 {
         Mat4::look_at_rh(self.position, self.position + self.front, Vec3::Y)
     }
 
