@@ -284,12 +284,6 @@ impl EntityRenderer {
         } else {
             gl.bind_texture(glow::TEXTURE_2D, None);
         }
-
-        // Skip transparent surfaces on newer games for now
-        if t.transparency > 0xff {
-            return;
-        }
-
         gl.uniform_2_f32(
             gl.get_uniform_location(self.mesh_shader, "u_scroll")
                 .as_ref(),
