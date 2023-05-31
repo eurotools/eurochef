@@ -233,7 +233,7 @@ impl EntityRenderer {
         // 0x20 - ?
         // 0x40 - double sided (disable culling)
         // 0x80 - seems to be used for anything that's not transparent OR using vertex color transparency stuck to the world
-        // 0x100 - ?
+        // 0x100 - ? (used by godrays in gforce)
         // 0x200 - mostly additive surfaces, but not all
         // 0x400 - used by everything that isn't a floor
         // 0x800 - unused?

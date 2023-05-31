@@ -1,8 +1,8 @@
 pub mod gx;
 pub mod pc;
+pub mod ps2;
 pub mod xbox;
 pub mod xenon;
-// pub mod ps2;
 
 use eurochef_edb::versions::Platform;
 use image::RgbaImage;
@@ -18,10 +18,15 @@ pub trait TextureDecoder {
         format: u8,
     ) -> anyhow::Result<usize>;
 
+    fn get_clut_size(&self, _format: u8) -> anyhow::Result<usize> {
+        unimplemented!()
+    }
+
     /// Output buffer must be width*height*depth*4 bytes long (RGBA)
     fn decode(
         &self,
         input: &[u8],
+        clut: Option<&[u8]>,
         output: &mut RgbaImage,
         width: u32,
         height: u32,
@@ -33,7 +38,7 @@ pub trait TextureDecoder {
 pub fn create_for_platform(platform: Platform) -> Box<dyn TextureDecoder> {
     match platform {
         Platform::Pc => Box::new(pc::PcTextureDecoder),
-        // Platform::Ps2 => Box::new(ps2::Ps2TextureDecoder),
+        Platform::Ps2 => Box::new(ps2::Ps2TextureDecoder),
         Platform::GameCube | Platform::Wii => Box::new(gx::GxTextureDecoder),
         Platform::Xbox => Box::new(xbox::XboxTextureDecoder),
         Platform::Xbox360 => Box::new(xenon::XenonTextureDecoder),

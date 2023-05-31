@@ -41,12 +41,15 @@ pub struct EXGeoTexture {
     pub external_file: Option<u32>, // 0x1c
 
     #[br(if(version != 259))]
-    _pad1: u32, // 0x20
+    _unk1: u32, // 0x1c
 
-    _pad2: u32, // 0x20
+    _unk2: EXRelPtr, // 0x20
 
     #[brw(if(platform != Platform::GameCube))]
-    _pad3: u32, // 0x24
+    _unk3: u32, // 0x24
+
+    #[brw(if(platform == Platform::Ps2))]
+    pub clut_offset: Option<EXRelPtr>,
 
     // TODO(cohae): This might just be platform specific
     /// Newer games calculate data size from other parameters.

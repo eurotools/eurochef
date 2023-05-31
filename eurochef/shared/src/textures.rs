@@ -47,7 +47,7 @@ impl UXGeoTexture {
         let texture_decoder = texture::create_for_platform(platform);
         let mut textures = vec![];
         let mut data = vec![];
-        for t in header.texture_list.iter() {
+        'texloop: for t in header.texture_list.iter() {
             reader.seek(std::io::SeekFrom::Start(t.common.address as u64))?;
 
             let tex = reader
@@ -114,20 +114,29 @@ impl UXGeoTexture {
                 frames: Vec::with_capacity(tex.frame_count as usize),
             };
 
+            let mut clut = vec![];
+            if let Some(clut_offset) = &tex.clut_offset {
+                let clut_size = texture_decoder.get_clut_size(tex.format)?;
+                clut.resize(clut_size, 0);
+
+                reader.seek(std::io::SeekFrom::Start(clut_offset.offset_absolute()))?;
+                reader.read_exact(&mut clut)?;
+            }
+
             for (i, frame_offset) in tex.frame_offsets.iter().enumerate() {
                 reader.seek(std::io::SeekFrom::Start(frame_offset.offset_absolute()))?;
-
                 if let Err(e) = reader.read_exact(&mut data) {
                     error!("Failed to read texture {:x}.{i}: {e}", t.common.hashcode);
                     textures.push(Self {
                         hashcode: t.common.hashcode,
                         ..Default::default()
                     });
-                    continue;
+                    continue 'texloop;
                 }
 
                 if let Err(e) = texture_decoder.decode(
                     &data,
+                    if clut.len() > 0 { Some(&clut) } else { None },
                     &mut output,
                     tex.width as u32,
                     tex.height as u32,
@@ -139,7 +148,7 @@ impl UXGeoTexture {
                         hashcode: t.common.hashcode,
                         ..Default::default()
                     });
-                    continue;
+                    continue 'texloop;
                 }
 
                 if output.len() != (t.width as usize * t.height as usize) * 4 {
@@ -154,7 +163,7 @@ impl UXGeoTexture {
                         ..Default::default()
                     });
 
-                    continue;
+                    continue 'texloop;
                 }
 
                 texture.frames.push(output.clone().into_vec());

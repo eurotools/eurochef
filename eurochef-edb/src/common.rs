@@ -186,6 +186,6 @@ pub struct EXGeoAnimSkinHeader {
     pub base_skin_num: u32,
     pub mip_ref: u32,
     pub mip_distance: u32,
-    #[brw(if(version.eq(&248)))]
+    #[brw(if(version.eq(&248) || version.eq(&252)))]
     pub unk: [u32; 2],
 }

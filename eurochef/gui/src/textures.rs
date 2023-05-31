@@ -23,6 +23,8 @@ pub struct TextureList {
     filter_animated: bool,
 
     enlarged_texture: Option<(usize, u32)>,
+
+    fallback_texture: Option<egui::TextureHandle>,
 }
 
 impl TextureList {
@@ -36,12 +38,19 @@ impl TextureList {
             filter_animated: false,
 
             enlarged_texture: None,
+
+            // TODO(cohae): Replace with symbol
+            fallback_texture: None,
         }
     }
 
     pub fn load_textures(&mut self, ctx: &egui::Context) {
+        self.fallback_texture = Some(ctx.load_texture("fallback", egui::ColorImage::from_rgba_unmultiplied([2, 2], &[
+                    255, 0, 255, 255, 0, 0, 0, 255, 0, 0, 0, 255, 255, 0, 255, 255,
+                ]), egui::TextureOptions::default()));
+
         for t in &self.textures {
-            let frames = t
+            let frames: Vec<egui::TextureHandle> = t
                 .frames
                 .iter()
                 .map(|f| {
@@ -89,14 +98,14 @@ impl TextureList {
                         let frame_time = (1. / t.framerate as f32) * frametime_scale;
 
                         let frames = &self.egui_textures[&t.hashcode];
-                        if frames.len() == 0 {
-                            continue;
-                        }
-
-                        let current = if frames.len() > 1 {
-                            &frames[(time / frame_time) as usize % frames.len()]
+                        let current = if frames.len() == 0 {
+                            self.fallback_texture.as_ref().unwrap()
                         } else {
-                            &frames[0]
+                            if frames.len() > 1 {
+                                &frames[(time / frame_time) as usize % frames.len()]
+                            } else {
+                                &frames[0]
+                            }
                         };
 
                         // TODO(cohae): figure out scrolling

@@ -112,6 +112,17 @@ pub enum EXGeoEntity {
     UnknownType(u32),
 }
 
+impl EXGeoEntity {
+    pub fn base(&self) -> Option<&EXGeoBaseEntity> {
+        match self {
+            EXGeoEntity::Mesh(e) => Some(&e.base),
+            EXGeoEntity::Split(e) => Some(&e.base),
+            EXGeoEntity::MapZone(e) => Some(&e.base),
+            EXGeoEntity::UnknownType(e) => None,
+        }
+    }
+}
+
 impl BinRead for EXGeoEntity {
     type Args<'a> = (u32, Platform);
 

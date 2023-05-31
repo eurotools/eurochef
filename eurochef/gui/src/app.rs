@@ -161,15 +161,11 @@ impl EurochefApp {
             self.entities = None;
         }
 
-        if ![Platform::Ps2].contains(&platform) {
-            self.textures = Some(textures::TextureList::new(textures::read_from_file(
-                reader, platform,
-            )));
+        self.textures = Some(textures::TextureList::new(textures::read_from_file(
+            reader, platform,
+        )));
 
-            self.textures.as_mut().unwrap().load_textures(ctx);
-        } else {
-            self.textures = None;
-        }
+        self.textures.as_mut().unwrap().load_textures(ctx);
 
         self.state = AppState::Ready;
     }

@@ -22,6 +22,7 @@ impl TextureDecoder for GxTextureDecoder {
     fn decode(
         &self,
         input: &[u8],
+        clut: Option<&[u8]>,
         output: &mut RgbaImage,
         width: u32,
         height: u32,
