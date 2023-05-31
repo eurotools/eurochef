@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use eurochef_edb::entity::EXGeoEntity;
+use eurochef_edb::entity::{EXGeoBaseEntity, EXGeoEntity};
 use glam::{Mat4, Quat, Vec3, Vec4};
 use glow::HasContext;
 
@@ -18,7 +18,7 @@ use crate::{
 pub struct MapFrame {
     pub textures: Vec<RenderableTexture>,
     pub ref_renderers: Vec<Arc<Mutex<EntityRenderer>>>,
-    pub placement_renderers: Vec<(u32, u32, Arc<Mutex<EntityRenderer>>)>,
+    pub placement_renderers: Vec<(u32, EXGeoBaseEntity, Arc<Mutex<EntityRenderer>>)>,
 
     pub viewer: Arc<Mutex<BaseViewer>>,
     sky_ent: String,
@@ -56,16 +56,13 @@ impl MapFrame {
                 let r = Arc::new(Mutex::new(EntityRenderer::new(gl)));
                 r.lock().unwrap().load_mesh(gl, m);
 
-                let flags = match e {
-                    EXGeoEntity::Mesh(e) => e.base.flags,
-                    EXGeoEntity::Split(e) => e.base.flags,
-                    EXGeoEntity::MapZone(e) => e.base.flags,
-                    _ => 0,
-                };
-
-                s.placement_renderers.push((*i, flags, r));
+                let base = e.base().unwrap().clone();
+                s.placement_renderers.push((*i, base, r));
             }
         }
+
+        s.placement_renderers
+            .sort_by(|(_, e, _), (_, e2, _)| e.sort_value.cmp(&e2.sort_value));
 
         s
     }
@@ -176,13 +173,13 @@ impl MapFrame {
             }
 
             for p in &map.placements {
-                if let Some((_, flags, r)) = placement_renderers
+                if let Some((_, base, r)) = placement_renderers
                     .iter()
                     .find(|(i, _, _)| *i == p.object_ref)
                 {
                     let mut rotation: Vec3 = p.rotation.into();
                     let position: Vec3 = p.position.into();
-                    if (flags & 0x4) != 0 {
+                    if (base.flags & 0x4) != 0 {
                         rotation = look_at(position, camera_pos)
                             .to_euler(glam::EulerRot::XYZ)
                             .into();
@@ -217,13 +214,13 @@ impl MapFrame {
             }
 
             for p in &map.placements {
-                if let Some((_, flags, r)) = placement_renderers
+                if let Some((_, base, r)) = placement_renderers
                     .iter()
                     .find(|(i, _, _)| *i == p.object_ref)
                 {
                     let mut rotation: Vec3 = p.rotation.into();
                     let position: Vec3 = p.position.into();
-                    if (flags & 0x4) != 0 {
+                    if (base.flags & 0x4) != 0 {
                         rotation = look_at(position, camera_pos)
                             .to_euler(glam::EulerRot::XYZ)
                             .into();
