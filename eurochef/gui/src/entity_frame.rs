@@ -89,7 +89,7 @@ impl EntityFrame {
                 renderer_lock.draw_opaque(
                     painter.gl(),
                     &viewer.lock().unwrap().uniforms,
-                    mesh_center,
+                    -mesh_center,
                     Vec3::ZERO,
                     Vec3::ONE,
                     time,
@@ -104,7 +104,7 @@ impl EntityFrame {
                 renderer_lock.draw_transparent(
                     painter.gl(),
                     &viewer.lock().unwrap().uniforms,
-                    mesh_center,
+                    -mesh_center,
                     Vec3::ZERO,
                     Vec3::ONE,
                     time,
