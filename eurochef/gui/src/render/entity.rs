@@ -229,18 +229,23 @@ impl EntityRenderer {
         // 0x2 - ?
         // 0x4 - additive
         // 0x8 - ? kinda like 0x1 but not really
-        // 0x10 - ?
+        // 0x10 - invisible
         // 0x20 - ?
         // 0x40 - double sided (disable culling)
         // 0x80 - seems to be used for anything that's not transparent OR using vertex color transparency stuck to the world
         // 0x100 - ?
         // 0x200 - mostly additive surfaces, but not all
         // 0x400 - used by everything that isn't a floor
-        // 0x800 - unused
-        // 0x1000 - unused
-        // 0x2000 - unused
-        // 0x4000 - unused
-        // 0x8000 - unused
+        // 0x800 - unused?
+        // 0x1000 - unused?
+        // 0x2000 - unused?
+        // 0x4000 - unused?
+        // 0x8000 - unused?
+
+        // Hide what is hidden
+        if (t.flags & 0x10) != 0 {
+            return;
+        }
 
         // TODO(cohae): Transparency seems broken on newer games
         let mut transparency = match t.transparency & 0xff {
