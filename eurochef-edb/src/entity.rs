@@ -118,7 +118,7 @@ impl EXGeoEntity {
             EXGeoEntity::Mesh(e) => Some(&e.base),
             EXGeoEntity::Split(e) => Some(&e.base),
             EXGeoEntity::MapZone(e) => Some(&e.base),
-            EXGeoEntity::UnknownType(e) => None,
+            EXGeoEntity::UnknownType(_e) => None,
         }
     }
 }
