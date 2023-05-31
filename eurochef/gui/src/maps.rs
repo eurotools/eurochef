@@ -112,15 +112,27 @@ pub fn read_from_file<R: Read + Seek>(reader: &mut R, platform: Platform) -> Pro
         .read_type::<EXGeoHeader>(endian)
         .expect("Failed to read header");
 
-    let m = header.map_list.data().first().unwrap();
-    reader
-        .seek(std::io::SeekFrom::Start(m.address as u64))
-        .unwrap();
+    let mut xmap: Option<EXGeoMap> = None;
+    for m in header.map_list.iter() {
+        reader
+            .seek(std::io::SeekFrom::Start(m.address as u64))
+            .unwrap();
 
-    let xmap = reader
-        .read_type_args::<EXGeoMap>(endian, (header.version,))
-        .context("Failed to read map")
-        .unwrap();
+        let nmap = reader
+            .read_type_args::<EXGeoMap>(endian, (header.version,))
+            .context("Failed to read map")
+            .unwrap();
+
+        if let Some(oxmap) = &xmap {
+            if nmap.placements.len() > oxmap.placements.len() {
+                xmap = Some(nmap);
+            }
+        } else {
+            xmap = Some(nmap)
+        }
+    }
+
+    let xmap = xmap.unwrap();
 
     let mut map = ProcessedMap {
         mapzone_entities: vec![],
