@@ -59,7 +59,9 @@ impl EntityFrame {
     }
 
     pub fn show(&mut self, ui: &mut egui::Ui) {
-        self.viewer.lock().unwrap().show_toolbar(ui);
+        ui.horizontal(|ui| {
+            self.viewer.lock().unwrap().show_toolbar(ui);
+        });
 
         egui::Frame::canvas(ui.style()).show(ui, |ui| self.show_canvas(ui));
     }
