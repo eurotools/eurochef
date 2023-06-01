@@ -47,6 +47,13 @@ impl FileInfoPanel {
         quick_info!("Version", self.header.version.to_string());
         quick_info!("Hashcode", format!("{:x}", self.header.hashcode));
         quick_info!(
+            "Build timestamp",
+            format!(
+                "{}",
+                chrono::NaiveDateTime::from_timestamp_opt(self.header.time as i64, 0).unwrap()
+            )
+        );
+        quick_info!(
             "Base file size",
             format!("{}KB", self.header.base_file_size / 1024)
         );
