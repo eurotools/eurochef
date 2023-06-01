@@ -79,11 +79,23 @@ pub fn read_entity<R: Read + Seek>(
                     vertices.push(data.read_type(endian)?)
                 }
 
+                let textures = &mesh.texture_list.textures;
                 for t in &tristrips {
+                    let texture_index = if mesh.base.flags & 0x1 != 0 {
+                        // Index from texture list instead of the "global" array
+                        if t.texture_index < textures.len() as u16 {
+                            textures[t.texture_index as usize] as i32
+                        } else {
+                            error!("Tried to get texture #{} from texture list, but list only has {} elements!", t.texture_index, textures.len());
+                            -1
+                        }
+                    } else {
+                        t.texture_index as i32
+                    };
+
                     let vstart = vertex_data.len();
                     let mut index_count = 0;
 
-                    // TODO(cohae): Inefficient?
                     for i in &t.vertices {
                         let index = i.index & 0x0fff;
                         let operation = (i.index >> 12) & 0xf;
@@ -118,7 +130,7 @@ pub fn read_entity<R: Read + Seek>(
                     strips.push(TriStrip {
                         start_index: vstart as u32,
                         index_count: index_count,
-                        texture_index: t.texture_index as u32,
+                        texture_index: texture_index as u32,
                         transparency: 0,
                         flags: 0,
                         tri_count: index_count - 2,
