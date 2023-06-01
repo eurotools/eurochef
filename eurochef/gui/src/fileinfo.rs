@@ -45,7 +45,16 @@ impl FileInfoPanel {
 
         ui.label(egui::RichText::new(format!("{} EDB File Info", fa::INFO_CIRCLE)).heading());
         quick_info!("Version", self.header.version.to_string());
-        quick_info!("Hashcode", format!("{:x}", self.header.hashcode));
+        ui.horizontal(|ui| {
+            ui.strong("Hashcode:");
+            ui.label(format!("{:x}", self.header.hashcode));
+            if ui.button(font_awesome::CLIPBOARD.to_string()).clicked() {
+                ui.output_mut(|o| o.copied_text = format!("{:x}", self.header.hashcode));
+            }
+        });
+
+        quick_info!("Flags", format!("0x{:08x}", self.header.flags));
+
         quick_info!(
             "Build timestamp",
             format!(
