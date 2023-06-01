@@ -61,7 +61,7 @@ impl TextureDecoder for Ps2TextureDecoder {
                         .copy_from_slice(&clut_swizzled[offset + 8..offset + 16])
                 }
 
-                let input_deswiz = swizzle8_to_32(input, width, height);
+                let input_deswiz = swizzle8_to_32(input, width, height, version);
                 for y in 0..height {
                     for x in 0..width {
                         let byte = input_deswiz[(y * width + x) as usize];
@@ -156,7 +156,7 @@ fn swizzle4_to_32(input: &[u8], width: u32, height: u32, version: u32) -> Vec<u8
         }
     }
 
-    if version == 163 {
+    if version <= 174 {
         return pixels.to_vec();
     }
 
@@ -196,7 +196,10 @@ fn swizzle4_to_32(input: &[u8], width: u32, height: u32, version: u32) -> Vec<u8
     output
 }
 
-fn swizzle8_to_32(input: &[u8], width: u32, height: u32) -> Vec<u8> {
+fn swizzle8_to_32(input: &[u8], width: u32, height: u32, version: u32) -> Vec<u8> {
+    if version <= 174 {
+        return input.to_vec();
+    }
     let mut output = vec![0u8; input.len()];
 
     for y in 0..height {
