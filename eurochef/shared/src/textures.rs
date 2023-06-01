@@ -142,6 +142,7 @@ impl UXGeoTexture {
                     tex.height as u32,
                     tex.depth as u32,
                     tex.format,
+                    header.version,
                 ) {
                     error!("Texture {:08x} failed to decode: {}", t.common.hashcode, e);
                     textures.push(Self {

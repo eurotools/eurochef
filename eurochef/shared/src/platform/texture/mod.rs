@@ -32,6 +32,7 @@ pub trait TextureDecoder {
         height: u32,
         depth: u32,
         format: u8,
+        version: u32,
     ) -> anyhow::Result<()>;
 }
 

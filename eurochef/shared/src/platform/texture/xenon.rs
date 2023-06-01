@@ -25,12 +25,13 @@ impl TextureDecoder for XenonTextureDecoder {
     fn decode(
         &self,
         input: &[u8],
-        clut: Option<&[u8]>,
+        _clut: Option<&[u8]>,
         output: &mut RgbaImage,
         width: u32,
         height: u32,
         depth: u32,
         format: u8,
+        _version: u32,
     ) -> anyhow::Result<()> {
         let fmt = InternalFormat::n(format)
             .ok_or(anyhow::anyhow!("Invalid texture format 0x{format:x}"))?;

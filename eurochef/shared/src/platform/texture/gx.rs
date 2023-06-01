@@ -22,12 +22,13 @@ impl TextureDecoder for GxTextureDecoder {
     fn decode(
         &self,
         input: &[u8],
-        clut: Option<&[u8]>,
+        _clut: Option<&[u8]>,
         output: &mut RgbaImage,
         width: u32,
         height: u32,
         depth: u32,
         format: u8,
+        _version: u32,
     ) -> anyhow::Result<()> {
         // * The data for GC/Wii textures contains an extra header with the internal GX format
         let input_header = &input[0..64];

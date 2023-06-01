@@ -1,5 +1,3 @@
-use std::borrow::Cow;
-
 use anyhow::Context;
 use enumn::N;
 use image::{Rgba, RgbaImage};
@@ -40,6 +38,7 @@ impl TextureDecoder for Ps2TextureDecoder {
         height: u32,
         depth: u32,
         format: u8,
+        version: u32,
     ) -> anyhow::Result<()> {
         let fmt = InternalFormat::n(format)
             .ok_or(anyhow::anyhow!("Invalid texture format 0x{format:x}"))?;
@@ -74,7 +73,7 @@ impl TextureDecoder for Ps2TextureDecoder {
             }
             InternalFormat::P16x32 => {
                 let clut: &[[u8; 4]] = bytemuck::cast_slice(clut.unwrap());
-                let input_deswiz = swizzle4_to_32(input, width, height);
+                let input_deswiz = swizzle4_to_32(input, width, height, version);
                 for y in 0..height {
                     for x in 0..width {
                         let byte = input_deswiz[(y * width + x) as usize];
@@ -131,11 +130,11 @@ impl InternalFormat {
     }
 }
 
-fn swizzle4_to_32(input: &[u8], width: u32, height: u32) -> Vec<u8> {
-    const InterlaceMatrix: [u8; 8] = [0x00, 0x10, 0x02, 0x12, 0x11, 0x01, 0x13, 0x03];
+fn swizzle4_to_32(input: &[u8], width: u32, height: u32, version: u32) -> Vec<u8> {
+    const INTERLACE_MATRIX: [u8; 8] = [0x00, 0x10, 0x02, 0x12, 0x11, 0x01, 0x13, 0x03];
 
-    const Matrix: [i32; 4] = [0, 1, -1, 0];
-    const TileMatrix: [i32; 2] = [4, -4];
+    const MATRIX: [i32; 4] = [0, 1, -1, 0];
+    const TILE_MATRIX: [i32; 2] = [4, -4];
 
     let mut pixels = vec![0u8; (width * height) as usize];
     let mut output = vec![0u8; (width * height) as usize];
@@ -143,8 +142,8 @@ fn swizzle4_to_32(input: &[u8], width: u32, height: u32) -> Vec<u8> {
     let mut d = 0usize;
     let mut s = 0usize;
 
-    for y in 0..height {
-        for x in 0..(width >> 1) {
+    for _ in 0..height {
+        for _ in 0..(width >> 1) {
             {
                 let p = input[s];
                 s += 1;
@@ -157,36 +156,40 @@ fn swizzle4_to_32(input: &[u8], width: u32, height: u32) -> Vec<u8> {
         }
     }
 
+    if version == 163 {
+        return pixels.to_vec();
+    }
+
     for y in 0..height {
         for x in 0..width {
-            let oddRow = ((y & 1) != 0);
+            let odd_row = (y & 1) != 0;
 
-            let num1 = ((y / 4) & 1);
-            let num2 = ((x / 4) & 1);
-            let num3 = (y % 4);
+            let num1 = (y / 4) & 1;
+            let num2 = (x / 4) & 1;
+            let num3 = y % 4;
 
-            let mut num4 = ((x / 4) % 4);
+            let mut num4 = (x / 4) % 4;
 
-            if oddRow {
+            if odd_row {
                 num4 += 4;
             }
 
-            let num5 = ((x * 4) % 16);
-            let num6 = ((x / 16) * 32);
+            let num5 = (x * 4) % 16;
+            let num6 = (x / 16) * 32;
 
-            let num7 = if oddRow {
-                ((y - 1) * width)
-            } else {
-                (y * width)
-            };
+            let num7 = if odd_row { (y - 1) * width } else { y * width };
 
-            let xx = x as i32 + num1 as i32 * TileMatrix[num2 as usize];
-            let yy = y as i32 + Matrix[num3 as usize];
+            let xx = x as i32 + num1 as i32 * TILE_MATRIX[num2 as usize];
+            let yy = y as i32 + MATRIX[num3 as usize];
 
-            let i = InterlaceMatrix[num4 as usize] as u32 + num5 + num6 + num7;
+            let i = INTERLACE_MATRIX[num4 as usize] as u32 + num5 + num6 + num7;
             let j = yy as usize * width as usize + xx as usize;
 
-            output[j] = pixels[i as usize];
+            output[j] = if i < pixels.len() as u32 {
+                pixels[i as usize]
+            } else {
+                pixels[pixels.len() - 1]
+            };
         }
     }
 
