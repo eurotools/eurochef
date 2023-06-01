@@ -173,7 +173,7 @@ pub fn read_entity<R: Read + Seek>(
                     248 | 259 | 260 => {
                         if platform == Platform::Xbox360 {
                             // TODO(cohae): Wacky x360-specific format
-                            let d = data.read_type::<(EXVector3, u32, EXVector3, u32)>(endian)?;
+                            let d = data.read_type::<(EXVector3, f32, EXVector3, f32)>(endian)?;
                             vertex_data.push(UXVertex {
                                 pos: d.0,
                                 norm: d.2,

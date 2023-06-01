@@ -100,6 +100,8 @@ pub struct EXGeoSplitEntity {
     // TODO(cohae): Older games have different limits, how do we handle that when writing files?
     #[brw(assert(entity_count.le(&512)))]
     pub entity_count: u32, // 0x54
+
+    #[brw(if(version.ne(&213)))]
     _unk58: u32,
 
     #[br(count = entity_count, args { inner: (version, platform) })]

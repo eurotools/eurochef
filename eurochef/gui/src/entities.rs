@@ -695,10 +695,16 @@ pub fn read_from_file<R: Read + Seek>(
         reader
             .seek(std::io::SeekFrom::Start(s.common.address as u64))
             .unwrap();
-        skins.push((
-            s.common.hashcode,
-            reader.read_type_args(endian, (header.version,)).unwrap(),
-        ));
+
+        // TODO(cohae): Error propagation
+        match reader.read_type_args::<EXGeoBaseAnimSkin>(endian, (header.version,)) {
+            Ok(skin) => {
+                skins.push((s.common.hashcode, skin));
+            }
+            Err(e) => {
+                error!("Failed to read animskin: {e}")
+            }
+        }
     }
 
     let textures = UXGeoTexture::read_all(&header, reader, platform).unwrap();
