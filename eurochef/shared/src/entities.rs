@@ -7,7 +7,7 @@ use eurochef_edb::{
     entity::{EXGeoEntity, EXGeoEntity_TextureList, EXGeoEntity_TriStrip, Ps2TriStrip},
     versions::Platform,
 };
-use tracing::{error, info, warn};
+use tracing::{error, warn};
 
 #[derive(Debug, Clone, Copy)]
 pub struct TriStrip {

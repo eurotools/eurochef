@@ -75,6 +75,7 @@ pub fn execute_command(
         }
     }
 
+    #[cfg(not(debug_assertions))]
     if platform == Platform::Ps2 {
         error!("PS2 entities are only supported through the GUI for now.");
         return Ok(());

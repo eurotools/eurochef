@@ -3,7 +3,7 @@ use std::{
     sync::Arc,
 };
 
-use anyhow::{Context, Result};
+use anyhow::Context;
 
 use eurochef_edb::{
     binrw::{BinReaderExt, Endian},

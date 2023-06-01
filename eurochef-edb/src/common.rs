@@ -143,10 +143,11 @@ pub struct EXGeoSpreadSheetHeader {
 pub struct EXGeoEntityHeader {
     pub common: EXGeoCommonArrayElement,
     pub unk_10: u32,
-    #[brw(if(version <= 221 && version != 177))]
-    pub ext: Option<EntityHeaderExt>,
-    #[brw(if(version == 177))]
-    pub _unk_14: [u32; 3],
+    #[brw(if(version == 221 || version == 200))]
+    pub _unk_14: u32,
+    // pub ext: Option<EntityHeaderExt>,
+    #[brw(if(version < 213))]
+    pub _unk_18: [u32; 3],
 }
 
 #[binrw]

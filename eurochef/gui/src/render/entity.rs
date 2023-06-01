@@ -279,10 +279,14 @@ impl EntityRenderer {
 
             scroll = tex.scroll * time as f32;
 
-            gl.bind_texture(
-                glow::TEXTURE_2D,
-                Some(tex.frames[(time as f32 / frame_time) as usize % tex.frames.len()]),
-            );
+            if tex.frames.len() > 0 {
+                gl.bind_texture(
+                    glow::TEXTURE_2D,
+                    Some(tex.frames[(time as f32 / frame_time) as usize % tex.frames.len()]),
+                );
+            } else {
+                gl.bind_texture(glow::TEXTURE_2D, None);
+            }
             if (((tex.flags >> 0x18) >> 5) & 0b11) != 0 && (t.flags & 0x8) == 0 {
                 transparency = BlendMode::Cutout;
             }

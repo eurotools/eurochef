@@ -278,6 +278,7 @@ impl eframe::App for EurochefApp {
         let screen_rect = ctx.screen_rect();
         let max_height = 320.0.at_most(screen_rect.height());
 
+        // TODO(cohae): More generic dialog (use for loading and error)
         if self.ps2_warning {
             egui::Window::new("PS2 Support")
             .pivot(egui::Align2::CENTER_TOP)
