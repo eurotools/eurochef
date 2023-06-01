@@ -17,16 +17,17 @@ pub struct EXGeoBaseAnimSkin {
     pub _unkc: [u32; 2], // 0xc
     #[brw(if(version.ne(&213)))]
     pub bounds_box: [EXVector; 2], // 0x10
-    pub _unk30: [u32; 4],                                   // 0x30
-    pub _unk40: EXRelPtr<()>,                               // 0x40
-    pub _unk44: EXRelPtr<()>,                               // 0x44
-    pub _unk48: EXRelPtr<u16>,                              // 0x48
-    pub _unk4c: EXRelPtr<()>,                               // 0x4c
-    pub _unk50: [u32; 2],                                   // 0x50
-    pub _unk58: EXRelPtr<u16>,                              // 0x58
-    pub _unk5c: EXRelPtr<()>,                               // 0x5c
-    pub _unk60: EXRelArray<()>,                             // 0x60
-    pub entities: EXRelArray<EXGeoAnimSkinEntityList>,      // 0x68
+    pub _unk30: [u32; 4],      // 0x30
+    pub _unk40: EXRelPtr<()>,  // 0x40
+    pub _unk44: EXRelPtr<()>,  // 0x44
+    pub _unk48: EXRelPtr<u16>, // 0x48
+    pub _unk4c: EXRelPtr<()>,  // 0x4c
+    #[brw(if(version.ne(&213)))]
+    pub _unk50: [u32; 2], // 0x50
+    pub _unk58: EXRelPtr<u16>, // 0x58
+    pub _unk5c: EXRelPtr<()>,  // 0x5c
+    pub _unk60: EXRelArray<()>, // 0x60
+    pub entities: EXRelArray<EXGeoAnimSkinEntityList>, // 0x68
     pub more_entities: EXRelArray<EXGeoAnimSkinEntityList>, // 0x70, face-related entities?
     pub _unk78: EXRelArray<()>,
 }
