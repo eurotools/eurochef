@@ -146,7 +146,7 @@ pub struct EXGeoEntityHeader {
     #[brw(if(version == 221 || version == 200))]
     pub _unk_14: u32,
     // pub ext: Option<EntityHeaderExt>,
-    #[brw(if(version < 213))]
+    #[brw(if(version < 213 || version == 221))]
     pub _unk_18: [u32; 3],
 }
 
