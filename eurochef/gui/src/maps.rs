@@ -154,10 +154,11 @@ pub fn read_from_file<R: Read + Seek>(reader: &mut R, platform: Platform) -> Pro
         if let EXGeoEntity::MapZone(mapzone) = ent {
             map.mapzone_entities.push(mapzone);
         } else {
-            Result::<()>::Err(anyhow::anyhow!(
-                "Refptr entity does not have a mapzone entity!"
-            ))
-            .unwrap();
+            error!("Refptr entity does not have a mapzone entity!");
+            // Result::<()>::Err(anyhow::anyhow!(
+            //     "Refptr entity does not have a mapzone entity!"
+            // ))
+            // .unwrap();
         }
     }
 

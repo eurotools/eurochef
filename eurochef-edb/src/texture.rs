@@ -16,6 +16,9 @@ pub struct EXGeoTextureHeader {
 #[derive(Debug)]
 #[brw(import(version: u32, platform: Platform))]
 pub struct EXGeoTexture {
+    #[brw(if(version == 205))]
+    unk0: u32,
+
     pub width: u16,        // 0x0
     pub height: u16,       // 0x2
     pub depth: u16,        // 0x4
@@ -54,7 +57,7 @@ pub struct EXGeoTexture {
     // TODO(cohae): This might just be platform specific
     /// Newer games calculate data size from other parameters.
     /// For general usage it is not recommended to rely on this field exlusively for data size.
-    #[brw(if((version <= 252 && version != 221 && version != 236 && version != 240 && version != 248 && version != 213) || (platform == Platform::GameCube || platform == Platform::Wii || platform == Platform::Xbox360)))]
+    #[brw(if((version <= 252 && version != 221 && version != 236 && version != 240 && version != 248 && version != 213 && version != 205) || (platform == Platform::GameCube || platform == Platform::Wii || platform == Platform::Xbox360)))]
     pub data_size: Option<u32>,
 
     #[br(count = image_count)]

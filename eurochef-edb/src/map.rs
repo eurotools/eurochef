@@ -18,7 +18,7 @@ pub struct EXGeoMap {
     pub isounds: EXRelArray<u16>,           // 0x20
     pub unk28: EXRelArray<()>,              // never used in GForce
     pub sounds: EXGeoHashArray<EXGeoSound>, // 0x30
-    #[brw(if(version.eq(&213) || version.eq(&221)))]
+    #[brw(if(version.eq(&177) || version.eq(&213) || version.eq(&221)))]
     pub unk34: EXGeoHashArray<()>,
     pub portals: EXRelArray<EXGeoPortal>, // EXGeoPortal, 0x38
     pub skies: EXRelArray<EXGeoSky>,      // 0x40
@@ -32,6 +32,9 @@ pub struct EXGeoMap {
     #[serde(skip)]
     num_zones: u32, // 0x84
 
+    #[brw(if(version.eq(&205)))]
+    _unk_zonepad: [u32; 6],
+
     #[br(args {
         count: num_zones as usize,
         inner: (version,)
@@ -44,24 +47,28 @@ pub struct EXGeoMap {
 #[br(import(version: u32))]
 // TODO(cohae): Struct is not accurate below version 248 yet
 pub struct EXGeoMapZone {
-    pub entity_refptr: u32,              // 0x0
-    pub identifier: EXRelPtr<()>,        // 0x4
+    pub entity_refptr: u32,       // 0x0
+    pub identifier: EXRelPtr<()>, // 0x4
+    // TODO(cohae): Inaccurate big time
     pub light_array: EXGeoHashArray<()>, // 0x8
     pub sound_array: EXGeoHashArray<()>, // 0x10
-    pub unk18: EXRelArray<()>,           // ???, 0x18 (u16?)
-    pub unk20: EXRelArray<()>,           // ???, 0x20
-    pub unk28: EXRelPtr<()>,             // PlacementInfo?, 0x28
+    #[br(if(version.ne(&205)))]
+    pub unk18: Option<EXRelArray<()>>, // ???, 0x18 (u16?)
+    #[br(if(version.ne(&205)))]
+    pub unk20: Option<EXRelArray<()>>, // ???, 0x20
+    #[br(if(version.ne(&205)))]
+    pub unk28: Option<EXRelPtr<()>>, // PlacementInfo?, 0x28
     pub unk2c: EXRelPtr<()>,             // ???, 0x2c
     pub hash_ref: u32,                   // 0x30
     pub section: u32,                    // 0x34
     pub unk38: [u32; 10],                // 0x38
-    #[br(if(version.ne(&213) && version.ne(&221)))]
+    #[br(if(version.ne(&213) && version.ne(&221) && version.ne(&177)))]
     pub unk60: [u32; 2],
     pub bounds_box: [EXVector3; 2], // 0x60
     pub unk80: u32,                 // 0x80
 
     // Robots has 8 less bytes
-    #[br(if(!version.le(&248) || (version.eq(&213) || version.eq(&221))))]
+    #[br(if(!version.le(&248) || (version.eq(&213) || version.eq(&221) || version.eq(&177))))]
     pub unk84: [u32; 2], // 0x84
 }
 

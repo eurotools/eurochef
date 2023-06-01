@@ -101,7 +101,7 @@ pub struct EXGeoSplitEntity {
     #[brw(assert(entity_count.le(&512)))]
     pub entity_count: u32, // 0x54
 
-    #[brw(if(version.ne(&213)))]
+    #[brw(if(version.ne(&213) && version.ne(&177)))]
     _unk58: u32,
 
     #[br(count = entity_count, args { inner: (version, platform) })]
