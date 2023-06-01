@@ -29,28 +29,54 @@ pub struct EXGeoBaseEntity {
 #[binrw]
 #[derive(Debug, Serialize, Clone)]
 #[brw(import(version: u32, platform: Platform))]
+// TODO(cohae): With how complex this struct is getting it might be time for a manual parser
 pub struct EXGeoMeshEntity {
     #[brw(args(version))]
     pub base: EXGeoBaseEntity, // 0x0
 
     // TODO(cohae): All of these need to be read by eurochef-edb
     pub texture_list: EXRelPtr<EXGeoEntity_TextureList>, // 0x54
-    pub tristrip_data: EXRelPtr,                         // 0x58
-    pub vertex_data: EXRelPtr,                           // 0x5c
-    pub vertex_colors: EXRelPtr,                         // 0x60
-    pub _unk64: EXRelPtr,                                // 0x64
-    pub _unk68: EXRelPtr,                                // 0x68
-    pub index_data: EXRelPtr,                            // 0x6c
+    pub tristrip_data: EXRelPtr,                         // 0x58 / Is a weird format on PS2
+    pub vertex_data: EXRelPtr,                           // 0x5c / 0x60
 
-    pub _unk70: u32, // 0x70
+    #[brw(if(platform != Platform::Ps2))]
+    pub vertex_colors: Option<EXRelPtr>, // 0x60 / on ps2 this is included in tristrip_data
+    #[brw(if(platform != Platform::Ps2))]
+    pub _unk64: Option<EXRelPtr>, // 0x64 / not on ps2
+    #[brw(if(platform != Platform::Ps2))]
+    pub _unk68: Option<EXRelPtr>, // 0x68 / not on ps2
+
+    pub index_data: EXRelPtr, // 0x6c / 0x64 on ps2
+
+    pub _unk70: u32, // 0x70 / 0x64
 
     #[brw(if(platform == Platform::GameCube || platform == Platform::Wii))]
     _unk74: [u32; 2], // 0x74
 
-    pub tristrip_count: u32, // 0x74
-    pub vertex_count: u32,   // 0x78
-    pub _unk7c: u32,         // 0x7c
-    pub index_count: u32,    // 0x80
+    #[brw(if(platform == Platform::Ps2))]
+    tristrip_count_ps2: u16, // 0x68
+    #[brw(if(platform == Platform::Ps2))]
+    vertex_count_ps2: u16, // 0x6a
+    #[brw(if(platform == Platform::Ps2))]
+    index_count_ps2: u16, // 0x6d
+
+    #[brw(if(platform != Platform::Ps2))]
+    tristrip_count_all: u32, // 0x74
+    #[brw(if(platform != Platform::Ps2))]
+    vertex_count_all: u32, // 0x78
+    #[brw(if(platform != Platform::Ps2))]
+    _unk7c_all: u32, // 0x7c
+    #[brw(if(platform != Platform::Ps2))]
+    index_count_all: u32, // 0x80
+
+    #[br(calc = if platform == Platform::Ps2 { tristrip_count_ps2 as u32 } else { tristrip_count_all })]
+    pub tristrip_count: u32,
+    #[br(calc = if platform == Platform::Ps2 { vertex_count_ps2 as u32 } else { vertex_count_all })]
+    pub vertex_count: u32,
+    #[br(calc = if platform == Platform::Ps2 { 0 } else { _unk7c_all })]
+    pub _unk7c: u32,
+    #[br(calc = if platform == Platform::Ps2 { index_count_ps2 as u32 } else { index_count_all })]
+    pub index_count: u32,
 }
 
 #[binrw]
@@ -96,6 +122,7 @@ pub struct EXGeoEntity_TextureList {
 pub struct EXGeoEntity_TriStrip {
     pub tricount: u32,
     pub texture_index: i32,
+
     pub min_index: u16,
     pub num_indices: u16,
     pub flags: u16,
@@ -109,6 +136,7 @@ pub enum EXGeoEntity {
     Mesh(EXGeoMeshEntity),
     Split(EXGeoSplitEntity),
     MapZone(EXGeoMapZoneEntity),
+    Instance(EXGeoBaseEntity), // TODO(cohae): unfinished
     UnknownType(u32),
 }
 
@@ -118,6 +146,7 @@ impl EXGeoEntity {
             EXGeoEntity::Mesh(e) => Some(&e.base),
             EXGeoEntity::Split(e) => Some(&e.base),
             EXGeoEntity::MapZone(e) => Some(&e.base),
+            EXGeoEntity::Instance(e) => Some(&e),
             EXGeoEntity::UnknownType(_e) => None,
         }
     }
@@ -136,6 +165,7 @@ impl BinRead for EXGeoEntity {
         Ok(match obj_type {
             0x601 => EXGeoEntity::Mesh(reader.read_type_args(endian, args)?),
             0x603 => EXGeoEntity::Split(reader.read_type_args(endian, args)?),
+            0x606 => EXGeoEntity::Instance(reader.read_type_args(endian, (args.0,))?),
             0x608 => EXGeoEntity::MapZone(reader.read_type_args(endian, args)?),
             t @ 0x600..=0x6ff => EXGeoEntity::UnknownType(t),
             _ => {
@@ -145,4 +175,27 @@ impl BinRead for EXGeoEntity {
             }
         })
     }
+}
+
+#[binrw]
+#[derive(Debug, Serialize, Clone)]
+pub struct Ps2TriData {
+    pub uv: [f32; 2],
+    pub index: u16,
+    pub _unk2: u16,
+    pub rgba: [u8; 4],
+}
+
+#[binrw]
+#[derive(Debug, Serialize, Clone)]
+pub struct Ps2TriStrip {
+    pub tricount: u16,      // [0]
+    pub texture_index: u16, // [1]
+    pub _unk2: u16,         // [2]
+    pub _unk3: u16,         // [3]
+    pub _unk4: u32,
+    pub _unk5: u32,
+
+    #[br(count = tricount + 2)]
+    pub vertices: Vec<Ps2TriData>,
 }

@@ -53,6 +53,13 @@ impl MapFrame {
             }
 
             for (i, e, m) in entities {
+                // Only allow split/normal meshes
+                match e {
+                    EXGeoEntity::Mesh(_) => {}
+                    EXGeoEntity::Split(_) => {}
+                    _ => continue,
+                };
+
                 let r = Arc::new(Mutex::new(EntityRenderer::new(gl)));
                 r.lock().unwrap().load_mesh(gl, m);
 

@@ -54,12 +54,14 @@ _Each field is formatted as R/W. For example, if a feature can be read, but not 
 | GameCube      | BE     | ✅<sup>[2]</sup>/❌ | ❌      | ❌                 |
 | Wii           | BE     | ✅<sup>[2]</sup>/❌ | ❌      | ❌                 |
 | Wii U         | BE     | ❌                 | ❌      | ❌                 |
-| Playstation 2 | LE     | ✅<sup>[2]</sup>/❌ | ❌      | ❌                 |
+| Playstation 2 | LE     | ✅<sup>[2]</sup>/❌ | ❌      | 🚧<sup>[4]</sup>/❌ |
 | Playstation 3 | BE     | ❌                 | ❌      | ❌                 |
 
 <sup>[2]</sup> The most significant formats have been implemented, no games using the remaining formats are currently known
 
 <sup>[3]</sup> Supports vertex positions and normals, texture coordinates are currently broken
+
+<sup>[4]</sup> Currently has broken triangle strips, and no transparency information/flags.
 
 ### Filelists
 

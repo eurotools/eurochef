@@ -44,6 +44,8 @@ pub struct EurochefApp {
     load_input: Arc<AtomicCell<Option<(Vec<u8>, String)>>>,
     pending_file: Option<(Vec<u8>, Option<Platform>)>,
     selected_platform: Platform,
+
+    ps2_warning: bool,
 }
 
 impl EurochefApp {
@@ -88,6 +90,7 @@ impl EurochefApp {
             load_input: Arc::new(AtomicCell::new(None)),
             pending_file: None,
             selected_platform: Platform::Ps2,
+            ps2_warning: false,
         };
 
         if let Some(path) = path {
@@ -114,6 +117,10 @@ impl EurochefApp {
         reader: &mut R,
         ctx: &egui::Context,
     ) {
+        if platform == Platform::Ps2 {
+            self.ps2_warning = true;
+        }
+
         self.current_panel = Panel::FileInfo;
         self.spreadsheetlist = None;
         self.fileinfo = None;
@@ -129,7 +136,14 @@ impl EurochefApp {
             self.spreadsheetlist = Some(spreadsheet::TextItemList::new(spreadsheets[0].clone()));
         }
 
-        if [Platform::Xbox, Platform::Xbox360, Platform::Pc].contains(&platform) {
+        if [
+            Platform::Xbox,
+            Platform::Xbox360,
+            Platform::Pc,
+            Platform::Ps2,
+        ]
+        .contains(&platform)
+        {
             let (entities, skins, ref_entities, textures) =
                 entities::read_from_file(reader, platform);
             if entities.len() + skins.len() + ref_entities.len() > 0 {
@@ -216,8 +230,6 @@ impl eframe::App for EurochefApp {
                 ui.menu_button("File", |ui| {
                     if ui.button("Open").clicked() {
                         // TODO(cohae): drag and drop loading
-                        // // TODO(cohae): async loading (will allow WASM support)
-
                         #[cfg(target_arch = "wasm32")]
                         {
                             wasm_bindgen_futures::spawn_local(async move {
@@ -263,11 +275,39 @@ impl eframe::App for EurochefApp {
             }
         }
 
+        let screen_rect = ctx.screen_rect();
+        let max_height = 320.0.at_most(screen_rect.height());
+
+        if self.ps2_warning {
+            egui::Window::new("PS2 Support")
+            .pivot(egui::Align2::CENTER_TOP)
+            .fixed_pos(screen_rect.center() - 0.5 * max_height * egui::Vec2::Y)
+            .frame(egui::Frame::window(&ctx.style()).inner_margin(16.))
+            .resizable(false)
+            .collapsible(false)
+            .show(ctx, |ui| {
+                ui.horizontal(|ui| {
+                    let (irect, _) =
+                        ui.allocate_exact_size([54., 54.].into(), egui::Sense::hover());
+                    ui.painter().text(
+                        irect.center() + [0., 8.].into(),
+                        egui::Align2::CENTER_CENTER,
+                        font_awesome::EXCLAMATION_TRIANGLE,
+                        egui::FontId::proportional(48.),
+                        Color32::from_rgb(249, 239, 40),
+                    );
+
+                    ui.label("PS2 support is currently highly experimental.\nTextures work, but most entities will not draw properly.");
+                });
+                if ui.button("I understand").clicked() {
+                    self.ps2_warning = false;
+                }
+            });
+        }
+
         match state {
             AppState::Ready => {}
             AppState::Loading(s) => {
-                let screen_rect = ctx.screen_rect();
-                let max_height = 320.0.at_most(screen_rect.height());
                 egui::Window::new("Loading")
                     .title_bar(false)
                     .pivot(egui::Align2::CENTER_TOP)
@@ -282,8 +322,6 @@ impl eframe::App for EurochefApp {
                     });
             }
             AppState::SelectPlatform => {
-                let screen_rect = ctx.screen_rect();
-                let max_height = 320.0.at_most(screen_rect.height());
                 egui::Window::new("Select platform")
                     .title_bar(false)
                     .pivot(egui::Align2::CENTER_TOP)
@@ -347,8 +385,6 @@ impl eframe::App for EurochefApp {
                     });
             }
             AppState::Error(e) => {
-                let screen_rect = ctx.screen_rect();
-                let max_height = 320.0.at_most(screen_rect.height());
                 let mut open = true;
                 egui::Window::new("Error")
                     .pivot(egui::Align2::CENTER_TOP)

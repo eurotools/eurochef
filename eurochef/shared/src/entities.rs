@@ -4,10 +4,11 @@ use bytemuck::{Pod, Zeroable};
 use eurochef_edb::{
     binrw::{BinReaderExt, Endian},
     common::{EXVector, EXVector2, EXVector3},
-    entity::{EXGeoEntity, EXGeoEntity_TriStrip},
+    entity::{EXGeoEntity, EXGeoEntity_TextureList, EXGeoEntity_TriStrip, Ps2TriStrip},
+    text,
     versions::Platform,
 };
-use tracing::{error, warn};
+use tracing::{error, info, warn};
 
 #[derive(Debug, Clone, Copy)]
 pub struct TriStrip {
@@ -64,25 +65,95 @@ pub fn read_entity<R: Read + Seek>(
             }
         }
         EXGeoEntity::Mesh(mesh) => {
+            if platform == Platform::Ps2 {
+                let mut tristrips: Vec<Ps2TriStrip> = vec![];
+                data.seek(std::io::SeekFrom::Start(
+                    mesh.tristrip_data.offset_absolute(),
+                ))?;
+                for _ in 0..mesh.tristrip_count {
+                    tristrips.push(data.read_type(endian)?)
+                }
+
+                let mut vertices: Vec<(EXVector3, u32)> = vec![];
+                data.seek(std::io::SeekFrom::Start(mesh.vertex_data.offset_absolute()))?;
+                for _ in 0..mesh.vertex_count {
+                    vertices.push(data.read_type(endian)?)
+                }
+
+                for t in &tristrips {
+                    let vstart = vertex_data.len();
+                    let mut index_count = 0;
+
+                    // TODO(cohae): Inefficient?
+                    for i in &t.vertices {
+                        let index = i.index & 0x0fff;
+                        let operation = (i.index >> 12) & 0xf;
+                        match operation {
+                            0 => {}
+                            // Restart strip (generate degenerate triangle(s))
+                            0x5 => {
+                                indices.push(vertex_data.len() as u32 - 1);
+                                indices.push(vertex_data.len() as u32);
+                                index_count += 2;
+                            }
+                            n => warn!("Unknown tristrip op 0x{n:x}"),
+                        };
+
+                        indices.push(vertex_data.len() as u32);
+                        index_count += 1;
+
+                        let vert = &vertices[index as usize];
+                        vertex_data.push(UXVertex {
+                            pos: vert.0,
+                            uv: i.uv,
+                            color: linear_rgb_to_srgb([
+                                i.rgba[0] as f32 / 255.0,
+                                i.rgba[1] as f32 / 255.0,
+                                i.rgba[2] as f32 / 255.0,
+                                i.rgba[3] as f32 / 127.0,
+                            ]),
+                            norm: [0.0; 3],
+                        });
+                    }
+
+                    strips.push(TriStrip {
+                        start_index: vstart as u32,
+                        index_count: index_count,
+                        texture_index: t.texture_index as u32,
+                        transparency: 0,
+                        flags: 0,
+                        tri_count: index_count - 2,
+                    });
+                }
+
+                return Ok(());
+            }
+
             let vertex_offset = vertex_data.len() as u32;
 
-            data.seek(std::io::SeekFrom::Start(
-                mesh.vertex_colors.offset_absolute(),
-            ))?;
             let mut vertex_colors: Vec<EXVector> = vec![];
-            for _ in 0..mesh.vertex_count {
-                let rgba: [u8; 4] = data.read_type(endian)?;
-                vertex_colors.push(linear_rgb_to_srgb([
-                    rgba[2] as f32 / 255.0,
-                    rgba[1] as f32 / 255.0,
-                    rgba[0] as f32 / 255.0,
-                    rgba[3] as f32 / 255.0,
-                ]));
+            if let Some(vertex_colors_offset) = &mesh.vertex_colors {
+                data.seek(std::io::SeekFrom::Start(
+                    vertex_colors_offset.offset_absolute(),
+                ))?;
+                for _ in 0..mesh.vertex_count {
+                    let rgba: [u8; 4] = data.read_type(endian)?;
+                    vertex_colors.push(linear_rgb_to_srgb([
+                        rgba[2] as f32 / 255.0,
+                        rgba[1] as f32 / 255.0,
+                        rgba[0] as f32 / 255.0,
+                        rgba[3] as f32 / 255.0,
+                    ]));
+                }
+            } else {
+                for _ in 0..mesh.vertex_count {
+                    vertex_colors.push([1.0, 1.0, 1.0, 1.0]);
+                }
             }
 
             data.seek(std::io::SeekFrom::Start(mesh.vertex_data.offset_absolute()))?;
 
-            // TODO(cohae): 0BADF002 + vertex count???
+            // TODO(cohae): 0BADF002 (assert) + vertex count???
             if platform == Platform::Xbox360 {
                 for _ in 0..2 {
                     data.read_type::<u32>(endian).unwrap();
@@ -154,8 +225,16 @@ pub fn read_entity<R: Read + Seek>(
                 tristrips.push(data.read_type_args(endian, (version, platform))?);
             }
 
+            data.seek(std::io::SeekFrom::Start(
+                mesh.texture_list.offset_absolute(),
+            ))?;
+            let textures: EXGeoEntity_TextureList = data.read_type(endian)?;
+            let textures = textures.textures;
+
             let mut index_offset_local = 0;
             for t in tristrips {
+                info!("tri={} tex={} 0x{:x}", t.tricount, t.texture_index, t.flags);
+
                 if t.tricount < 1 {
                     break;
                 }
@@ -167,10 +246,10 @@ pub fn read_entity<R: Read + Seek>(
 
                 let texture_index = if mesh.base.flags & 0x1 != 0 {
                     // Index from texture list instead of the "global" array
-                    if t.texture_index < mesh.texture_list.textures.len() as i32 {
-                        mesh.texture_list.textures[t.texture_index as usize] as i32
+                    if t.texture_index < textures.len() as i32 {
+                        textures[t.texture_index as usize] as i32
                     } else {
-                        error!("Tried to get texture #{} from texture list, but list only has {} elements!", t.texture_index, mesh.texture_list.textures.len());
+                        error!("Tried to get texture #{} from texture list, but list only has {} elements!", t.texture_index, textures.len());
                         -1
                     }
                 } else {

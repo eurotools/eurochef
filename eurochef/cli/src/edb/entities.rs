@@ -69,10 +69,15 @@ pub fn execute_command(
         .expect("Failed to detect platform");
 
     match platform {
-        Platform::Pc | Platform::Xbox | Platform::Xbox360 /* | Platform::GameCube | Platform::Wii */ => {}
+        Platform::Pc | Platform::Xbox | Platform::Xbox360 | Platform::Ps2 /* | Platform::GameCube | Platform::Wii */ => {}
         _ => {
             anyhow::bail!("Entity extraction is only supported for PC and Xbox (360) (for now)")
         }
+    }
+
+    if platform == Platform::Ps2 {
+        error!("PS2 entities are only supported through the GUI for now.");
+        return Ok(());
     }
 
     info!("Selected platform {platform:?}");
@@ -153,17 +158,18 @@ pub fn execute_command(
         .entity_list
         .iter()
         .map(|e| (e.common.address as u64, format!("{:x}", e.common.hashcode)))
+        .filter(|e| e.1 == "2000025") // !REMOVE
         .collect();
 
-    // Find entities in refpointers
-    for (i, r) in header.refpointer_list.iter().enumerate() {
-        reader.seek(std::io::SeekFrom::Start(r.address as u64))?;
-        let etype = reader.read_type::<u32>(endian)?;
+    // // Find entities in refpointers
+    // for (i, r) in header.refpointer_list.iter().enumerate() {
+    //     reader.seek(std::io::SeekFrom::Start(r.address as u64))?;
+    //     let etype = reader.read_type::<u32>(endian)?;
 
-        if etype == 0x601 || etype == 0x603 {
-            entity_offsets.push((r.address as u64, format!("ref_{i}")))
-        }
-    }
+    //     if etype == 0x601 || etype == 0x603 {
+    //         entity_offsets.push((r.address as u64, format!("ref_{i}")))
+    //     }
+    // }
 
     let pb = ProgressBar::new(entity_offsets.len() as u64)
         .with_finish(indicatif::ProgressFinish::AndLeave);
