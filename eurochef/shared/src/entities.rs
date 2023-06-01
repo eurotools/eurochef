@@ -5,7 +5,6 @@ use eurochef_edb::{
     binrw::{BinReaderExt, Endian},
     common::{EXVector, EXVector2, EXVector3},
     entity::{EXGeoEntity, EXGeoEntity_TextureList, EXGeoEntity_TriStrip, Ps2TriStrip},
-    text,
     versions::Platform,
 };
 use tracing::{error, info, warn};
@@ -106,12 +105,12 @@ pub fn read_entity<R: Read + Seek>(
                         vertex_data.push(UXVertex {
                             pos: vert.0,
                             uv: i.uv,
-                            color: linear_rgb_to_srgb([
+                            color: [
                                 i.rgba[0] as f32 / 255.0,
                                 i.rgba[1] as f32 / 255.0,
                                 i.rgba[2] as f32 / 255.0,
                                 i.rgba[3] as f32 / 127.0,
-                            ]),
+                            ],
                             norm: [0.0; 3],
                         });
                     }
@@ -138,12 +137,12 @@ pub fn read_entity<R: Read + Seek>(
                 ))?;
                 for _ in 0..mesh.vertex_count {
                     let rgba: [u8; 4] = data.read_type(endian)?;
-                    vertex_colors.push(linear_rgb_to_srgb([
+                    vertex_colors.push([
                         rgba[2] as f32 / 255.0,
                         rgba[1] as f32 / 255.0,
                         rgba[0] as f32 / 255.0,
                         rgba[3] as f32 / 255.0,
-                    ]));
+                    ]);
                 }
             } else {
                 for _ in 0..mesh.vertex_count {
@@ -313,20 +312,4 @@ pub fn read_entity<R: Read + Seek>(
     }
 
     Ok(())
-}
-
-fn linear_rgb_to_srgb(rgb: [f32; 4]) -> [f32; 4] {
-    let mut srgb = [0.0; 4];
-
-    for i in 0..3 {
-        if rgb[i] <= 0.0031308 {
-            srgb[i] = 12.92 * rgb[i];
-        } else {
-            srgb[i] = 1.055 * rgb[i].powf(1.0 / 2.4) - 0.055;
-        }
-    }
-
-    srgb[3] = rgb[3]; // Copy alpha channel
-
-    srgb
 }
