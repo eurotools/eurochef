@@ -72,13 +72,14 @@ impl MapViewerPanel {
         let mut map_entities = vec![];
 
         for v in &map.mapzone_entities {
-            map_entities.push(
-                &ref_entities
-                    .iter()
-                    .find(|(i, _, _)| *i == v.entity_refptr)
-                    .unwrap()
-                    .2,
-            );
+            if let Some((_, _, e)) = &ref_entities.iter().find(|(i, _, _)| *i == v.entity_refptr) {
+                map_entities.push(e);
+            } else {
+                error!(
+                    "Couldn't find ref entity #{} for mapzone entitiy!",
+                    v.entity_refptr
+                );
+            }
         }
 
         let ef = MapFrame::new(gl, &map_entities, textures, entities);

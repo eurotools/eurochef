@@ -223,7 +223,14 @@ impl<T: BinRead + Debug> Debug for EXRelArray<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str("EXGeoHashArray(")?;
         f.debug_list().entries(self.data.iter()).finish()?;
-        f.write_str(format!(", count={}", self.array_size).as_str())?;
+        f.write_str(
+            format!(
+                ", count={}, addr=0x{:x}",
+                self.array_size,
+                self.rel_offset.offset_absolute()
+            )
+            .as_str(),
+        )?;
         f.write_str(")")
     }
 }

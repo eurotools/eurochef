@@ -11,23 +11,21 @@ use crate::{
 #[brw(import(version: u32))] // TODO: Seems a bit dirty, no?
 pub struct EXGeoMap {
     pub common: u32,
-    pub bsp_tree: EXRelPtr<()>,                       // EXGeoBspTree, 0x4
-    pub paths: EXGeoHashArray<EXGeoPath>,             // 0x8
-    pub lights: EXGeoHashArray<EXGeoLight>,           // 0x10
-    pub cameras: EXRelArray<EXGeoCamera>, // 0x18, structure unconfirmed (never used in GForce)
-    pub isounds: EXRelArray<u16>,         // 0x20
-    pub unk28: EXRelArray<()>,            // never used in GForce
+    pub bsp_tree: EXRelPtr<()>,             // EXGeoBspTree, 0x4
+    pub paths: EXGeoHashArray<EXGeoPath>,   // 0x8
+    pub lights: EXGeoHashArray<EXGeoLight>, // 0x10
+    pub cameras: EXRelArray<EXGeoCamera>,   // 0x18, structure unconfirmed (never used in GForce)
+    pub isounds: EXRelArray<u16>,           // 0x20
+    pub unk28: EXRelArray<()>,              // never used in GForce
     pub sounds: EXGeoHashArray<EXGeoSound>, // 0x30
+    #[brw(if(version.eq(&213) || version.eq(&221)))]
+    pub unk34: EXGeoHashArray<()>,
     pub portals: EXRelArray<EXGeoPortal>, // EXGeoPortal, 0x38
     pub skies: EXRelArray<EXGeoSky>,      // 0x40
     pub placements: EXRelArray<EXGeoPlacement>, // 0x48
     pub placement_groups: EXRelArray<()>, // EXGeoPlacementGroup, 0x50
     pub trigger_header: EXRelPtr<EXGeoTriggerHeader>, // 0x58
     pub unk_60: [u32; 4],                 // 0x5c
-
-    // TODO(cohae): Workaround for older spyro files like test_wts, need to test offset and other versions
-    #[brw(if(version.eq(&221)))]
-    _unk6c_pad: [u32; 2],
 
     pub bounds_box: [EXVector3; 2], // 0x6c
 
@@ -56,12 +54,14 @@ pub struct EXGeoMapZone {
     pub unk2c: EXRelPtr<()>,             // ???, 0x2c
     pub hash_ref: u32,                   // 0x30
     pub section: u32,                    // 0x34
-    pub unk38: [u32; 12],                // 0x38
-    pub bounds_box: [EXVector3; 2],      // 0x60
-    pub unk80: u32,                      // 0x80
+    pub unk38: [u32; 10],                // 0x38
+    #[br(if(version.ne(&213) && version.ne(&221)))]
+    pub unk60: [u32; 2],
+    pub bounds_box: [EXVector3; 2], // 0x60
+    pub unk80: u32,                 // 0x80
 
     // Robots has 8 less bytes
-    #[br(if(!version.le(&248)))]
+    #[br(if(!version.le(&248) || (version.eq(&213) || version.eq(&221))))]
     pub unk84: [u32; 2], // 0x84
 }
 

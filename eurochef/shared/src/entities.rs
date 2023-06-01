@@ -232,8 +232,6 @@ pub fn read_entity<R: Read + Seek>(
 
             let mut index_offset_local = 0;
             for t in tristrips {
-                info!("tri={} tex={} 0x{:x}", t.tricount, t.texture_index, t.flags);
-
                 if t.tricount < 1 {
                     break;
                 }

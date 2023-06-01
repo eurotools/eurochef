@@ -10,11 +10,13 @@ use crate::{
 #[derive(Debug, Serialize, Clone)]
 #[brw(import(version: u32))]
 pub struct EXGeoBaseAnimSkin {
-    #[br(dbg)]
     pub object_type: u32, // 0x0
-    pub _unk4: u32,                                         // 0x4, some size
-    pub _unkc: [u32; 2],                                    // 0xc
-    pub bounds_box: [EXVector; 2],                          // 0x10
+    pub _unk4: u32,       // 0x4, some size
+    // TODO(cohae): Probably wrong, just needed to get rid of 8 bytes
+    #[brw(if(version.ne(&213) && version.ne(&221)))]
+    pub _unkc: [u32; 2], // 0xc
+    #[brw(if(version.ne(&213)))]
+    pub bounds_box: [EXVector; 2], // 0x10
     pub _unk30: [u32; 4],                                   // 0x30
     pub _unk40: EXRelPtr<()>,                               // 0x40
     pub _unk44: EXRelPtr<()>,                               // 0x44
