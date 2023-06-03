@@ -147,14 +147,31 @@ pub fn read_entity<R: Read + Seek>(
                 data.seek(std::io::SeekFrom::Start(
                     vertex_colors_offset.offset_absolute(),
                 ))?;
+
+                // TODO(cohae): 0BADF003 (assert) + data size
+                if platform == Platform::Xbox360 {
+                    for _ in 0..2 {
+                        data.read_type::<u32>(endian).unwrap();
+                    }
+                }
+
                 for _ in 0..mesh.vertex_count {
                     let rgba: [u8; 4] = data.read_type(endian)?;
-                    vertex_colors.push([
-                        rgba[2] as f32 / 255.0,
-                        rgba[1] as f32 / 255.0,
-                        rgba[0] as f32 / 255.0,
-                        rgba[3] as f32 / 255.0,
-                    ]);
+                    if platform == Platform::Xbox360 {
+                        vertex_colors.push([
+                            rgba[1] as f32 / 255.0,
+                            rgba[2] as f32 / 255.0,
+                            rgba[3] as f32 / 255.0,
+                            rgba[0] as f32 / 255.0,
+                        ]);
+                    } else {
+                        vertex_colors.push([
+                            rgba[2] as f32 / 255.0,
+                            rgba[1] as f32 / 255.0,
+                            rgba[0] as f32 / 255.0,
+                            rgba[3] as f32 / 255.0,
+                        ]);
+                    }
                 }
             } else {
                 for _ in 0..mesh.vertex_count {
@@ -184,7 +201,6 @@ pub fn read_entity<R: Read + Seek>(
                     }
                     248 | 259 | 260 => {
                         if platform == Platform::Xbox360 {
-                            // TODO(cohae): Wacky x360-specific format
                             let d = data.read_type::<(EXVector3, f32, EXVector3, f32)>(endian)?;
                             vertex_data.push(UXVertex {
                                 pos: d.0,
@@ -211,7 +227,7 @@ pub fn read_entity<R: Read + Seek>(
 
             if platform == Platform::Xbox360 {
                 for i in 0..mesh.vertex_count as usize {
-                    vertex_data[i].uv = data.read_type(endian)?;
+                    vertex_data[vertex_offset as usize + i].uv = data.read_type(endian)?;
                 }
             }
 
