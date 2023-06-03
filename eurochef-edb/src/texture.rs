@@ -34,7 +34,7 @@ pub struct EXGeoTexture {
     pub mip_count: u8,     // 0x12
     pub format: u8,        // 0x13
     pub unk_14: u32,       // 0x14
-    pub color: u32,        // 0x18
+    pub color: [u8; 4],    // 0x18
 
     // TODO(cohae): G-Force only for now, check other games
     /// If set, contains the hashcode of another file
@@ -57,7 +57,7 @@ pub struct EXGeoTexture {
     /// Newer games calculate data size from other parameters.
     /// For general usage it is not recommended to rely on this field exlusively for data size.
     // #[brw(if((version <= 252 && version != 221 && version != 236 && version != 240 && version != 248 && version != 213 && version != 205 && version != 163 && version != 174) || (platform == Platform::GameCube || platform == Platform::Wii || platform == Platform::Xbox360)))]
-    #[brw(if((version >= 252) || (platform == Platform::GameCube || platform == Platform::Wii || platform == Platform::Xbox360)))]
+    #[brw(if((version <= 252) || (platform == Platform::GameCube || platform == Platform::Wii || platform == Platform::Xbox360)))]
     pub data_size: Option<u32>,
 
     #[br(count = image_count)]
