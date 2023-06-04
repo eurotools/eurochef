@@ -40,10 +40,12 @@ impl TextureDecoder for XenonTextureDecoder {
 
         let mut buffer = vec![0u8; output.len()];
         match fmt {
-            InternalFormat::Dxt1 | InternalFormat::Dxt3 | InternalFormat::Dxt5 => {
+            InternalFormat::Dxt1
+            | InternalFormat::Dxt2
+            | InternalFormat::Dxt3
+            | InternalFormat::Dxt5 => {
                 let bcn = match fmt {
-                    InternalFormat::Dxt1 => squish::Format::Bc1,
-                    // InternalFormat::Dxt2 => squish::Format::Bc2,
+                    InternalFormat::Dxt1 | InternalFormat::Dxt2 => squish::Format::Bc1,
                     InternalFormat::Dxt3 => squish::Format::Bc2,
                     // InternalFormat::Dxt4 => squish::Format::Bc3,
                     InternalFormat::Dxt5 => squish::Format::Bc3,
@@ -108,6 +110,7 @@ fn swap_endianness16(buffer: &mut [u8]) {
 #[repr(u8)]
 enum InternalFormat {
     Dxt1 = 0,
+    Dxt2 = 1,
     Dxt3 = 3,
     Dxt5 = 5,
 
@@ -121,7 +124,7 @@ impl InternalFormat {
         match self {
             Self::RGB565 | Self::ARGB4 => 16,
             Self::ARGB8 => 32,
-            Self::Dxt1 => 4,
+            Self::Dxt1 | Self::Dxt2 => 4,
             Self::Dxt3 | Self::Dxt5 => 8,
         }
     }
