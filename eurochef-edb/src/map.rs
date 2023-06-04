@@ -10,6 +10,7 @@ use crate::{
 #[derive(Debug, Serialize, Clone)]
 #[brw(import(version: u32))] // TODO: Seems a bit dirty, no?
 pub struct EXGeoMap {
+    #[brw(assert(common.eq(&0x500)))]
     pub common: u32,
     pub bsp_tree: EXRelPtr<()>,             // EXGeoBspTree, 0x4
     pub paths: EXGeoHashArray<EXGeoPath>,   // 0x8
