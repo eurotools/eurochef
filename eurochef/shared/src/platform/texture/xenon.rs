@@ -43,12 +43,12 @@ impl TextureDecoder for XenonTextureDecoder {
             InternalFormat::Dxt1
             | InternalFormat::Dxt2
             | InternalFormat::Dxt3
+            | InternalFormat::Dxt4
             | InternalFormat::Dxt5 => {
                 let bcn = match fmt {
                     InternalFormat::Dxt1 | InternalFormat::Dxt2 => squish::Format::Bc1,
                     InternalFormat::Dxt3 => squish::Format::Bc2,
-                    // InternalFormat::Dxt4 => squish::Format::Bc3,
-                    InternalFormat::Dxt5 => squish::Format::Bc3,
+                    InternalFormat::Dxt5 | InternalFormat::Dxt4 => squish::Format::Bc3,
                     _ => panic!("Invalid DXT format"),
                 };
 
@@ -112,6 +112,7 @@ enum InternalFormat {
     Dxt1 = 0,
     Dxt2 = 1,
     Dxt3 = 3,
+    Dxt4 = 4,
     Dxt5 = 5,
 
     RGB565 = 6,
@@ -125,7 +126,7 @@ impl InternalFormat {
             Self::RGB565 | Self::ARGB4 => 16,
             Self::ARGB8 => 32,
             Self::Dxt1 | Self::Dxt2 => 4,
-            Self::Dxt3 | Self::Dxt5 => 8,
+            Self::Dxt3 | Self::Dxt4 | Self::Dxt5 => 8,
         }
     }
 }

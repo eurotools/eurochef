@@ -142,7 +142,7 @@ pub fn execute_command(
                     }
                 }
             }
-            Err(e) => error!("{e}"),
+            Err(e) => error!("{e:?}"),
         }
     }
 
