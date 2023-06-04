@@ -150,15 +150,12 @@ impl EurochefApp {
                 self.entities = Some(entities::EntityListPanel::new(
                     ctx,
                     self.gl.clone(),
-                    entities,
+                    entities.clone(),
                     skins,
-                    ref_entities,
+                    ref_entities.clone(),
                     &textures,
                 ));
 
-                // FIXME(cohae): Reuse entity data (Dirt on my hands, guilty guilty)
-                let (entities, _, ref_entities, textures) =
-                    entities::read_from_file(reader, platform);
                 if self.fileinfo.as_ref().unwrap().header.map_list.len() > 0 {
                     let map = maps::read_from_file(reader, platform);
                     self.maps = Some(maps::MapViewerPanel::new(

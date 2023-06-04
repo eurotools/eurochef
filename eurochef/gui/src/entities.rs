@@ -43,6 +43,7 @@ pub struct EntityListPanel {
     preview_size: i32,
 }
 
+#[derive(Clone)]
 pub struct ProcessedEntityMesh {
     pub vertex_data: Vec<UXVertex>,
     pub indices: Vec<u32>,
