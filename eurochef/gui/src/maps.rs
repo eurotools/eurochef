@@ -15,6 +15,7 @@ use eurochef_edb::{
 use eurochef_shared::{
     maps::{parse_trigger_data, UXGeoTrigger},
     textures::UXGeoTexture,
+    IdentifiableResult,
 };
 
 use crate::{
@@ -49,7 +50,7 @@ impl MapViewerPanel {
         map: ProcessedMap,
         entities: Vec<(u32, EXGeoEntity, ProcessedEntityMesh)>,
         ref_entities: Vec<(u32, EXGeoEntity, ProcessedEntityMesh)>,
-        textures: &[UXGeoTexture],
+        textures: &[IdentifiableResult<UXGeoTexture>],
     ) -> Self {
         let textures = EntityListPanel::load_textures(&gl, textures);
         MapViewerPanel {

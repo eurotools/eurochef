@@ -14,6 +14,7 @@ use eurochef_edb::{
 use eurochef_shared::{
     entities::{read_entity, TriStrip, UXVertex},
     textures::UXGeoTexture,
+    IdentifiableResult,
 };
 use fnv::FnvHashMap;
 use font_awesome as fa;
@@ -70,7 +71,7 @@ impl EntityListPanel {
         entities: Vec<(u32, EXGeoEntity, ProcessedEntityMesh)>,
         skins: Vec<(u32, EXGeoBaseAnimSkin)>,
         ref_entities: Vec<(u32, EXGeoEntity, ProcessedEntityMesh)>,
-        textures: &[UXGeoTexture],
+        textures: &[IdentifiableResult<UXGeoTexture>],
     ) -> Self {
         let mut entity_previews = FnvHashMap::default();
         for (hashcode, _, _) in entities.iter() {
@@ -106,31 +107,55 @@ impl EntityListPanel {
         }
     }
 
-    pub fn load_textures(gl: &glow::Context, textures: &[UXGeoTexture]) -> Vec<RenderableTexture> {
+    pub fn load_textures(
+        gl: &glow::Context,
+        textures: &[IdentifiableResult<UXGeoTexture>],
+    ) -> Vec<RenderableTexture> {
         textures
             .iter()
             .map(|t| unsafe {
-                let mut frames = vec![];
+                if let Ok(t) = &t.data {
+                    let mut frames = vec![];
 
-                for d in &t.frames {
+                    for d in &t.frames {
+                        let handle = gl_helper::load_texture(
+                            gl,
+                            t.width as i32,
+                            t.height as i32,
+                            &d,
+                            glow::RGBA,
+                            t.flags,
+                        );
+                        frames.push(handle);
+                    }
+
+                    RenderableTexture {
+                        frames,
+                        framerate: t.framerate as usize,
+                        frame_count: t.frame_count as usize,
+                        flags: t.flags,
+                        // EngineX(T) calculates these as step per frame by dividing each axis by 30000. We're calculating this with seconds instead of frames
+                        scroll: Vec2::new(t.scroll[0] as f32 / 500.0, t.scroll[1] as f32 / 500.0),
+                    }
+                } else {
                     let handle = gl_helper::load_texture(
                         gl,
-                        t.width as i32,
-                        t.height as i32,
-                        &d,
+                        2,
+                        2,
+                        &[
+                            255, 0, 255, 255, 255, 0, 255, 255, 255, 0, 255, 255, 255, 0, 255, 255,
+                        ],
                         glow::RGBA,
-                        t.flags,
+                        0,
                     );
-                    frames.push(handle);
-                }
 
-                RenderableTexture {
-                    frames,
-                    framerate: t.framerate as usize,
-                    frame_count: t.frame_count as usize,
-                    flags: t.flags,
-                    // EngineX(T) calculates these as step per frame by dividing each axis by 30000. We're calculating this with seconds instead of frames
-                    scroll: Vec2::new(t.scroll[0] as f32 / 500.0, t.scroll[1] as f32 / 500.0),
+                    RenderableTexture {
+                        frames: vec![handle],
+                        framerate: 0,
+                        frame_count: 0,
+                        flags: 0,
+                        scroll: Vec2::ZERO,
+                    }
                 }
             })
             .collect()
@@ -587,7 +612,7 @@ pub fn read_from_file<R: Read + Seek>(
     Vec<(u32, EXGeoEntity, ProcessedEntityMesh)>,
     Vec<(u32, EXGeoBaseAnimSkin)>,
     Vec<(u32, EXGeoEntity, ProcessedEntityMesh)>,
-    Vec<UXGeoTexture>,
+    Vec<IdentifiableResult<UXGeoTexture>>,
 ) {
     reader.seek(std::io::SeekFrom::Start(0)).ok();
     let endian = if reader.read_ne::<u8>().unwrap() == 0x47 {
@@ -709,7 +734,7 @@ pub fn read_from_file<R: Read + Seek>(
         }
     }
 
-    let textures = UXGeoTexture::read_all(&header, reader, platform).unwrap();
+    let textures = UXGeoTexture::read_all(&header, reader, platform);
 
     (entities, skins, refents, textures)
 }

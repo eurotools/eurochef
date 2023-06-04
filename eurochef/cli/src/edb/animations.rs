@@ -81,44 +81,45 @@ pub fn execute_command(
     );
     pb.set_message("Extracting textures");
 
-    let textures = UXGeoTexture::read_all(&header, &mut reader, platform)?;
-    for t in textures.into_iter().progress_with(pb) {
-        let hash_str = format!("0x{:x}", t.hashcode);
+    let textures = UXGeoTexture::read_all(&header, &mut reader, platform);
+    for it in textures.into_iter() {
+        let hash_str = format!("0x{:x}", it.hashcode);
         let _span = error_span!("texture", hash = %hash_str);
         let _span_enter = _span.enter();
 
-        trace!(
-            "tex={:x} sg=0b{:016b} flags=0b{:032b}",
-            t.hashcode,
-            t.flags >> 0x18,
-            t.flags
-        );
+        if let Ok(t) = it.data {
+            if t.frames.len() == 0 {
+                error!("Skipping texture with no frames");
+                continue;
+            }
 
-        // cohae: This is wrong on a few levels, but it's just for transparency
-        let flags_shift = if header.version == 248 { 0x19 } else { 0x18 };
+            // TODO(cohae): This is very wrong, textures only specify whether they're cutout. see GUI entity renderer for more info
+            // ~~cohae: This is wrong on a few levels, but it's just for transparency~~
+            let flags_shift = if header.version == 248 { 0x19 } else { 0x18 };
 
-        let is_transparent_blend = (((t.flags >> flags_shift) >> 6) & 1) != 0;
-        let is_transparent_cutout = (((t.flags >> flags_shift) >> 5) & 1) != 0;
-        let transparency = match (is_transparent_blend, is_transparent_cutout) {
-            (false, false) => Transparency::Opaque,
-            (true, false) => Transparency::Blend,
-            (false, true) => Transparency::Cutout,
-            _ => Transparency::Blend,
-        };
+            let is_transparent_blend = (((t.flags >> flags_shift) >> 6) & 1) != 0;
+            let is_transparent_cutout = (((t.flags >> flags_shift) >> 5) & 1) != 0;
+            let transparency = match (is_transparent_blend, is_transparent_cutout) {
+                (false, false) => Transparency::Opaque,
+                (true, false) => Transparency::Blend,
+                (false, true) => Transparency::Cutout,
+                _ => Transparency::Blend,
+            };
 
-        let mut cur = Cursor::new(Vec::new());
-        image::write_buffer_with_format(
-            &mut cur,
-            &t.frames[0],
-            t.width as u32,
-            t.height as u32,
-            image::ColorType::Rgba8,
-            ImageOutputFormat::Png,
-        )?;
+            let mut cur = Cursor::new(Vec::new());
+            image::write_buffer_with_format(
+                &mut cur,
+                &t.frames[0],
+                t.width as u32,
+                t.height as u32,
+                image::ColorType::Rgba8,
+                ImageOutputFormat::Png,
+            )?;
 
-        let mut uri = "data:image/png;base64,".to_string();
-        base64::engine::general_purpose::STANDARD.encode_string(&cur.into_inner(), &mut uri);
-        texture_uri_map.insert(t.hashcode, (uri, transparency));
+            let mut uri = "data:image/png;base64,".to_string();
+            base64::engine::general_purpose::STANDARD.encode_string(&cur.into_inner(), &mut uri);
+            texture_uri_map.insert(it.hashcode, (uri, transparency));
+        }
     }
 
     let pb = ProgressBar::new(header.animskin_list.len() as u64)

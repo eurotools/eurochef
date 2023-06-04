@@ -1,17 +1,17 @@
 use std::io::{Read, Seek};
 
-use egui::Widget;
+use egui::{Color32, Widget};
 use eurochef_edb::{
     binrw::{BinReaderExt, Endian},
     header::EXGeoHeader,
     versions::Platform,
 };
-use eurochef_shared::textures::UXGeoTexture;
+use eurochef_shared::{textures::UXGeoTexture, IdentifiableResult};
 use fnv::FnvHashMap;
 use instant::Instant;
 
 pub struct TextureList {
-    textures: Vec<UXGeoTexture>,
+    textures: Vec<IdentifiableResult<UXGeoTexture>>,
 
     // Each texture is a collection of frame textures
     egui_textures: FnvHashMap<u32, Vec<egui::TextureHandle>>,
@@ -28,7 +28,7 @@ pub struct TextureList {
 }
 
 impl TextureList {
-    pub fn new(textures: Vec<UXGeoTexture>) -> Self {
+    pub fn new(textures: Vec<IdentifiableResult<UXGeoTexture>>) -> Self {
         Self {
             textures,
             egui_textures: FnvHashMap::default(),
@@ -56,23 +56,25 @@ impl TextureList {
             egui::TextureOptions::default(),
         ));
 
-        for t in &self.textures {
-            let frames: Vec<egui::TextureHandle> = t
-                .frames
-                .iter()
-                .map(|f| {
-                    ctx.load_texture(
-                        format!("{:08x}", t.hashcode),
-                        egui::ColorImage::from_rgba_unmultiplied(
-                            [t.width as usize, t.height as usize],
-                            &f,
-                        ),
-                        egui::TextureOptions::default(),
-                    )
-                })
-                .collect();
+        for it in &self.textures {
+            if let Ok(t) = &it.data {
+                let frames: Vec<egui::TextureHandle> = t
+                    .frames
+                    .iter()
+                    .map(|f| {
+                        ctx.load_texture(
+                            format!("{:08x}", it.hashcode),
+                            egui::ColorImage::from_rgba_unmultiplied(
+                                [t.width as usize, t.height as usize],
+                                &f,
+                            ),
+                            egui::TextureOptions::default(),
+                        )
+                    })
+                    .collect();
 
-            self.egui_textures.insert(t.hashcode, frames);
+                self.egui_textures.insert(it.hashcode, frames);
+            }
         }
     }
 
@@ -95,42 +97,77 @@ impl TextureList {
             .show(ui, |ui| {
                 ui.horizontal_wrapped(|ui| {
                     ui.spacing_mut().item_spacing = [4. * self.zoom; 2].into();
-                    for (i, t) in self.textures.iter().enumerate() {
-                        if self.filter_animated && self.textures[i].frame_count <= 1 {
-                            continue;
-                        }
-
-                        let time = self.start_time.elapsed().as_secs_f32();
-                        let frametime_scale = t.frame_count as f32 / t.frames.len() as f32;
-                        let frame_time = (1. / t.framerate as f32) * frametime_scale;
-
-                        let frames = &self.egui_textures[&t.hashcode];
-                        let current = if frames.len() == 0 {
-                            self.fallback_texture.as_ref().unwrap()
-                        } else {
-                            if frames.len() > 1 {
-                                &frames[(time / frame_time) as usize % frames.len()]
-                            } else {
-                                &frames[0]
-                            }
-                        };
-
-                        let response = egui::Image::new(current, [128. * self.zoom, 128. * self.zoom]).sense(egui::Sense::click()).ui(ui)
-                            .on_hover_ui(|ui| {
-                                ui.label(format!(
-                                    "Hashcode: {:08x}\nFormat (internal): 0x{:x}\nDimensions: {}x{}x{}\nScroll: {} {}\nFlags: 0x{:x}\nGameflags: 0x{:x}\nIndex: {i}\n",
-                                    t.hashcode, t.format_internal, t.width, t.height, t.depth, t.scroll[0], t.scroll[1], t.flags, t.game_flags
-                                ));
-
-                                if frames.len() > 1 {
-                                    ui.label(format!("{} frames ({} fps)\n", frames.len(), t.framerate));
+                    for (i, it) in self.textures.iter().enumerate() {
+                        match &it.data {
+                            Ok(t) => {
+                                if self.filter_animated && t.frame_count <= 1 {
+                                    continue;
                                 }
 
-                                ui.strong("Click to enlarge");
-                            }).on_hover_cursor(egui::CursorIcon::PointingHand);
+                                let time = self.start_time.elapsed().as_secs_f32();
+                                let frametime_scale = t.frame_count as f32 / t.frames.len() as f32;
+                                let frame_time = (1. / t.framerate as f32) * frametime_scale;
 
-                        if response.clicked() {
-                            self.enlarged_texture = Some((i, t.hashcode));
+                                let frames = &self.egui_textures[&it.hashcode];
+                                let current = if frames.len() == 0 {
+                                    self.fallback_texture.as_ref().unwrap()
+                                } else {
+                                    if frames.len() > 1 {
+                                        &frames[(time / frame_time) as usize % frames.len()]
+                                    } else {
+                                        &frames[0]
+                                    }
+                                };
+
+                                let response = egui::Image::new(current, egui::vec2(128., 128.) * self.zoom).sense(egui::Sense::click()).ui(ui)
+                                .on_hover_ui(|ui| {
+                                    ui.label(format!(
+                                        "Hashcode: {:08x}\nFormat (internal): 0x{:x}\nDimensions: {}x{}x{}\nScroll: {} {}\nFlags: 0x{:x}\nGameflags: 0x{:x}\nIndex: {i}\n",
+                                        it.hashcode, t.format_internal, t.width, t.height, t.depth, t.scroll[0], t.scroll[1], t.flags, t.game_flags
+                                    ));
+
+                                    if frames.len() > 1 {
+                                        ui.label(format!("{} frames ({} fps)\n", frames.len(), t.framerate));
+                                    }
+
+                                    ui.strong("Click to enlarge");
+                                }).on_hover_cursor(egui::CursorIcon::PointingHand);
+
+                                if response.clicked() {
+                                    self.enlarged_texture = Some((i, it.hashcode));
+                                }
+                            }
+                            Err(e) => {
+                                // We don't know anything about failed textures, skip if filtered
+                                if self.filter_animated {
+                                    continue;
+                                }
+
+                                let (rect, response) =
+                                ui.allocate_exact_size(egui::vec2(128., 128.) * self.zoom, egui::Sense::click());
+    
+                                ui.painter().rect_filled( 
+                                    rect,
+                                    egui::Rounding::none(),
+                                    Color32::BLACK,
+                                );
+        
+                                ui.painter().text(
+                                    rect.left_top() + egui::vec2(24., 24.),
+                                    egui::Align2::CENTER_CENTER,
+                                    font_awesome::EXCLAMATION_TRIANGLE,
+                                    egui::FontId::proportional(24.),
+                                    Color32::RED,
+                                );
+        
+                                response.on_hover_ui(|ui| {
+                                    ui.label(format!(
+                                        "Texture {:x} failed:",
+                                        it.hashcode
+                                    ));
+                                    ui.colored_label(Color32::LIGHT_RED, cutoff_string(format!("{e:?}"), 1024));
+                                });
+                            },
                         }
                     }
                 });
@@ -141,29 +178,31 @@ impl TextureList {
         let mut window_open = self.enlarged_texture.is_some();
         if let Some(enlarged_texture) = self.enlarged_texture {
             let (i, _hashcode) = enlarged_texture;
-            let t = &self.textures[i];
+            let it = &self.textures[i];
 
-            // TODO(cohae): Fix resizing window
-            egui::Window::new("Texture Viewer")
-                .open(&mut window_open)
-                .collapsible(false)
-                .default_height(ctx.available_rect().height() * 0.70 as f32)
-                .show(ctx, |ui| {
-                    let time = self.start_time.elapsed().as_secs_f32();
-                    let frametime_scale = t.frame_count as f32 / t.frames.len() as f32;
-                    let frame_time = (1. / t.framerate as f32) * frametime_scale;
+            if let Ok(t) = &it.data {
+                // TODO(cohae): Fix resizing window
+                egui::Window::new("Texture Viewer")
+                    .open(&mut window_open)
+                    .collapsible(false)
+                    .default_height(ctx.available_rect().height() * 0.70 as f32)
+                    .show(ctx, |ui| {
+                        let time = self.start_time.elapsed().as_secs_f32();
+                        let frametime_scale = t.frame_count as f32 / t.frames.len() as f32;
+                        let frame_time = (1. / t.framerate as f32) * frametime_scale;
 
-                    let frames = &self.egui_textures[&t.hashcode];
-                    let current = if frames.len() > 0 {
-                        &frames[(time / frame_time) as usize % frames.len()]
-                    } else {
-                        &frames[0]
-                    };
+                        let frames = &self.egui_textures[&it.hashcode];
+                        let current = if frames.len() > 0 {
+                            &frames[(time / frame_time) as usize % frames.len()]
+                        } else {
+                            &frames[0]
+                        };
 
-                    egui::Image::new(current, current.size_vec2() * 2.5).ui(ui);
+                        egui::Image::new(current, current.size_vec2() * 2.5).ui(ui);
 
-                    // TODO(cohae): Animation checkbox, when unticked, show frame slider
-                });
+                        // TODO(cohae): Animation checkbox, when unticked, show frame slider
+                    });
+            }
         }
 
         if !window_open {
@@ -173,7 +212,10 @@ impl TextureList {
 }
 
 // TODO(cohae): EdbFile struct so we dont have to read endianness separately
-pub fn read_from_file<R: Read + Seek>(reader: &mut R, platform: Platform) -> Vec<UXGeoTexture> {
+pub fn read_from_file<R: Read + Seek>(
+    reader: &mut R,
+    platform: Platform,
+) -> Vec<IdentifiableResult<UXGeoTexture>> {
     reader.seek(std::io::SeekFrom::Start(0)).ok();
     let endian = if reader.read_ne::<u8>().unwrap() == 0x47 {
         Endian::Big
@@ -187,5 +229,14 @@ pub fn read_from_file<R: Read + Seek>(reader: &mut R, platform: Platform) -> Vec
         .read_type::<EXGeoHeader>(endian)
         .expect("Failed to read header");
 
-    UXGeoTexture::read_all(&header, reader, platform).unwrap()
+    UXGeoTexture::read_all(&header, reader, platform)
+}
+
+fn cutoff_string(string: String, max_len: usize) -> String {
+    if string.len() > max_len {
+        let new_string = string[..max_len].to_string();
+        new_string + "..."
+    } else {
+        string
+    }
 }

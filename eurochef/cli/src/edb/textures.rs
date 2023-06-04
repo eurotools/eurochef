@@ -65,71 +65,84 @@ pub fn execute_command(
     );
     pb.set_message("Extracting textures");
 
-    let textures = UXGeoTexture::read_all(&header, &mut reader, platform)?;
-    for t in textures.into_iter().progress_with(pb) {
-        let hash_str = format!("0x{:x}", t.hashcode);
+    let textures = UXGeoTexture::read_all(&header, &mut reader, platform);
+    for it in textures.into_iter().progress_with(pb) {
+        let hash_str = format!("0x{:x}", it.hashcode);
         let _span = error_span!("texture", hash = %hash_str);
         let _span_enter = _span.enter();
 
-        if t.depth > 1 {
-            warn!("Texture is 3D, skipping");
-            continue;
-        }
-
-        if file_format == "png" && !no_apngs {
-            let filename = output_folder.join(format!("{:08x}.{}", t.hashcode, file_format));
-            if t.frames.len() > 1 {
-                let png_frames: Vec<apng::PNGImage> = t
-                    .frames
-                    .into_iter()
-                    .map(|data| {
-                        apng::load_dynamic_image(
-                            image::RgbaImage::from_vec(t.width as u32, t.height as u32, data)
-                                .unwrap()
-                                .into(),
-                        )
-                        .unwrap()
-                    })
-                    .collect();
-
-                let apng_config = apng::create_config(&png_frames, Some(0))?;
-                let mut imgfile =
-                    File::create(filename).context("Failed to create output image")?;
-                let mut encoder = apng::Encoder::new(&mut imgfile, apng_config)?;
-                encoder.encode_all(
-                    png_frames,
-                    Some(&apng::Frame {
-                        delay_den: Some(1000),
-                        delay_num: Some((1000.0 / t.framerate as f32) as u16),
-                        ..Default::default()
-                    }),
-                )?;
-                encoder.finish_encode()?;
-            } else {
-                if let Some(f) = t.frames.into_iter().nth(0) {
-                    let image =
-                        image::RgbaImage::from_vec(t.width as u32, t.height as u32, f).unwrap();
-                    image.save(filename)?;
+        match it.data {
+            Ok(t) => {
+                if t.depth > 1 {
+                    warn!("Texture is 3D, skipping");
+                    continue;
                 }
-            }
-        } else {
-            for (i, f) in t.frames.into_iter().enumerate() {
-                let filename =
-                    output_folder.join(format!("{:08x}_frame{}.{}", t.hashcode, i, file_format));
-                match file_format.as_str() {
-                    "qoi" => {
-                        let filedata = qoi::encode_to_vec(f, t.width as u32, t.height as u32)?;
+
+                if file_format == "png" && !no_apngs {
+                    let filename =
+                        output_folder.join(format!("{:08x}.{}", it.hashcode, file_format));
+                    if t.frames.len() > 1 {
+                        let png_frames: Vec<apng::PNGImage> = t
+                            .frames
+                            .into_iter()
+                            .map(|data| {
+                                apng::load_dynamic_image(
+                                    image::RgbaImage::from_vec(
+                                        t.width as u32,
+                                        t.height as u32,
+                                        data,
+                                    )
+                                    .unwrap()
+                                    .into(),
+                                )
+                                .unwrap()
+                            })
+                            .collect();
+
+                        let apng_config = apng::create_config(&png_frames, Some(0))?;
                         let mut imgfile =
                             File::create(filename).context("Failed to create output image")?;
-                        imgfile.write_all(&filedata)?;
+                        let mut encoder = apng::Encoder::new(&mut imgfile, apng_config)?;
+                        encoder.encode_all(
+                            png_frames,
+                            Some(&apng::Frame {
+                                delay_den: Some(1000),
+                                delay_num: Some((1000.0 / t.framerate as f32) as u16),
+                                ..Default::default()
+                            }),
+                        )?;
+                        encoder.finish_encode()?;
+                    } else {
+                        if let Some(f) = t.frames.into_iter().nth(0) {
+                            let image =
+                                image::RgbaImage::from_vec(t.width as u32, t.height as u32, f)
+                                    .unwrap();
+                            image.save(filename)?;
+                        }
                     }
-                    _ => {
-                        let image =
-                            image::RgbaImage::from_vec(t.width as u32, t.height as u32, f).unwrap();
-                        image.save(filename)?;
+                } else {
+                    for (i, f) in t.frames.into_iter().enumerate() {
+                        let filename = output_folder
+                            .join(format!("{:08x}_frame{}.{}", it.hashcode, i, file_format));
+                        match file_format.as_str() {
+                            "qoi" => {
+                                let filedata =
+                                    qoi::encode_to_vec(f, t.width as u32, t.height as u32)?;
+                                let mut imgfile = File::create(filename)
+                                    .context("Failed to create output image")?;
+                                imgfile.write_all(&filedata)?;
+                            }
+                            _ => {
+                                let image =
+                                    image::RgbaImage::from_vec(t.width as u32, t.height as u32, f)
+                                        .unwrap();
+                                image.save(filename)?;
+                            }
+                        }
                     }
                 }
             }
+            Err(e) => error!("{e}"),
         }
     }
 
