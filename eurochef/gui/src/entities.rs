@@ -129,7 +129,8 @@ impl EntityListPanel {
                     framerate: t.framerate as usize,
                     frame_count: t.frame_count as usize,
                     flags: t.flags,
-                    scroll: Vec2::new(t.scroll[0] as f32, t.scroll[1] as f32) / 300.0,
+                    // EngineX(T) calculates these as step per frame by dividing each axis by 30000. We're calculating this with seconds instead of frames
+                    scroll: Vec2::new(t.scroll[0] as f32 / 500.0, t.scroll[1] as f32 / 500.0),
                 }
             })
             .collect()
