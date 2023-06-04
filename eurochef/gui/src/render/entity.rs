@@ -138,7 +138,7 @@ impl EntityRenderer {
         );
 
         let model = Mat4::from_translation(position)
-            * Mat4::from_euler(glam::EulerRot::XYZ, rotation.x, rotation.y, rotation.z)
+            * Mat4::from_euler(glam::EulerRot::ZXY, rotation.z, rotation.x, rotation.y)
             * Mat4::from_scale(scale);
         gl.uniform_matrix_4_f32_slice(
             gl.get_uniform_location(self.mesh_shader, "u_model")
