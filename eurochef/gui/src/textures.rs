@@ -1,4 +1,4 @@
-use std::io::{Seek, Read};
+use std::io::{Read, Seek};
 
 use egui::Widget;
 use eurochef_edb::{
@@ -45,9 +45,16 @@ impl TextureList {
     }
 
     pub fn load_textures(&mut self, ctx: &egui::Context) {
-        self.fallback_texture = Some(ctx.load_texture("fallback", egui::ColorImage::from_rgba_unmultiplied([2, 2], &[
+        self.fallback_texture = Some(ctx.load_texture(
+            "fallback",
+            egui::ColorImage::from_rgba_unmultiplied(
+                [2, 2],
+                &[
                     255, 0, 255, 255, 0, 0, 0, 255, 0, 0, 0, 255, 255, 0, 255, 255,
-                ]), egui::TextureOptions::default()));
+                ],
+            ),
+            egui::TextureOptions::default(),
+        ));
 
         for t in &self.textures {
             let frames: Vec<egui::TextureHandle> = t
@@ -108,21 +115,6 @@ impl TextureList {
                             }
                         };
 
-                        // TODO(cohae): figure out scrolling
-                        // let offset_per_second = egui::vec2(t.scroll[0] as f32, t.scroll[1] as f32) / 30000.0;
-                        // let mut offset = offset_per_second * time;
-
-                        // if t.scroll[0].abs() == 1 {
-                        //     offset.x = time * t.scroll[0] as f32;
-                        // }
-                        // if t.scroll[1].abs() == 1 {
-                        //     offset.y = time * t.scroll[1] as f32;
-                        // }
-                        
-                        // offset.x %= 1.0;
-                        // offset.y %= 1.0;
-
-                        // let uv = egui::Rect::from_min_max(egui::pos2(0. + offset.x, 0. + offset.y), egui::pos2(1. + offset.x, 1. + offset.y));
                         let response = egui::Image::new(current, [128. * self.zoom, 128. * self.zoom]).sense(egui::Sense::click()).ui(ui)
                             .on_hover_ui(|ui| {
                                 ui.label(format!(
@@ -168,8 +160,7 @@ impl TextureList {
                         &frames[0]
                     };
 
-                    egui::Image::new(current, current.size_vec2() * 2.5)
-                        .ui(ui);
+                    egui::Image::new(current, current.size_vec2() * 2.5).ui(ui);
 
                     // TODO(cohae): Animation checkbox, when unticked, show frame slider
                 });
