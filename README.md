@@ -27,7 +27,8 @@ _(Priority currently lies with Spyro and G-Force)_
 
 | Game (EDB Version)                             | Textures <sup>[1]</sup> | Maps | Scripts | Entities | Animations | Particles | Spreadsheets |
 | ---------------------------------------------- | ----------------------- | ---- | ------- | -------- | ---------- | --------- | ------------ |
-| Sphinx and the Cursed Mummy (182)              | ❔/❌                     | ❔/❌  | ❌       | ❌        | ❌          | ❌         | ✅/❌          |
+| Sphinx and the Shadow of Set Demo Disc (156)   | 🚧/❌                     | ❔/❌  | ❌       | ✅/❌      | ❌          | ❌         | ✅/❌          |
+| Sphinx and the Cursed Mummy (182)              | 🚧/❌                     | ❔/❌  | ❌       | ✅/❌      | ❌          | ❌         | ✅/❌          |
 | Spyro: A Hero's Tail (240)                     | ✅/❌                     | ✅/❌  | ❌       | ✅/❌      | ❌          | ❌         | ✅/❌          |
 | Robots (248)                                   | ✅/❌                     | ✅/❌  | ❌       | ✅/❌      | ❌          | ❌         | ✅/❌          |
 | Predator: Concrete Jungle (250)                | ✅/❌                     | ❔/❌  | ❌       | ✅/❌      | ❌          | ❌         | ✅/❌          |

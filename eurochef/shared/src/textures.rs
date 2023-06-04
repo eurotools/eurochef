@@ -137,6 +137,14 @@ impl UXGeoTexture {
                 .read_exact(&mut data)
                 .context(format!("Failed to read frame {i}"))?;
 
+            if header.version == 156 && clut.len() == 0 {
+                let clut_size = texture_decoder.get_clut_size(tex.format)?;
+                clut.resize(clut_size, 0);
+                reader
+                    .read_exact(&mut clut)
+                    .context(format!("Failed to read clut for frame {i}"))?;
+            }
+
             texture_decoder
                 .decode(
                     &data,
