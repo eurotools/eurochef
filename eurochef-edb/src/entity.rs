@@ -56,6 +56,9 @@ pub struct EXGeoMeshEntity {
     #[brw(if(platform == Platform::GameCube || platform == Platform::Wii))]
     _unk74: u32, // 0x74
 
+    #[brw(if(platform == Platform::Wii))]
+    _unk78: [f32; 10], // ???
+
     #[brw(if(platform == Platform::Ps2))]
     tristrip_count_ps2: u16, // 0x68
     #[brw(if(platform == Platform::Ps2))]

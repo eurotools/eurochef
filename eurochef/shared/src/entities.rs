@@ -143,44 +143,50 @@ pub fn read_entity<R: Read + Seek>(
             let vertex_offset = vertex_data.len() as u32;
             let mut vertex_colors: Vec<EXVector> = vec![];
             if let Some(vertex_colors_offset) = &mesh.vertex_colors {
-                data.seek(std::io::SeekFrom::Start(
-                    vertex_colors_offset.offset_absolute(),
-                ))?;
-
-                // TODO(cohae): 0BADF003 (assert) + data size
-                if platform == Platform::Xbox360 {
-                    for _ in 0..2 {
-                        data.read_type::<u32>(endian).unwrap();
+                if [Platform::GameCube, Platform::Wii].contains(&platform) {
+                    for _ in 0..mesh.vertex_count {
+                        vertex_colors.push([1.0, 1.0, 1.0, 1.0]);
                     }
-                }
+                } else {
+                    data.seek(std::io::SeekFrom::Start(
+                        vertex_colors_offset.offset_absolute(),
+                    ))?;
 
-                for _ in 0..mesh.vertex_count {
-                    let rgba: [u8; 4] = data.read_type(endian)?;
-                    match platform {
-                        Platform::Xbox360 => {
-                            vertex_colors.push([
-                                rgba[1] as f32 / 255.0,
-                                rgba[2] as f32 / 255.0,
-                                rgba[3] as f32 / 255.0,
-                                rgba[0] as f32 / 255.0,
-                            ]);
+                    // TODO(cohae): 0BADF003 (assert) + data size
+                    if platform == Platform::Xbox360 {
+                        for _ in 0..2 {
+                            data.read_type::<u32>(endian).unwrap();
                         }
-                        // ! Currently handled during strip assembly
-                        // Platform::GameCube | Platform::Wii => {
-                        //     vertex_colors.push([
-                        //         rgba[0] as f32 / 255.0,
-                        //         rgba[1] as f32 / 255.0,
-                        //         rgba[2] as f32 / 255.0,
-                        //         rgba[3] as f32 / 255.0,
-                        //     ]);
-                        // }
-                        _ => {
-                            vertex_colors.push([
-                                rgba[2] as f32 / 255.0,
-                                rgba[1] as f32 / 255.0,
-                                rgba[0] as f32 / 255.0,
-                                rgba[3] as f32 / 255.0,
-                            ]);
+                    }
+
+                    for _ in 0..mesh.vertex_count {
+                        let rgba: [u8; 4] = data.read_type(endian)?;
+                        match platform {
+                            Platform::Xbox360 => {
+                                vertex_colors.push([
+                                    rgba[1] as f32 / 255.0,
+                                    rgba[2] as f32 / 255.0,
+                                    rgba[3] as f32 / 255.0,
+                                    rgba[0] as f32 / 255.0,
+                                ]);
+                            }
+                            // ! Currently handled during strip assembly
+                            // Platform::GameCube | Platform::Wii => {
+                            //     vertex_colors.push([
+                            //         rgba[0] as f32 / 255.0,
+                            //         rgba[1] as f32 / 255.0,
+                            //         rgba[2] as f32 / 255.0,
+                            //         rgba[3] as f32 / 255.0,
+                            //     ]);
+                            // }
+                            _ => {
+                                vertex_colors.push([
+                                    rgba[2] as f32 / 255.0,
+                                    rgba[1] as f32 / 255.0,
+                                    rgba[0] as f32 / 255.0,
+                                    rgba[3] as f32 / 255.0,
+                                ]);
+                            }
                         }
                     }
                 }
@@ -200,17 +206,17 @@ pub fn read_entity<R: Read + Seek>(
             }
 
             for i in 0..mesh.vertex_count {
-                match version {
-                    252 | 250 | 251 | 240 | 221 => {
-                        if platform == Platform::GameCube || platform == Platform::Wii {
-                            let d = data.read_type::<(EXVector3, u32)>(endian)?;
-                            vertex_data.push(UXVertex {
-                                pos: d.0,
-                                norm: [0f32, 0f32, 0f32],
-                                uv: [0.5f32, 0.5f32],
-                                color: [0.5f32, 0.5f32, 0.5f32, 1f32],
-                            });
-                        } else {
+                if platform == Platform::GameCube || platform == Platform::Wii {
+                    let d = data.read_type::<(EXVector3, u32)>(endian)?;
+                    vertex_data.push(UXVertex {
+                        pos: d.0,
+                        norm: [0f32, 0f32, 0f32],
+                        uv: [0.5f32, 0.5f32],
+                        color: [0.5f32, 0.5f32, 0.5f32, 1f32],
+                    });
+                } else {
+                    match version {
+                        252 | 250 | 251 | 240 | 221 => {
                             let d = data.read_type::<(EXVector3, u32, EXVector2)>(endian)?;
                             vertex_data.push(UXVertex {
                                 pos: d.0,
@@ -219,29 +225,30 @@ pub fn read_entity<R: Read + Seek>(
                                 color: vertex_colors[i as usize],
                             });
                         }
-                    }
-                    248 | 259 | 260 => {
-                        if platform == Platform::Xbox360 {
-                            let d = data.read_type::<(EXVector3, f32, EXVector3, f32)>(endian)?;
-                            vertex_data.push(UXVertex {
-                                pos: d.0,
-                                norm: d.2,
-                                uv: [0.0, 0.0],
-                                color: vertex_colors[i as usize],
-                            });
-                        } else {
-                            vertex_data.push(UXVertex {
-                                pos: data.read_type(endian)?,
-                                norm: data.read_type(endian)?,
-                                uv: data.read_type(endian)?,
-                                color: vertex_colors[i as usize],
-                            });
+                        248 | 259 | 260 => {
+                            if platform == Platform::Xbox360 {
+                                let d =
+                                    data.read_type::<(EXVector3, f32, EXVector3, f32)>(endian)?;
+                                vertex_data.push(UXVertex {
+                                    pos: d.0,
+                                    norm: d.2,
+                                    uv: [0.0, 0.0],
+                                    color: vertex_colors[i as usize],
+                                });
+                            } else {
+                                vertex_data.push(UXVertex {
+                                    pos: data.read_type(endian)?,
+                                    norm: data.read_type(endian)?,
+                                    uv: data.read_type(endian)?,
+                                    color: vertex_colors[i as usize],
+                                });
+                            }
                         }
-                    }
-                    _ => {
-                        panic!(
+                        _ => {
+                            panic!(
                             "Vertex format for version {version} is not known yet, report to cohae!"
                         );
+                        }
                     }
                 }
             }
@@ -337,7 +344,7 @@ pub fn read_entity<R: Read + Seek>(
                             index_count += 1;
 
                             // FIXME(cohae): not actually index count, fix the structure. (there's probably more to this, check dbg file)
-                            let uv_dividend = match (mesh.index_count >> 28) & 0b1111 {
+                            let uv_dividend = match (mesh.index_count >> 28) & 0b0111 {
                                 0 => 65536.0,
                                 1 => 32768.0,
                                 2 => 16384.0, // Confirmed
