@@ -52,8 +52,8 @@ _Each field is formatted as R/W. For example, if a feature can be read, but not 
 | PC            | LE     | ✅<sup>[2]</sup>/❌ | ❌      | ✅/❌               |
 | Xbox          | LE     | ✅<sup>[2]</sup>/❌ | ❌      | ✅/❌               |
 | Xbox 360      | BE     | ✅<sup>[2]</sup>/❌ | ❌      | ✅/❌               |
-| GameCube      | BE     | ✅<sup>[2]</sup>/❌ | ❌      | ❌                 |
-| Wii           | BE     | ✅<sup>[2]</sup>/❌ | ❌      | ❌                 |
+| GameCube      | BE     | ✅<sup>[2]</sup>/❌ | ❌      | ✅/❌               |
+| Wii           | BE     | ✅<sup>[2]</sup>/❌ | ❌      | ✅/❌               |
 | Wii U         | BE     | ❌                 | ❌      | ❌                 |
 | Playstation 2 | LE     | ✅<sup>[2]</sup>/❌ | ❌      | 🚧<sup>[3]</sup>/❌ |
 | Playstation 3 | BE     | ❌                 | ❌      | ❌                 |
