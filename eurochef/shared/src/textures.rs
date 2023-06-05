@@ -1,6 +1,7 @@
 use std::io::{Read, Seek};
 
 use anyhow::Context;
+use bitflags::bitflags;
 use eurochef_edb::{
     binrw::{BinReaderExt, Endian},
     header::EXGeoHeader,
@@ -35,6 +36,10 @@ pub struct UXGeoTexture {
 
     /// Decoded RGBA frame data
     pub frames: Vec<Vec<u8>>,
+
+    pub color: [u8; 4],
+
+    pub diagnostics: UXTextureDiagnostics,
 }
 
 impl UXGeoTexture {
@@ -120,6 +125,8 @@ impl UXGeoTexture {
             frame_count: tex.frame_count,
             scroll: [tex.scroll_u, tex.scroll_v],
             frames: Vec::with_capacity(tex.frame_count as usize),
+            color: tex.color,
+            diagnostics: Default::default(),
         };
 
         let mut clut = vec![];
@@ -169,10 +176,64 @@ impl UXGeoTexture {
             texture.frames.push(output.clone().into_vec());
         }
 
+        texture.calculate_diagnostics();
         Ok(texture)
     }
 
     pub fn is_valid(&self) -> bool {
         self.flags != u32::MAX && self.game_flags != u16::MAX
+    }
+
+    pub fn calculate_diagnostics(&mut self) {
+        self.diagnostics = UXTextureDiagnostics::empty();
+
+        // Calculate the average of the first frame
+        // let mut avg = [0u64; 4];
+        // for v in self.frames[0].chunks_exact(4) {
+        //     avg[0] += u64::from(v[0]);
+        //     avg[1] += u64::from(v[1]);
+        //     avg[2] += u64::from(v[2]);
+        //     avg[3] += u64::from(v[3]);
+        // }
+
+        // let avg = [
+        //     (avg[0] / (self.width as u64 * self.height as u64)) as u8,
+        //     (avg[1] / (self.width as u64 * self.height as u64)) as u8,
+        //     (avg[2] / (self.width as u64 * self.height as u64)) as u8,
+        //     (avg[3] / (self.width as u64 * self.height as u64)) as u8,
+        // ];
+
+        // self.diagnostics |= UXTextureDiagnostics::MISMATCHING_AVERAGE;
+
+        if self.frames.is_empty() {
+            self.diagnostics |= UXTextureDiagnostics::NO_FRAMES;
+        }
+    }
+}
+
+bitflags! {
+    #[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
+    pub struct UXTextureDiagnostics: u32 {
+        const MISMATCHING_AVERAGE = (1 << 0);
+        const NO_FRAMES = (1 << 1);
+    }
+}
+
+impl UXTextureDiagnostics {
+    pub fn to_strings(&self) -> Vec<&'static str> {
+        let mut strings = vec![];
+        for flag in self.iter() {
+            let s = match flag {
+                UXTextureDiagnostics::MISMATCHING_AVERAGE => {
+                    "Texture data does not match color average"
+                }
+                UXTextureDiagnostics::NO_FRAMES => "Texture has no frames",
+                _ => unreachable!(),
+            };
+
+            strings.push(s);
+        }
+
+        strings
     }
 }

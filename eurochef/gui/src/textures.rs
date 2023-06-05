@@ -24,12 +24,12 @@ pub struct TextureList {
 
     enlarged_texture: Option<(usize, u32)>,
 
-    fallback_texture: Option<egui::TextureHandle>,
+    fallback_texture: egui::TextureHandle,
 }
 
 impl TextureList {
-    pub fn new(textures: Vec<IdentifiableResult<UXGeoTexture>>) -> Self {
-        Self {
+    pub fn new(ctx: &egui::Context, textures: Vec<IdentifiableResult<UXGeoTexture>>) -> Self {
+        let mut s = Self {
             textures,
             egui_textures: FnvHashMap::default(),
             start_time: Instant::now(),
@@ -39,22 +39,22 @@ impl TextureList {
 
             enlarged_texture: None,
 
-            // TODO(cohae): Replace with symbol
-            fallback_texture: None,
-        }
+            fallback_texture: ctx.load_texture("fallback", 
+            egui::ColorImage::from_rgba_unmultiplied(
+                [1, 1],
+                &[
+                    0, 0, 0, 0
+                ],
+            ),
+            egui::TextureOptions::default()),
+        };
+
+        s.load_textures(ctx);
+
+        s
     }
 
     pub fn load_textures(&mut self, ctx: &egui::Context) {
-        self.fallback_texture = Some(ctx.load_texture(
-            "fallback",
-            egui::ColorImage::from_rgba_unmultiplied(
-                [2, 2],
-                &[
-                    255, 0, 255, 255, 0, 0, 0, 255, 0, 0, 0, 255, 255, 0, 255, 255,
-                ],
-            ),
-            egui::TextureOptions::default(),
-        ));
 
         for it in &self.textures {
             if let Ok(t) = &it.data {
@@ -110,7 +110,7 @@ impl TextureList {
 
                                 let frames = &self.egui_textures[&it.hashcode];
                                 let current = if frames.len() == 0 {
-                                    self.fallback_texture.as_ref().unwrap()
+                                    &self.fallback_texture
                                 } else {
                                     if frames.len() > 1 {
                                         &frames[(time / frame_time) as usize % frames.len()]
@@ -118,6 +118,8 @@ impl TextureList {
                                         &frames[0]
                                     }
                                 };
+
+                                let diagnostics = t.diagnostics.to_strings();
 
                                 let response = egui::Image::new(current, egui::vec2(128., 128.) * self.zoom).sense(egui::Sense::click()).ui(ui)
                                 .on_hover_ui(|ui| {
@@ -130,8 +132,26 @@ impl TextureList {
                                         ui.label(format!("{} frames ({} fps)\n", frames.len(), t.framerate));
                                     }
 
+                                    for d in &diagnostics {
+                                        ui.colored_label(Color32::YELLOW, *d);
+                                    }
+
+                                    if !diagnostics.is_empty() {
+                                        ui.label("");
+                                    }
+
                                     ui.strong("Click to enlarge");
                                 }).on_hover_cursor(egui::CursorIcon::PointingHand);
+
+                                if !diagnostics.is_empty() {
+                                    ui.painter().text(
+                                        response.rect.left_top() + egui::vec2(24., 24.),
+                                        egui::Align2::CENTER_CENTER,
+                                        font_awesome::EXCLAMATION_TRIANGLE,
+                                        egui::FontId::proportional(24.),
+                                        Color32::YELLOW,
+                                    );
+                                }
 
                                 if response.clicked() {
                                     self.enlarged_texture = Some((i, it.hashcode));

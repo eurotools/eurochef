@@ -172,11 +172,10 @@ impl EurochefApp {
             self.entities = None;
         }
 
-        self.textures = Some(textures::TextureList::new(textures::read_from_file(
-            reader, platform,
-        )));
-
-        self.textures.as_mut().unwrap().load_textures(ctx);
+        self.textures = Some(textures::TextureList::new(
+            ctx,
+            textures::read_from_file(reader, platform),
+        ));
 
         self.state = AppState::Ready;
     }

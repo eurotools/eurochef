@@ -16,3 +16,4 @@ image = { version = "0.24", default-features = false, features = ["png", "tga"] 
 serde = "1.0.160"
 squish = "1.0"
 tracing = "0.1.37"
+bitflags = "2.3.1"
