@@ -2,9 +2,9 @@ use std::io::{Read, Seek};
 
 use bytemuck::{Pod, Zeroable};
 use eurochef_edb::{
-    binrw::{BinReaderExt, Endian},
+    binrw::{BinReaderExt, Endian, VecArgs},
     common::{EXVector, EXVector2, EXVector3},
-    entity::{EXGeoEntity, EXGeoEntity_TextureList, EXGeoEntity_TriStrip, Ps2TriStrip},
+    entity::{EXGeoEntity, EXGeoEntity_TriStrip, GxTriStrip, Ps2TriStrip},
     versions::Platform,
 };
 use tracing::{error, warn};
@@ -141,7 +141,6 @@ pub fn read_entity<R: Read + Seek>(
             }
 
             let vertex_offset = vertex_data.len() as u32;
-
             let mut vertex_colors: Vec<EXVector> = vec![];
             if let Some(vertex_colors_offset) = &mesh.vertex_colors {
                 data.seek(std::io::SeekFrom::Start(
@@ -157,20 +156,32 @@ pub fn read_entity<R: Read + Seek>(
 
                 for _ in 0..mesh.vertex_count {
                     let rgba: [u8; 4] = data.read_type(endian)?;
-                    if platform == Platform::Xbox360 {
-                        vertex_colors.push([
-                            rgba[1] as f32 / 255.0,
-                            rgba[2] as f32 / 255.0,
-                            rgba[3] as f32 / 255.0,
-                            rgba[0] as f32 / 255.0,
-                        ]);
-                    } else {
-                        vertex_colors.push([
-                            rgba[2] as f32 / 255.0,
-                            rgba[1] as f32 / 255.0,
-                            rgba[0] as f32 / 255.0,
-                            rgba[3] as f32 / 255.0,
-                        ]);
+                    match platform {
+                        Platform::Xbox360 => {
+                            vertex_colors.push([
+                                rgba[1] as f32 / 255.0,
+                                rgba[2] as f32 / 255.0,
+                                rgba[3] as f32 / 255.0,
+                                rgba[0] as f32 / 255.0,
+                            ]);
+                        }
+                        // ! Currently handled during strip assembly
+                        // Platform::GameCube | Platform::Wii => {
+                        //     vertex_colors.push([
+                        //         rgba[0] as f32 / 255.0,
+                        //         rgba[1] as f32 / 255.0,
+                        //         rgba[2] as f32 / 255.0,
+                        //         rgba[3] as f32 / 255.0,
+                        //     ]);
+                        // }
+                        _ => {
+                            vertex_colors.push([
+                                rgba[2] as f32 / 255.0,
+                                rgba[1] as f32 / 255.0,
+                                rgba[0] as f32 / 255.0,
+                                rgba[3] as f32 / 255.0,
+                            ]);
+                        }
                     }
                 }
             } else {
@@ -191,13 +202,23 @@ pub fn read_entity<R: Read + Seek>(
             for i in 0..mesh.vertex_count {
                 match version {
                     252 | 250 | 251 | 240 | 221 => {
-                        let d = data.read_type::<(EXVector3, u32, EXVector2)>(endian)?;
-                        vertex_data.push(UXVertex {
-                            pos: d.0,
-                            norm: [0f32, 0f32, 0f32],
-                            uv: d.2,
-                            color: vertex_colors[i as usize],
-                        });
+                        if platform == Platform::GameCube || platform == Platform::Wii {
+                            let d = data.read_type::<(EXVector3, u32)>(endian)?;
+                            vertex_data.push(UXVertex {
+                                pos: d.0,
+                                norm: [0f32, 0f32, 0f32],
+                                uv: [0.5f32, 0.5f32],
+                                color: [0.5f32, 0.5f32, 0.5f32, 1f32],
+                            });
+                        } else {
+                            let d = data.read_type::<(EXVector3, u32, EXVector2)>(endian)?;
+                            vertex_data.push(UXVertex {
+                                pos: d.0,
+                                norm: [0f32, 0f32, 0f32],
+                                uv: d.2,
+                                color: vertex_colors[i as usize],
+                            });
+                        }
                     }
                     248 | 259 | 260 => {
                         if platform == Platform::Xbox360 {
@@ -219,8 +240,8 @@ pub fn read_entity<R: Read + Seek>(
                     }
                     _ => {
                         panic!(
-                        "Vertex format for version {version} is not known yet, report to cohae!"
-                    );
+                            "Vertex format for version {version} is not known yet, report to cohae!"
+                        );
                     }
                 }
             }
@@ -231,32 +252,153 @@ pub fn read_entity<R: Read + Seek>(
                 }
             }
 
-            data.seek(std::io::SeekFrom::Start(mesh.index_data.offset_absolute()))?;
-
-            // TODO(cohae): 0BADF001
-            if platform == Platform::Xbox360 {
-                for _ in 0..2 {
-                    data.read_type::<u16>(endian).unwrap();
-                }
-            }
-
-            let new_indices: Vec<u32> = (0..mesh.index_count)
-                .map(|_| data.read_type::<u16>(endian).unwrap() as u32)
-                .collect();
+            let textures = &mesh.texture_list.textures;
 
             let mut tristrips: Vec<EXGeoEntity_TriStrip> = vec![];
-            data.seek(std::io::SeekFrom::Start(
-                mesh.tristrip_data.offset_absolute(),
-            ))?;
-            for _ in 0..mesh.tristrip_count {
-                tristrips.push(data.read_type_args(endian, (version, platform))?);
-            }
+            let mut new_indices: Vec<u32> = vec![];
+            if platform == Platform::GameCube || platform == Platform::Wii {
+                data.seek(std::io::SeekFrom::Start(
+                    mesh.tristrip_data.offset_absolute(),
+                ))?;
 
-            data.seek(std::io::SeekFrom::Start(
-                mesh.texture_list.offset_absolute(),
-            ))?;
-            let textures: EXGeoEntity_TextureList = data.read_type(endian)?;
-            let textures = textures.textures;
+                let gx_strips: Vec<GxTriStrip> = data.read_type_args(
+                    endian,
+                    VecArgs {
+                        count: mesh.tristrip_count as usize,
+                        inner: (),
+                    },
+                )?;
+
+                // Move the vertices out of the main array, as we have to rebuild them
+                let original_verts = vertex_data[vertex_offset as usize..].to_vec();
+                vertex_data.drain(vertex_offset as usize..);
+                for s in gx_strips {
+                    struct GxIndex {
+                        pos: u16,
+                        _unk0: u16,
+                        color: u16,
+                        uv: u16,
+                    }
+
+                    let mut converted_indices = vec![];
+                    let mut offset = 0;
+                    while offset < s.indices.len() {
+                        let h = s.indices[offset];
+                        let face_count = s.indices[offset + 1];
+
+                        if h != 0x98 {
+                            break;
+                        }
+                        offset += 2;
+                        let mut temp = vec![];
+                        let chunk: &[[u16; 4]] = bytemuck::cast_slice(
+                            s.indices[offset..offset + face_count as usize * 4].as_ref(),
+                        );
+                        for c in chunk {
+                            temp.push(GxIndex {
+                                pos: c[0],
+                                _unk0: c[1],
+                                color: c[2],
+                                uv: c[3],
+                            });
+                        }
+                        offset += face_count as usize * 4;
+
+                        converted_indices.push(temp);
+                    }
+
+                    let mut index_count = 0;
+                    let start_index = new_indices.len();
+                    for cv in converted_indices.into_iter() {
+                        if index_count != 0 {
+                            new_indices.push(vertex_data.len() as u32 - 1 - vertex_offset);
+                            new_indices.push(vertex_data.len() as u32 - vertex_offset);
+                            index_count += 2;
+                        }
+
+                        for c in cv {
+                            let original_vert = original_verts[c.pos as usize];
+
+                            // TODO(cohae): The only way we can know the amount of vertex colors is by iterating through all indices. This is something for the entity handling rewrite.
+                            let mut color = [0u8; 4];
+                            data.seek(std::io::SeekFrom::Start(
+                                mesh.vertex_colors.as_ref().unwrap().offset_absolute()
+                                    + 4 * c.color as u64,
+                            ))?;
+                            data.read_exact(&mut color)?;
+
+                            data.seek(std::io::SeekFrom::Start(
+                                mesh.texture_coordinates.as_ref().unwrap().offset_absolute()
+                                    + 4 * c.uv as u64,
+                            ))?;
+                            let uv: (i16, i16) = data.read_type(endian)?;
+
+                            new_indices.push(vertex_data.len() as u32 - vertex_offset);
+                            index_count += 1;
+
+                            // FIXME(cohae): not actually index count, fix the structure. (there's probably more to this, check dbg file)
+                            let uv_dividend = match (mesh.index_count >> 28) & 0b1111 {
+                                0 => 65536.0,
+                                1 => 32768.0,
+                                2 => 16384.0, // Confirmed
+                                3 => 8192.0,  // Confirmed
+                                4 => 4096.0,  // Confirmed
+                                5 => 2048.0,  // Confirmed
+                                6 => 1024.0,
+                                7 => 512.0, // Confirmed
+                                _ => unreachable!(),
+                            };
+
+                            vertex_data.push(UXVertex {
+                                pos: original_vert.pos,
+                                norm: [0f32, 0f32, 0f32],
+                                uv: [uv.0 as f32 / uv_dividend, uv.1 as f32 / uv_dividend],
+                                color: [
+                                    color[0] as f32 / 255.0,
+                                    color[1] as f32 / 255.0,
+                                    color[2] as f32 / 255.0,
+                                    color[3] as f32 / 255.0,
+                                ],
+                            });
+                        }
+                    }
+
+                    tristrips.push(EXGeoEntity_TriStrip {
+                        tricount: index_count as u32 - 2,
+                        texture_index: s.texture_index as i32,
+                        min_index: start_index as u16,
+                        num_indices: index_count as u16,
+                        flags: s.flags,
+                        trans_type: s.transparency,
+                        _unk10: 0,
+                    });
+                }
+            } else {
+                data.seek(std::io::SeekFrom::Start(mesh.index_data.offset_absolute()))?;
+
+                // TODO(cohae): 0BADF001
+                if platform == Platform::Xbox360 {
+                    for _ in 0..2 {
+                        data.read_type::<u16>(endian).unwrap();
+                    }
+                }
+
+                new_indices = (0..mesh.index_count)
+                    .map(|_| data.read_type::<u16>(endian).unwrap() as u32)
+                    .collect();
+
+                data.seek(std::io::SeekFrom::Start(
+                    mesh.tristrip_data.offset_absolute(),
+                ))?;
+
+                tristrips = data.read_type_args(
+                    endian,
+                    VecArgs {
+                        count: mesh.tristrip_count as usize,
+                        inner: (version, platform),
+                    },
+                )?;
+            }
 
             let mut index_offset_local = 0;
             for t in tristrips {

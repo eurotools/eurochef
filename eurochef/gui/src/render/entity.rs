@@ -1,3 +1,4 @@
+use eurochef_edb::versions::Platform;
 use eurochef_shared::entities::{TriStrip, UXVertex};
 use glam::{Mat4, Vec2, Vec3};
 use glow::HasContext;
@@ -19,13 +20,15 @@ pub struct EntityRenderer {
     // TODO(cohae): We shouldn't be compiling shaders more than once (global program struct?)
     mesh_shader: glow::Program,
     mesh: Option<(usize, glow::VertexArray, glow::Buffer, Vec<TriStrip>)>,
+    platform: Platform,
 }
 
 impl EntityRenderer {
-    pub fn new(gl: &glow::Context) -> Self {
+    pub fn new(gl: &glow::Context, platform: Platform) -> Self {
         Self {
             mesh_shader: unsafe { Self::create_mesh_program(gl).unwrap() },
             mesh: None,
+            platform,
         }
     }
 
@@ -247,7 +250,6 @@ impl EntityRenderer {
             return;
         }
 
-        // TODO(cohae): Transparency seems broken on newer games
         let mut transparency = match t.transparency & 0xff {
             2 => BlendMode::ReverseSubtract,
             1 => BlendMode::Additive,
@@ -261,7 +263,12 @@ impl EntityRenderer {
         if (t.flags & 0x40) != 0 {
             gl.disable(glow::CULL_FACE);
         } else {
-            gl.enable(glow::CULL_FACE);
+            // TODO(cohae): GX Strips aren't built with the correct winding order
+            if self.platform != Platform::GameCube && self.platform != Platform::Wii {
+                gl.enable(glow::CULL_FACE);
+            } else {
+                gl.disable(glow::CULL_FACE);
+            }
         }
 
         let mut scroll = Vec2::ZERO;

@@ -39,6 +39,9 @@ pub struct EXGeoMeshEntity {
     pub tristrip_data: EXRelPtr,                         // 0x58 / Is a weird format on PS2
     pub vertex_data: EXRelPtr,                           // 0x5c / 0x60
 
+    #[brw(if(platform == Platform::GameCube || platform == Platform::Wii))]
+    pub texture_coordinates: Option<EXRelPtr>, // 0x60
+
     #[brw(if(platform != Platform::Ps2))]
     pub vertex_colors: Option<EXRelPtr>, // 0x60 / on ps2 this is included in tristrip_data
     #[brw(if(platform != Platform::Ps2))]
@@ -51,7 +54,7 @@ pub struct EXGeoMeshEntity {
     pub _unk70: u32, // 0x70 / 0x64
 
     #[brw(if(platform == Platform::GameCube || platform == Platform::Wii))]
-    _unk74: [u32; 2], // 0x74
+    _unk74: u32, // 0x74
 
     #[brw(if(platform == Platform::Ps2))]
     tristrip_count_ps2: u16, // 0x68
@@ -130,7 +133,7 @@ pub struct EXGeoEntity_TriStrip {
     pub flags: u16,
     pub trans_type: u16,
     #[brw(if(version <= 252 && version != 248 || platform == Platform::Xbox360))]
-    _unk10: u32,
+    pub _unk10: u32,
 }
 
 #[derive(Debug, Serialize, Clone)]
@@ -200,4 +203,19 @@ pub struct Ps2TriStrip {
 
     #[br(count = tricount + 2)]
     pub vertices: Vec<Ps2TriData>,
+}
+
+#[binrw]
+#[derive(Debug, Serialize, Clone)]
+pub struct GxTriStrip {
+    pub unk1: u16,
+    pub texture_index: u16,
+    pub flags: u16,
+    pub transparency: u16, // transparency?
+    pub data_size: u32,
+    pub unk3: u32,
+    pub unk4: [u32; 4],
+
+    #[br(count = data_size / 2)]
+    pub indices: Vec<u16>,
 }

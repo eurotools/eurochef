@@ -141,6 +141,8 @@ impl EurochefApp {
             Platform::Xbox360,
             Platform::Pc,
             Platform::Ps2,
+            Platform::GameCube,
+            Platform::Wii,
         ]
         .contains(&platform)
         {
@@ -154,6 +156,7 @@ impl EurochefApp {
                     skins,
                     ref_entities.clone(),
                     &textures,
+                    platform,
                 ));
 
                 if self.fileinfo.as_ref().unwrap().header.map_list.len() > 0 {
@@ -165,6 +168,7 @@ impl EurochefApp {
                         entities,
                         ref_entities,
                         &textures,
+                        platform,
                     ));
                 }
             }

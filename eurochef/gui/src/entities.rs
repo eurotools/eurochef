@@ -42,6 +42,8 @@ pub struct EntityListPanel {
 
     /// Preview thumbnail width, in pixels
     preview_size: i32,
+
+    platform: Platform,
 }
 
 #[derive(Clone)]
@@ -72,6 +74,7 @@ impl EntityListPanel {
         skins: Vec<(u32, EXGeoBaseAnimSkin)>,
         ref_entities: Vec<(u32, EXGeoEntity, ProcessedEntityMesh)>,
         textures: &[IdentifiableResult<UXGeoTexture>],
+        platform: Platform,
     ) -> Self {
         let mut entity_previews = FnvHashMap::default();
         for (hashcode, _, _) in entities.iter() {
@@ -104,6 +107,7 @@ impl EntityListPanel {
             ref_entities,
             entity_previews,
             preview_size,
+            platform,
         }
     }
 
@@ -290,6 +294,7 @@ impl EntityListPanel {
                                             .2
                                     }],
                                     &self.textures,
+                                    self.platform,
                                 ));
                             } else {
                                 let mut combined_entities = vec![];
@@ -309,6 +314,7 @@ impl EntityListPanel {
                                     &self.gl,
                                     &combined_entities,
                                     &self.textures,
+                                    self.platform,
                                 ));
                             }
                         }
@@ -415,7 +421,7 @@ impl EntityListPanel {
                     self.gl.viewport(0, 0, self.preview_size, self.preview_size);
 
                     if meshes.len() == 1 {
-                        let mut er = EntityRenderer::new(&self.gl);
+                        let mut er = EntityRenderer::new(&self.gl, self.platform);
                         er.load_mesh(&self.gl, meshes[0]);
                         er.draw_both(
                             &self.gl,
@@ -430,7 +436,7 @@ impl EntityListPanel {
                         let renderers: Vec<EntityRenderer> = meshes
                             .iter()
                             .map(|m| {
-                                let mut er = EntityRenderer::new(&self.gl);
+                                let mut er = EntityRenderer::new(&self.gl, self.platform);
                                 er.load_mesh(&self.gl, m);
                                 er
                             })
@@ -653,7 +659,7 @@ pub fn read_from_file<R: Read + Seek>(
             false,
             false,
         ) {
-            error!("Failed to extract entity: {err}");
+            error!("Failed to extract entity: {err:?}");
             continue;
         }
 
@@ -701,7 +707,7 @@ pub fn read_from_file<R: Read + Seek>(
                 false,
                 false,
             ) {
-                error!("Failed to extract entity: {err}");
+                error!("Failed to extract entity: {err:?}");
                 continue;
             }
 

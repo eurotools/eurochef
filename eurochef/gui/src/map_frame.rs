@@ -1,6 +1,9 @@
 use std::sync::{Arc, Mutex};
 
-use eurochef_edb::entity::{EXGeoBaseEntity, EXGeoEntity};
+use eurochef_edb::{
+    entity::{EXGeoBaseEntity, EXGeoEntity},
+    versions::Platform,
+};
 use glam::{Mat4, Quat, Vec3, Vec3Swizzles, Vec4};
 use glow::HasContext;
 
@@ -33,6 +36,7 @@ impl MapFrame {
         meshes: &[&ProcessedEntityMesh],
         textures: &[RenderableTexture],
         entities: &Vec<(u32, EXGeoEntity, ProcessedEntityMesh)>,
+        platform: Platform,
     ) -> Self {
         assert!(textures.len() != 0);
 
@@ -47,7 +51,7 @@ impl MapFrame {
 
         unsafe {
             for m in meshes {
-                let r = Arc::new(Mutex::new(EntityRenderer::new(gl)));
+                let r = Arc::new(Mutex::new(EntityRenderer::new(gl, platform)));
                 r.lock().unwrap().load_mesh(gl, m);
                 s.ref_renderers.push(r);
             }
@@ -60,7 +64,7 @@ impl MapFrame {
                     _ => continue,
                 };
 
-                let r = Arc::new(Mutex::new(EntityRenderer::new(gl)));
+                let r = Arc::new(Mutex::new(EntityRenderer::new(gl, platform)));
                 r.lock().unwrap().load_mesh(gl, m);
 
                 let base = e.base().unwrap().clone();
@@ -109,11 +113,15 @@ impl MapFrame {
         });
 
         egui::Frame::canvas(ui.style()).show(ui, |ui| self.show_canvas(ui, map));
+
+        self.viewer.lock().unwrap().show_statusbar(ui);
     }
 
     fn show_canvas(&mut self, ui: &mut egui::Ui, map: &ProcessedMap) {
-        let (rect, response) =
-            ui.allocate_exact_size(ui.available_size(), egui::Sense::click_and_drag());
+        let (rect, response) = ui.allocate_exact_size(
+            ui.available_size() - egui::vec2(0., 16.),
+            egui::Sense::click_and_drag(),
+        );
 
         let time = ui.input(|t| t.time);
 

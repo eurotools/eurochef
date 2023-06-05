@@ -15,9 +15,9 @@ pub struct EXGeoMap {
     pub bsp_tree: EXRelPtr<()>,             // EXGeoBspTree, 0x4
     pub paths: EXGeoHashArray<EXGeoPath>,   // 0x8
     pub lights: EXGeoHashArray<EXGeoLight>, // 0x10
-    pub cameras: EXRelArray<EXGeoCamera>,   // 0x18, structure unconfirmed (never used in GForce)
-    pub isounds: EXRelArray<u16>,           // 0x20
-    pub unk28: EXRelArray<()>,              // never used in GForce
+    pub cameras: EXRelArray<()>, // EXGeoCamera, 0x18, structure unconfirmed (never used in GForce)
+    pub isounds: EXRelArray<u16>, // 0x20
+    pub unk28: EXRelArray<()>,   // never used in GForce
     pub sounds: EXGeoHashArray<EXGeoSound>, // 0x30
     #[brw(if(version.eq(&177) || version.eq(&213) || version.eq(&221)))]
     pub unk34: EXGeoHashArray<()>,

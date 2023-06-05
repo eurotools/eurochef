@@ -248,8 +248,9 @@ impl Camera3D for FpsCamera {
         Mat4::look_at_rh(self.position, self.position + self.front, Vec3::Y)
     }
 
+    // Abusing this to get the speed value for the status bar
     fn zoom(&self) -> f32 {
-        1.
+        self.speed_mul
     }
 
     fn position(&mut self) -> Vec3 {

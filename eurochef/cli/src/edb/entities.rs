@@ -69,9 +69,14 @@ pub fn execute_command(
         .expect("Failed to detect platform");
 
     match platform {
-        Platform::Pc | Platform::Xbox | Platform::Xbox360 | Platform::Ps2 /* | Platform::GameCube | Platform::Wii */ => {}
+        Platform::Pc
+        | Platform::Xbox
+        | Platform::Xbox360
+        | Platform::Ps2
+        | Platform::GameCube
+        | Platform::Wii => {}
         _ => {
-            anyhow::bail!("Entity extraction is only supported for PC and Xbox (360) (for now)")
+            anyhow::bail!("Entity extraction is only supported for PC, Xbox, Xbox360, PS2, GameCube and Wii platforms")
         }
     }
 

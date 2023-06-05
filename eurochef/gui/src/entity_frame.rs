@@ -1,5 +1,6 @@
 use std::sync::{Arc, Mutex};
 
+use eurochef_edb::versions::Platform;
 use glam::{Vec2, Vec3};
 use glow::HasContext;
 
@@ -31,6 +32,7 @@ impl EntityFrame {
         gl: &glow::Context,
         meshes: &[&ProcessedEntityMesh],
         textures: &[RenderableTexture],
+        platform: Platform,
     ) -> Self {
         assert!(textures.len() != 0);
 
@@ -44,12 +46,12 @@ impl EntityFrame {
         unsafe {
             if meshes.len() > 1 {
                 for m in meshes {
-                    let r = Arc::new(Mutex::new(EntityRenderer::new(gl)));
+                    let r = Arc::new(Mutex::new(EntityRenderer::new(gl, platform)));
                     r.lock().unwrap().load_mesh(gl, m);
                     s.renderers.push(r);
                 }
             } else {
-                let r = Arc::new(Mutex::new(EntityRenderer::new(gl)));
+                let r = Arc::new(Mutex::new(EntityRenderer::new(gl, platform)));
                 s.mesh_center = r.lock().unwrap().load_mesh(gl, meshes[0]);
                 s.renderers.push(r);
             }

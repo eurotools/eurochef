@@ -51,10 +51,11 @@ impl MapViewerPanel {
         entities: Vec<(u32, EXGeoEntity, ProcessedEntityMesh)>,
         ref_entities: Vec<(u32, EXGeoEntity, ProcessedEntityMesh)>,
         textures: &[IdentifiableResult<UXGeoTexture>],
+        platform: Platform,
     ) -> Self {
         let textures = EntityListPanel::load_textures(&gl, textures);
         MapViewerPanel {
-            frame: Self::load_map_meshes(&gl, &map, &ref_entities, &entities, &textures),
+            frame: Self::load_map_meshes(&gl, &map, &ref_entities, &entities, &textures, platform),
             _textures: textures,
             _gl: gl,
             map,
@@ -69,6 +70,7 @@ impl MapViewerPanel {
         ref_entities: &Vec<(u32, EXGeoEntity, ProcessedEntityMesh)>,
         entities: &Vec<(u32, EXGeoEntity, ProcessedEntityMesh)>,
         textures: &[RenderableTexture],
+        platform: Platform,
     ) -> MapFrame {
         let mut map_entities = vec![];
 
@@ -77,13 +79,13 @@ impl MapViewerPanel {
                 map_entities.push(e);
             } else {
                 error!(
-                    "Couldn't find ref entity #{} for mapzone entitiy!",
+                    "Couldn't find ref entity #{} for mapzone entity!",
                     v.entity_refptr
                 );
             }
         }
 
-        let ef = MapFrame::new(gl, &map_entities, textures, entities);
+        let ef = MapFrame::new(gl, &map_entities, textures, entities, platform);
         ef.viewer
             .lock()
             .map(|mut v| {
