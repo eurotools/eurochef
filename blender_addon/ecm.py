@@ -81,9 +81,10 @@ class EcmLoader(bpy.types.Operator, ImportHelper):
             obj.location = egx_to_blender_pos(
                 tuple(placement['position']))
 
-            obj.rotation_mode = 'XYZ'
+            obj.rotation_mode = 'ZXY'
+            rot = placement['rotation']
             obj.rotation_euler = egx_to_blender_rot(
-                tuple(placement['rotation']))
+                tuple(rot))
 
             obj.scale = egx_to_blender_scale(tuple(placement['scale']))
             relink_object(obj, self.collection)
