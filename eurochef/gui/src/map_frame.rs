@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 
 use eurochef_edb::entity::{EXGeoBaseEntity, EXGeoEntity};
-use glam::{Mat4, Quat, Vec3, Vec4};
+use glam::{Mat4, Quat, Vec3, Vec3Swizzles, Vec4};
 use glow::HasContext;
 
 use crate::{
@@ -188,8 +188,9 @@ impl MapFrame {
                     let position: Vec3 = p.position.into();
                     if (base.flags & 0x4) != 0 {
                         rotation = look_at(position, camera_pos)
-                            .to_euler(glam::EulerRot::XYZ)
+                            .to_euler(glam::EulerRot::ZXY)
                             .into();
+                        rotation = rotation.yzx();
                     }
 
                     let renderer_lock = r.lock().unwrap();
@@ -229,8 +230,9 @@ impl MapFrame {
                     let position: Vec3 = p.position.into();
                     if (base.flags & 0x4) != 0 {
                         rotation = look_at(position, camera_pos)
-                            .to_euler(glam::EulerRot::XYZ)
+                            .to_euler(glam::EulerRot::ZXY)
                             .into();
+                        rotation = rotation.yzx();
                     }
 
                     let renderer_lock = r.lock().unwrap();
