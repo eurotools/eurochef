@@ -111,6 +111,30 @@ impl TextureDecoder for GxTextureDecoder {
                     .into()
                 }
             }
+            InternalFormat::RGBA8 => {
+                let mut input_offset = 0;
+                for y in (0..height).step_by(4) {
+                    for x in (0..width).step_by(4) {
+                        let src1 = &input[input_offset..input_offset + 32];
+                        let src2 = &input[input_offset + 32..input_offset + 64];
+                        input_offset += 64;
+                        for iy in 0..4 {
+                            for ix in 0..4 {
+                                let offset2 = (y + iy as u32) * width + x + ix as u32;
+                                let (bx, by) = (offset2 % width, offset2 / width);
+
+                                let a = src1[iy * 8 + ix * 2];
+                                let r = src1[iy * 8 + ix * 2 + 1];
+                                let g = src2[iy * 8 + ix * 2];
+                                let b = src2[iy * 8 + ix * 2 + 1];
+                                buffer[(bx, by)] = [r, g, b, a].into();
+                            }
+                        }
+                    }
+                }
+
+                output.copy_from_slice(&buffer);
+            }
             InternalFormat::CMPR => {
                 let mut index = 0;
                 let mut buffer = vec![0u8; output.len()];
@@ -150,7 +174,7 @@ impl TextureDecoder for GxTextureDecoder {
             }
         }
 
-        if fmt != InternalFormat::CMPR {
+        if fmt != InternalFormat::CMPR && fmt != InternalFormat::RGBA8 {
             let mut src_index = 0;
             let (blockw, blockh) = fmt.block_size();
             for y in (0..height as u32).step_by(blockh) {
@@ -232,8 +256,7 @@ impl InternalFormat {
             7 => Self::IA4,
             8 => Self::IA8,
             _ => {
-                Self::I4
-                // anyhow::bail!("Unknown exformat 0x{fmt:x}");
+                anyhow::bail!("Unknown exformat 0x{fmt:x}");
             }
         })
     }
