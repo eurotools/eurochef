@@ -1,4 +1,4 @@
-use binrw::binrw;
+use binrw::{binrw, BinRead, BinReaderExt};
 use serde::Serialize;
 
 use crate::{
@@ -12,7 +12,7 @@ use crate::{
 pub struct EXGeoMap {
     #[brw(assert(common.eq(&0x500)))]
     pub common: u32,
-    pub bsp_tree: EXRelPtr<()>,             // EXGeoBspTree, 0x4
+    pub bsp_tree: EXRelPtr<EXGeoBspTree>,   // EXGeoBspTree, 0x4
     pub paths: EXGeoHashArray<EXGeoPath>,   // 0x8
     pub lights: EXGeoHashArray<EXGeoLight>, // 0x10
     pub cameras: EXRelArray<()>, // EXGeoCamera, 0x18, structure unconfirmed (never used in GForce)
@@ -133,15 +133,6 @@ pub struct EXGeoBaseDatum {
 }
 
 pub type EXGeoTriggerDatum = EXGeoBaseDatum;
-
-#[binrw]
-#[derive(Debug, Serialize, Clone)]
-pub struct EXGeoBspNode {
-    pub pos: EXVector,
-    pub nodes: [i16; 2],
-    #[serde(skip)]
-    pad: [i32; 3], // TODO: Use binrw attribute to pad instead
-}
 
 #[binrw]
 #[derive(Debug, Serialize, Clone)]
@@ -304,4 +295,44 @@ pub struct EXGeoPathNode {
     // #[br(count = num_links)]
     pub path_links_table: EXRelPtr<(), i16>,
     pub num_links: u16,
+}
+
+#[derive(Debug, Serialize, Clone)]
+pub struct EXGeoBspTree(pub Vec<EXGeoBspNode>);
+
+impl BinRead for EXGeoBspTree {
+    type Args<'a> = ();
+
+    fn read_options<R: std::io::Read + std::io::Seek>(
+        reader: &mut R,
+        endian: binrw::Endian,
+        _args: Self::Args<'_>,
+    ) -> binrw::BinResult<Self> {
+        let mut nodes = vec![];
+        let mut max_node = 1;
+        let mut current_node = 0;
+
+        loop {
+            let node: EXGeoBspNode = reader.read_type(endian)?;
+            max_node = max_node.max(node.nodes.iter().map(|v| v.abs()).max().unwrap());
+            nodes.push(node);
+
+            current_node += 1;
+
+            if current_node > max_node {
+                break;
+            }
+        }
+
+        Ok(Self(nodes))
+    }
+}
+
+#[binrw]
+#[derive(Debug, Serialize, Clone)]
+pub struct EXGeoBspNode {
+    pub pos: EXVector,
+    pub nodes: [i16; 2],
+    #[serde(skip)]
+    pad: [i32; 3], // TODO: Use binrw attribute to pad instead
 }
