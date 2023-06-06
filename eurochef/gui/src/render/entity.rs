@@ -263,11 +263,14 @@ impl EntityRenderer {
         if (t.flags & 0x40) != 0 {
             gl.disable(glow::CULL_FACE);
         } else {
-            // TODO(cohae): GX Strips aren't built with the correct winding order
-            if self.platform != Platform::GameCube && self.platform != Platform::Wii {
-                gl.enable(glow::CULL_FACE);
-            } else {
-                gl.disable(glow::CULL_FACE);
+            // TODO(cohae): PS2/GX Strips aren't built with the correct winding order
+            match self.platform {
+                Platform::GameCube | Platform::Wii | Platform::Ps2 => {
+                    gl.disable(glow::CULL_FACE);
+                }
+                _ => {
+                    gl.enable(glow::CULL_FACE);
+                }
             }
         }
 
