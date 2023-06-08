@@ -36,34 +36,39 @@ pub struct EXGeoTexture {
     pub unk_14: u32,       // 0x14
     pub color: [u8; 4],    // 0x18
 
-    // TODO(cohae): G-Force only for now, check other games
+    // TODO(cohae): Might apply to predator as well
     /// If set, contains the hashcode of another file
     /// The first frame offset will be replaced with a texture hashcode from that file
     #[br(map = |x: i32| if x == -1 { None } else { Some(x as u32) } )]
-    #[br(if(version == 259))]
+    #[br(if(version >= 250))]
     pub external_file: Option<u32>, // 0x1c
 
-    #[br(if(version != 259 && version != 163 && version != 174))]
-    _unk1: u32, // 0x1c
+    animseq_data: EXRelPtr<(), i16>, // 0x1c, OFFSET.W ANIMSEQDATA
+    value_data: EXRelPtr<(), i16>,   // 0x1e, OFFSET.W VALUEDATA
+    #[br(if(version > 163))]
+    fur_data: Option<EXRelPtr<(), i16>>, // 0x20, OFFSET.W FURDATA
+    #[br(if(version > 163))]
+    region_data: Option<EXRelPtr<(), i16>>, // 0x22, OFFSET.W REGIONDATA
 
-    _unk2: EXRelPtr, // 0x20
+    #[brw(if(platform == Platform::Ps2 && (version <= 163 || version == 213)))]
+    _unk2: u32, // 0x24, pixel count?
 
-    #[brw(if(platform != Platform::GameCube))]
-    _unk3: u32, // 0x24
+    // ! FIXME(cohae): Robots hack, this is the same as the above field, check if this works on other platforms and surrounding versions
+    #[brw(if(version == 248))]
+    _unk2_rbts: u32,
 
-    #[brw(if(platform == Platform::Ps2 && version == 252))]
+    #[brw(if(platform == Platform::Ps2 && version >= 240))]
     _unk4: u32, // 0x28
 
-    #[brw(if(platform == Platform::Ps2 && version != 156))]
+    #[brw(if(platform == Platform::Ps2))]
     pub clut_offset: Option<EXRelPtr>,
 
-    /// Newer games calculate data size from other parameters.
+    /// Certain platforms such as PC and PS2 calculate data size from other parameters.
     /// For general usage it is not recommended to rely on this field exlusively for data size.
-    // #[brw(if((version <= 252 && version != 221 && version != 236 && version != 240 && version != 248 && version != 213 && version != 205 && version != 163 && version != 174) || (platform == Platform::GameCube || platform == Platform::Wii || platform == Platform::Xbox360)))]
-    // #[brw(if((version <= 252) || (platform == Platform::GameCube || platform == Platform::Wii || platform == Platform::Xbox360)))]
-    #[brw(if((platform != Platform::Pc && platform != Platform::Xbox && version != 252 && version != 156) || (version == 251) || (platform == Platform::Xbox && version == 252)))]
+    #[brw(if(platform != Platform::Pc && platform != Platform::Ps2))]
     pub data_size: Option<u32>,
 
     #[br(count = image_count)]
+    // #[br(dbg)]
     pub frame_offsets: Vec<EXRelPtr>,
 }
