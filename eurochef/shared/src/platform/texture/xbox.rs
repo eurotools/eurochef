@@ -1,6 +1,6 @@
 use anyhow::Context;
 use enumn::N;
-use image::{Rgba, RgbaImage};
+use image::RgbaImage;
 
 use super::TextureDecoder;
 
@@ -113,10 +113,9 @@ impl TextureDecoder for XboxTextureDecoder {
                         buffer[offset * 4..offset * 4 + 4].copy_from_slice(&pixel);
                     }
                 }
-            }
-            _ => {
-                anyhow::bail!("Unsupported format {:?}", fmt);
-            }
+            } // _ => {
+              //     anyhow::bail!("Unsupported format {:?}", fmt);
+              // }
         }
 
         // TODO: Using an intermediate buffer is inefficient, we should just swizzle when decoding.

@@ -50,15 +50,13 @@ pub struct EXGeoTexture {
     #[br(if(version > 163))]
     region_data: Option<EXRelPtr<(), i16>>, // 0x22, OFFSET.W REGIONDATA
 
-    #[brw(if(platform == Platform::Ps2 && (version <= 163 || version == 213)))]
-    _unk2: u32, // 0x24, pixel count?
+    #[brw(if(platform == Platform::Ps2 && version != 248))]
+    // #[brw(if(platform == Platform::Ps2 && (version <= 163 || version == 213)))]
+    _unk2: u32, // 0x24
 
     // ! FIXME(cohae): Robots hack, this is the same as the above field, check if this works on other platforms and surrounding versions
     #[brw(if(version == 248))]
     _unk2_rbts: u32,
-
-    #[brw(if(platform == Platform::Ps2 && version >= 240))]
-    _unk4: u32, // 0x28
 
     #[brw(if(platform == Platform::Ps2))]
     pub clut_offset: Option<EXRelPtr>,
@@ -69,6 +67,5 @@ pub struct EXGeoTexture {
     pub data_size: Option<u32>,
 
     #[br(count = image_count)]
-    // #[br(dbg)]
     pub frame_offsets: Vec<EXRelPtr>,
 }
