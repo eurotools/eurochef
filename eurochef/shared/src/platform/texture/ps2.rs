@@ -156,7 +156,7 @@ fn swizzle4_to_32(input: &[u8], width: u32, height: u32, version: u32) -> Vec<u8
         }
     }
 
-    if version <= 174 {
+    if version <= 177 {
         return pixels.to_vec();
     }
 
@@ -197,7 +197,7 @@ fn swizzle4_to_32(input: &[u8], width: u32, height: u32, version: u32) -> Vec<u8
 }
 
 fn swizzle8_to_32(input: &[u8], width: u32, height: u32, version: u32) -> Vec<u8> {
-    if version <= 174 {
+    if version <= 177 {
         return input.to_vec();
     }
     let mut output = vec![0u8; input.len()];

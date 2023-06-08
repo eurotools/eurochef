@@ -50,7 +50,7 @@ pub struct EXGeoTexture {
     #[br(if(version > 163))]
     region_data: Option<EXRelPtr<(), i16>>, // 0x22, OFFSET.W REGIONDATA
 
-    #[brw(if(platform == Platform::Ps2 && version != 248))]
+    #[brw(if(platform == Platform::Ps2 && version != 248 && version != 177 && version != 168))]
     // #[brw(if(platform == Platform::Ps2 && (version <= 163 || version == 213)))]
     _unk2: u32, // 0x24
 
