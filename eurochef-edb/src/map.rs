@@ -314,7 +314,7 @@ impl BinRead for EXGeoBspTree {
 
         loop {
             let node: EXGeoBspNode = reader.read_type(endian)?;
-            max_node = max_node.max(node.nodes.iter().map(|v| v.abs()).max().unwrap());
+            max_node = max_node.max(node.nodes.iter().map(|v| v.unsigned_abs()).max().unwrap());
             nodes.push(node);
 
             current_node += 1;
