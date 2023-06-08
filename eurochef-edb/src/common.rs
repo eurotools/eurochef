@@ -12,14 +12,14 @@ pub type EXVector2 = [f32; 2];
 
 // TODO: RelPtr16 generic
 #[derive(Clone)]
-pub struct EXRelPtr<T: BinRead = (), OT: BinRead + NumCast = i32, const OFFSET: i64 = 0> {
+pub struct EXRelPtr<T: BinRead = (), OT: BinRead + NumCast + NumSize = i32, const OFFSET: i64 = 0> {
     offset: OT,
     offset_absolute: u64,
 
     data: T,
 }
 
-impl<T: BinRead, OT: BinRead + NumCast, const OFFSET: i64> EXRelPtr<T, OT, OFFSET> {
+impl<T: BinRead, OT: BinRead + NumCast + NumSize, const OFFSET: i64> EXRelPtr<T, OT, OFFSET> {
     /// Returns the offset relative to the start of the file
     pub fn offset_absolute(&self) -> u64 {
         self.offset_absolute
@@ -31,7 +31,8 @@ impl<T: BinRead, OT: BinRead + NumCast, const OFFSET: i64> EXRelPtr<T, OT, OFFSE
     }
 }
 
-impl<'a, T: BinRead, OT: BinRead + NumCast, const OFFSET: i64> BinRead for EXRelPtr<T, OT, OFFSET>
+impl<'a, T: BinRead, OT: BinRead + NumCast + NumSize, const OFFSET: i64> BinRead
+    for EXRelPtr<T, OT, OFFSET>
 where
     <OT as BinRead>::Args<'a>: Default + Clone,
     T: 'static,
@@ -44,8 +45,9 @@ where
         args: Self::Args<'_>,
     ) -> binrw::BinResult<Self> {
         let offset: OT = reader.read_type(endian)?;
-        let offset_absolute =
-            (reader.stream_position()? as i64 + offset.to_i64().unwrap() + OFFSET) as u64 - 4;
+        let offset_absolute = (reader.stream_position()? as i64 + offset.to_i64().unwrap() + OFFSET)
+            as u64
+            - OT::size_bytes() as u64;
 
         let data = if TypeId::of::<T>() != TypeId::of::<()>() {
             let pos_saved = reader.stream_position()?;
@@ -68,7 +70,9 @@ where
     }
 }
 
-impl<T: BinRead, OT: BinRead + NumCast, const OFFSET: i64> BinWrite for EXRelPtr<T, OT, OFFSET> {
+impl<T: BinRead, OT: BinRead + NumCast + NumSize, const OFFSET: i64> BinWrite
+    for EXRelPtr<T, OT, OFFSET>
+{
     type Args<'a> = ();
 
     fn write_options<W: std::io::Write + std::io::Seek>(
@@ -81,13 +85,20 @@ impl<T: BinRead, OT: BinRead + NumCast, const OFFSET: i64> BinWrite for EXRelPtr
     }
 }
 
-impl<T: BinRead + Debug, OT: BinRead + NumCast, const OFFSET: i64> Debug
+impl<T: BinRead + Debug, OT: BinRead + NumCast + NumSize, const OFFSET: i64> Debug
     for EXRelPtr<T, OT, OFFSET>
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str("EXRelPtr(")?;
         self.data.fmt(f)?;
-        f.write_str(format!(", addr=0x{:x}", self.offset_absolute).as_str())?;
+        f.write_str(
+            format!(
+                ", addr=0x{:x}, offset=0x{:x}",
+                self.offset_absolute,
+                self.offset.to_i64().unwrap()
+            )
+            .as_str(),
+        )?;
         f.write_str(")")
     }
 }
@@ -103,7 +114,7 @@ impl<T: BinRead + Debug> EXRelPtr<T> {
     }
 }
 
-impl<T: BinRead + Serialize, OT: BinRead + NumCast, const OFFSET: i64> Serialize
+impl<T: BinRead + Serialize, OT: BinRead + NumCast + NumSize, const OFFSET: i64> Serialize
     for EXRelPtr<T, OT, OFFSET>
 where
     T: 'static,
@@ -191,4 +202,24 @@ pub struct EXGeoAnimSkinHeader {
     pub mip_distance: u32,
     #[brw(if(version.eq(&248) || version.eq(&252)))]
     pub unk: [u32; 2],
+}
+
+pub trait NumSize {
+    fn size_bits() -> usize;
+
+    fn size_bytes() -> usize {
+        (Self::size_bits() + 7) / 8
+    }
+}
+
+impl NumSize for i32 {
+    fn size_bits() -> usize {
+        32
+    }
+}
+
+impl NumSize for i16 {
+    fn size_bits() -> usize {
+        16
+    }
 }
