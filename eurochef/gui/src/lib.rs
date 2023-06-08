@@ -17,3 +17,22 @@ mod maps;
 mod render;
 mod spreadsheet;
 mod textures;
+
+pub fn strip_ansi_codes(input: &str) -> String {
+    let mut output = String::new();
+    let mut in_escape = false;
+
+    for c in input.chars() {
+        if in_escape {
+            if c.is_alphabetic() {
+                in_escape = false;
+            }
+        } else if c == '\x1B' {
+            in_escape = true;
+        } else {
+            output.push(c);
+        }
+    }
+
+    output
+}

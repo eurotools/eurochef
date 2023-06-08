@@ -4,6 +4,8 @@ use std::{
     panic::PanicInfo,
 };
 
+use crate::strip_ansi_codes;
+
 pub fn setup() {
     std::panic::set_hook(Box::new(|info| {
         // First call color-eyre's fancy CLI backtrace
@@ -51,23 +53,4 @@ fn write_panic_to_file(info: &PanicInfo<'_>, bt: Backtrace) -> std::io::Result<(
     }
 
     Ok(())
-}
-
-pub fn strip_ansi_codes(input: &str) -> String {
-    let mut output = String::new();
-    let mut in_escape = false;
-
-    for c in input.chars() {
-        if in_escape {
-            if c.is_alphabetic() {
-                in_escape = false;
-            }
-        } else if c == '\x1B' {
-            in_escape = true;
-        } else {
-            output.push(c);
-        }
-    }
-
-    output
 }
