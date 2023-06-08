@@ -4,6 +4,7 @@ use eurochef_edb::{
     entity::{EXGeoBaseEntity, EXGeoEntity},
     versions::Platform,
 };
+use eurochef_shared::IdentifiableResult;
 use glam::{Mat4, Quat, Vec3, Vec3Swizzles, Vec4};
 use glow::HasContext;
 
@@ -35,7 +36,7 @@ impl MapFrame {
         gl: &glow::Context,
         meshes: &[&ProcessedEntityMesh],
         textures: &[RenderableTexture],
-        entities: &Vec<(u32, EXGeoEntity, ProcessedEntityMesh)>,
+        entities: &Vec<IdentifiableResult<(EXGeoEntity, ProcessedEntityMesh)>>,
         platform: Platform,
     ) -> Self {
         assert!(textures.len() != 0);
@@ -56,7 +57,11 @@ impl MapFrame {
                 s.ref_renderers.push(r);
             }
 
-            for (i, e, m) in entities {
+            for (i, (e, m)) in entities
+                .iter()
+                .filter(|v| v.data.is_ok())
+                .map(|v| (v.hashcode, v.data.as_ref().unwrap()))
+            {
                 // Only allow split/normal meshes
                 match e {
                     EXGeoEntity::Mesh(_) => {}
@@ -68,7 +73,7 @@ impl MapFrame {
                 r.lock().unwrap().load_mesh(gl, m);
 
                 let base = e.base().unwrap().clone();
-                s.placement_renderers.push((*i, base, r));
+                s.placement_renderers.push((i, base, r));
             }
         }
 

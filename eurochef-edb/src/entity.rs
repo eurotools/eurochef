@@ -158,6 +158,16 @@ impl EXGeoEntity {
             EXGeoEntity::UnknownType(_e) => None,
         }
     }
+
+    pub fn type_code(&self) -> u32 {
+        match self {
+            EXGeoEntity::Mesh { .. } => 0x601,
+            EXGeoEntity::Split { .. } => 0x603,
+            EXGeoEntity::Instance { .. } => 0x606,
+            EXGeoEntity::MapZone { .. } => 0x608,
+            EXGeoEntity::UnknownType(ty) => *ty,
+        }
+    }
 }
 
 impl BinRead for EXGeoEntity {

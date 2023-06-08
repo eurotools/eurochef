@@ -3,6 +3,7 @@ use std::{
     sync::Arc,
 };
 
+use anyhow::anyhow;
 use egui::{Color32, RichText, Widget};
 use eurochef_edb::{
     anim::EXGeoBaseAnimSkin,
@@ -24,6 +25,8 @@ use glow::HasContext;
 use crate::{
     entity_frame::{EntityFrame, RenderableTexture},
     render::{self, camera::ArcBallCamera, entity::EntityRenderer, gl_helper, RenderUniforms},
+    strip_ansi_codes,
+    textures::cutoff_string,
 };
 
 pub struct EntityListPanel {
@@ -33,9 +36,9 @@ pub struct EntityListPanel {
 
     entity_previews: FnvHashMap<u32, Option<egui::TextureHandle>>,
 
-    entities: Vec<(u32, EXGeoEntity, ProcessedEntityMesh)>,
-    skins: Vec<(u32, EXGeoBaseAnimSkin)>,
-    ref_entities: Vec<(u32, EXGeoEntity, ProcessedEntityMesh)>,
+    entities: Vec<IdentifiableResult<(EXGeoEntity, ProcessedEntityMesh)>>,
+    skins: Vec<IdentifiableResult<EXGeoBaseAnimSkin>>,
+    ref_entities: Vec<IdentifiableResult<(EXGeoEntity, ProcessedEntityMesh)>>,
     framebuffer: (glow::Framebuffer, glow::Texture),
     framebuffer_msaa: (glow::Framebuffer, glow::Texture),
     textures: Vec<RenderableTexture>,
@@ -70,21 +73,21 @@ impl EntityListPanel {
     pub fn new(
         ctx: &egui::Context,
         gl: Arc<glow::Context>,
-        entities: Vec<(u32, EXGeoEntity, ProcessedEntityMesh)>,
-        skins: Vec<(u32, EXGeoBaseAnimSkin)>,
-        ref_entities: Vec<(u32, EXGeoEntity, ProcessedEntityMesh)>,
+        entities: Vec<IdentifiableResult<(EXGeoEntity, ProcessedEntityMesh)>>,
+        skins: Vec<IdentifiableResult<EXGeoBaseAnimSkin>>,
+        ref_entities: Vec<IdentifiableResult<(EXGeoEntity, ProcessedEntityMesh)>>,
         textures: &[IdentifiableResult<UXGeoTexture>],
         platform: Platform,
     ) -> Self {
         let mut entity_previews = FnvHashMap::default();
-        for (hashcode, _, _) in entities.iter() {
-            entity_previews.insert(*hashcode, None);
+        for ires in entities.iter().filter(|ir| ir.data.is_ok()) {
+            entity_previews.insert(ires.hashcode, None);
         }
-        for (hashcode, _) in skins.iter() {
-            entity_previews.insert(*hashcode, None);
+        for ires in skins.iter().filter(|ir| ir.data.is_ok()) {
+            entity_previews.insert(ires.hashcode, None);
         }
-        for (index, _, _) in ref_entities.iter() {
-            entity_previews.insert(*index, None);
+        for ires in ref_entities.iter().filter(|ir| ir.data.is_ok()) {
+            entity_previews.insert(ires.hashcode, None);
         }
 
         let preview_size = (256.0 * ctx.pixels_per_point()) as i32;
@@ -190,7 +193,16 @@ impl EntityListPanel {
                         ui.heading(format!("{} Skeletons", fa::WALKING));
                         ui.spacing_mut().item_spacing = [16., 8.].into();
                         ui.separator();
-                        let skin_ids = self.skins.iter().map(|(v, _)| *v).collect();
+                        let skin_ids = self
+                            .skins
+                            .iter()
+                            .map(|ir| {
+                                (
+                                    ir.hashcode,
+                                    ir.data.as_ref().err().map(|e| format!("{e:?}")),
+                                )
+                            })
+                            .collect();
                         self.show_section(ui, skin_ids, 2);
                     }
 
@@ -199,7 +211,16 @@ impl EntityListPanel {
                         ui.heading("\u{e52f} Ref Meshes");
                         ui.spacing_mut().item_spacing = [16., 8.].into();
                         ui.separator();
-                        let refent_ids = self.ref_entities.iter().map(|(v, _, _)| *v).collect();
+                        let refent_ids = self
+                            .ref_entities
+                            .iter()
+                            .map(|ir| {
+                                (
+                                    ir.hashcode,
+                                    ir.data.as_ref().err().map(|e| format!("{e:?}")),
+                                )
+                            })
+                            .collect();
                         self.show_section(ui, refent_ids, 1);
                     }
 
@@ -208,7 +229,16 @@ impl EntityListPanel {
                         ui.heading(format!("{} Meshes", fa::CUBE));
                         ui.spacing_mut().item_spacing = [16., 8.].into();
                         ui.separator();
-                        let entity_ids = self.entities.iter().map(|(v, _, _)| *v).collect();
+                        let entity_ids = self
+                            .entities
+                            .iter()
+                            .map(|ir| {
+                                (
+                                    ir.hashcode,
+                                    ir.data.as_ref().err().map(|e| format!("{e:?}")),
+                                )
+                            })
+                            .collect();
                         self.show_section(ui, entity_ids, 0);
                     }
                 });
@@ -225,13 +255,39 @@ impl EntityListPanel {
         self.render_previews(context);
     }
 
-    fn show_section(&mut self, ui: &mut egui::Ui, ids: Vec<u32>, ty: i32) {
+    fn show_section(&mut self, ui: &mut egui::Ui, ids: Vec<(u32, Option<String>)>, ty: i32) {
         ui.horizontal_wrapped(|ui| {
             ui.spacing_mut().item_spacing = [16., 16.].into();
-            for (ii, i) in ids.iter().enumerate() {
+            for (ii, (i, err)) in ids.iter().enumerate() {
                 ui.allocate_ui(egui::Vec2::new(256., 256. + 20.), |ui| {
                     ui.spacing_mut().item_spacing = [4., 4.].into();
                     ui.vertical(|ui| {
+                        if let Some(err) = err {
+                            let (rect, response) = ui
+                                .allocate_exact_size(egui::vec2(256., 256.), egui::Sense::click());
+
+                            ui.painter()
+                                .rect_filled(rect, egui::Rounding::none(), Color32::BLACK);
+
+                            ui.painter().text(
+                                rect.left_top() + egui::vec2(24., 24.),
+                                egui::Align2::CENTER_CENTER,
+                                font_awesome::EXCLAMATION_TRIANGLE,
+                                egui::FontId::proportional(24.),
+                                Color32::RED,
+                            );
+
+                            response.on_hover_ui(|ui| {
+                                ui.label(format!("Entity {i:x} failed:"));
+                                ui.colored_label(
+                                    Color32::LIGHT_RED,
+                                    cutoff_string(strip_ansi_codes(&err), 1024),
+                                );
+                            });
+
+                            return;
+                        }
+
                         let response = if let Some(Some(tex)) = self.entity_previews.get(&i) {
                             egui::Image::new(tex.id(), [256., 256.])
                                 .uv(egui::Rect::from_min_size(
@@ -284,21 +340,43 @@ impl EntityListPanel {
                                 self.entity_renderer = Some(EntityFrame::new(
                                     &self.gl,
                                     &[if ty == 0 {
-                                        &self.entities.iter().find(|(v, _, _)| *v == *i).unwrap().2
+                                        &self
+                                            .entities
+                                            .iter()
+                                            .find(|ir| ir.hashcode == *i)
+                                            .as_ref()
+                                            .unwrap()
+                                            .data
+                                            .as_ref()
+                                            .unwrap()
+                                            .1
                                     } else {
                                         &self
                                             .ref_entities
                                             .iter()
-                                            .find(|(v, _, _)| *v == *i)
+                                            .find(|ir| ir.hashcode == *i)
+                                            .as_ref()
                                             .unwrap()
-                                            .2
+                                            .data
+                                            .as_ref()
+                                            .unwrap()
+                                            .1
                                     }],
                                     &self.textures,
                                     self.platform,
                                 ));
                             } else {
                                 let mut combined_entities = vec![];
-                                let skin = &self.skins.iter().find(|(v, _)| *v == *i).unwrap().1;
+                                let skin = &self
+                                    .skins
+                                    .iter()
+                                    .find(|ir| ir.hashcode == *i)
+                                    .as_ref()
+                                    .unwrap()
+                                    .data
+                                    .as_ref()
+                                    .unwrap();
+
                                 let entity_indices: Vec<u32> = skin
                                     .entities
                                     .iter()
@@ -307,7 +385,8 @@ impl EntityListPanel {
                                     .collect();
 
                                 for i in entity_indices {
-                                    combined_entities.push(&self.entities[i as usize].2);
+                                    combined_entities
+                                        .push(&self.entities[i as usize].data.as_ref().unwrap().1);
                                 }
 
                                 self.entity_renderer = Some(EntityFrame::new(
@@ -360,17 +439,23 @@ impl EntityListPanel {
     fn render_previews(&mut self, context: &egui::Context) {
         for _ in 0..Self::PREVIEW_RENDERS_PER_FRAME {
             if let Some((hc, t)) = self.entity_previews.iter_mut().find(|t| t.1.is_none()) {
-                let mut meshes = vec![];
+                let mut meshes: Vec<&ProcessedEntityMesh> = vec![];
 
-                if let Some((_, _, mesh)) = self
+                if let Some(Ok((_, mesh))) = self
                     .entities
                     .iter()
-                    .find(|(v, _, _)| v == hc)
-                    .or(self.ref_entities.iter().find(|(v, _, _)| v == hc))
+                    .find(|ir| ir.hashcode == *hc)
+                    .or(self.ref_entities.iter().find(|ir| ir.hashcode == *hc))
+                    .map(|v| v.data.as_ref())
                 {
                     meshes.push(mesh)
                 } else {
-                    if let Some((_, skin)) = self.skins.iter().find(|(v, _)| v == hc) {
+                    if let Some(Ok(skin)) = self
+                        .skins
+                        .iter()
+                        .find(|ir| ir.hashcode == *hc)
+                        .map(|v| &v.data)
+                    {
                         let entity_indices: Vec<u32> = skin
                             .entities
                             .iter()
@@ -378,7 +463,9 @@ impl EntityListPanel {
                             .map(|d| d.entity_index & 0x00ffffff)
                             .collect();
                         for i in entity_indices {
-                            meshes.push(&self.entities[i as usize].2);
+                            if let Ok((_, mesh)) = &self.entities[i as usize].data.as_ref() {
+                                meshes.push(mesh);
+                            }
                         }
                     } else {
                         unreachable!("Thumbnail requested for nonexistent entity {hc:x}");
@@ -614,19 +701,19 @@ impl EntityListPanel {
 pub fn read_from_file<R: Read + Seek>(
     reader: &mut R,
     platform: Platform,
-) -> (
-    Vec<(u32, EXGeoEntity, ProcessedEntityMesh)>,
-    Vec<(u32, EXGeoBaseAnimSkin)>,
-    Vec<(u32, EXGeoEntity, ProcessedEntityMesh)>,
+) -> anyhow::Result<(
+    Vec<IdentifiableResult<(EXGeoEntity, ProcessedEntityMesh)>>,
+    Vec<IdentifiableResult<EXGeoBaseAnimSkin>>,
+    Vec<IdentifiableResult<(EXGeoEntity, ProcessedEntityMesh)>>,
     Vec<IdentifiableResult<UXGeoTexture>>,
-) {
+)> {
     reader.seek(std::io::SeekFrom::Start(0)).ok();
-    let endian = if reader.read_ne::<u8>().unwrap() == 0x47 {
+    let endian = if reader.read_ne::<u8>()? == 0x47 {
         Endian::Big
     } else {
         Endian::Little
     };
-    reader.seek(std::io::SeekFrom::Start(0)).unwrap();
+    reader.seek(std::io::SeekFrom::Start(0))?;
 
     let header = reader
         .read_type::<EXGeoHeader>(endian)
@@ -635,112 +722,75 @@ pub fn read_from_file<R: Read + Seek>(
     // TODO(cohae): Replace with header iterators
     let mut entities = vec![];
     for e in header.entity_list.iter() {
-        reader
-            .seek(std::io::SeekFrom::Start(e.common.address as u64))
-            .unwrap();
-
-        let ent = reader
-            .read_type_args(endian, (header.version, platform))
-            .unwrap();
-
-        let mut vertex_data = vec![];
-        let mut indices = vec![];
-        let mut strips = vec![];
-        if let Err(err) = read_entity(
-            &ent,
-            &mut vertex_data,
-            &mut indices,
-            &mut strips,
-            endian,
-            header.version,
-            platform,
-            reader,
-            4,
-            false,
-            false,
-        ) {
-            error!("Failed to extract entity: {err:?}");
-            continue;
-        }
-
-        entities.push((
-            e.common.hashcode,
-            ent,
-            ProcessedEntityMesh {
-                vertex_data,
-                indices,
-                strips,
-            },
-        ));
+        let ent = read_entity_identifiable(e.common.address, reader, &header, endian, platform);
+        entities.push(IdentifiableResult::new(e.common.hashcode, ent));
     }
 
     // TODO(cohae): Replace with header iterators?
     let mut refents = vec![];
     for (i, r) in header.refpointer_list.iter().enumerate() {
-        reader
-            .seek(std::io::SeekFrom::Start(r.address as u64))
-            .unwrap();
-        let etype = reader.read_type::<u32>(endian).unwrap();
+        reader.seek(std::io::SeekFrom::Start(r.address as u64))?;
 
-        if etype == 0x601 || etype == 0x603 {
-            reader
-                .seek(std::io::SeekFrom::Start(r.address as u64))
-                .unwrap();
-
-            let ent = reader
-                .read_type_args(endian, (header.version, platform))
-                .unwrap();
-
-            let mut vertex_data = vec![];
-            let mut indices = vec![];
-            let mut strips = vec![];
-            if let Err(err) = read_entity(
-                &ent,
-                &mut vertex_data,
-                &mut indices,
-                &mut strips,
-                endian,
-                header.version,
-                platform,
-                reader,
-                4,
-                false,
-                false,
-            ) {
-                error!("Failed to extract entity: {err:?}");
-                continue;
-            }
-
-            refents.push((
-                i as u32,
-                ent,
-                ProcessedEntityMesh {
-                    vertex_data,
-                    indices,
-                    strips,
-                },
-            ));
+        let etype = reader.read_type::<u32>(endian)?;
+        if etype == 0x601 || etype == 0x602 || etype == 0x603 {
+            let ent = read_entity_identifiable(r.address, reader, &header, endian, platform);
+            refents.push(IdentifiableResult::new(i as _, ent));
         }
     }
 
     let mut skins = vec![];
     for s in header.animskin_list.iter() {
-        reader
-            .seek(std::io::SeekFrom::Start(s.common.address as u64))
-            .unwrap();
+        reader.seek(std::io::SeekFrom::Start(s.common.address as u64))?;
 
-        // TODO(cohae): Error propagation
-        match reader.read_type_args::<EXGeoBaseAnimSkin>(endian, (header.version,)) {
-            Ok(skin) => {
-                skins.push((s.common.hashcode, skin));
-            }
-            Err(e) => {
-                error!("Failed to read animskin: {e}")
-            }
-        }
+        let skin = reader.read_type_args::<EXGeoBaseAnimSkin>(endian, (header.version,));
+        skins.push(IdentifiableResult::new(
+            s.common.hashcode,
+            match skin {
+                Ok(s) => Ok(s),
+                Err(e) => Err(anyhow!("Failed to read animskin: {e:?}")),
+            },
+        ));
     }
 
     let textures = UXGeoTexture::read_all(&header, reader, platform);
 
-    (entities, skins, refents, textures)
+    Ok((entities, skins, refents, textures))
+}
+
+fn read_entity_identifiable<R: Read + Seek>(
+    address: u32,
+    reader: &mut R,
+    header: &EXGeoHeader,
+    endian: Endian,
+    platform: Platform,
+) -> anyhow::Result<(EXGeoEntity, ProcessedEntityMesh)> {
+    reader.seek(std::io::SeekFrom::Start(address as u64))?;
+
+    let ent = reader.read_type_args(endian, (header.version, platform))?;
+
+    let mut vertex_data = vec![];
+    let mut indices = vec![];
+    let mut strips = vec![];
+    read_entity(
+        &ent,
+        &mut vertex_data,
+        &mut indices,
+        &mut strips,
+        endian,
+        header.version,
+        platform,
+        reader,
+        4,
+        false,
+        false,
+    )?;
+
+    Ok((
+        ent,
+        ProcessedEntityMesh {
+            vertex_data,
+            indices,
+            strips,
+        },
+    ))
 }

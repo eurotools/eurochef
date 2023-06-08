@@ -29,8 +29,8 @@ pub struct MapViewerPanel {
     _gl: Arc<glow::Context>,
 
     map: ProcessedMap,
-    _entities: Vec<(u32, EXGeoEntity, ProcessedEntityMesh)>,
-    _ref_entities: Vec<(u32, EXGeoEntity, ProcessedEntityMesh)>,
+    _entities: Vec<IdentifiableResult<(EXGeoEntity, ProcessedEntityMesh)>>,
+    _ref_entities: Vec<IdentifiableResult<(EXGeoEntity, ProcessedEntityMesh)>>,
     _textures: Vec<RenderableTexture>,
 
     // TODO(cohae): Replace so we can do funky stuff
@@ -48,8 +48,8 @@ impl MapViewerPanel {
         _ctx: &egui::Context,
         gl: Arc<glow::Context>,
         map: ProcessedMap,
-        entities: Vec<(u32, EXGeoEntity, ProcessedEntityMesh)>,
-        ref_entities: Vec<(u32, EXGeoEntity, ProcessedEntityMesh)>,
+        entities: Vec<IdentifiableResult<(EXGeoEntity, ProcessedEntityMesh)>>,
+        ref_entities: Vec<IdentifiableResult<(EXGeoEntity, ProcessedEntityMesh)>>,
         textures: &[IdentifiableResult<UXGeoTexture>],
         platform: Platform,
     ) -> Self {
@@ -67,15 +67,19 @@ impl MapViewerPanel {
     fn load_map_meshes(
         gl: &glow::Context,
         map: &ProcessedMap,
-        ref_entities: &Vec<(u32, EXGeoEntity, ProcessedEntityMesh)>,
-        entities: &Vec<(u32, EXGeoEntity, ProcessedEntityMesh)>,
+        ref_entities: &Vec<IdentifiableResult<(EXGeoEntity, ProcessedEntityMesh)>>,
+        entities: &Vec<IdentifiableResult<(EXGeoEntity, ProcessedEntityMesh)>>,
         textures: &[RenderableTexture],
         platform: Platform,
     ) -> MapFrame {
         let mut map_entities = vec![];
 
         for v in &map.mapzone_entities {
-            if let Some((_, _, e)) = &ref_entities.iter().find(|(i, _, _)| *i == v.entity_refptr) {
+            if let Some(Ok((_, e))) = &ref_entities
+                .iter()
+                .find(|ir| ir.hashcode == v.entity_refptr)
+                .map(|v| v.data.as_ref())
+            {
                 map_entities.push(e);
             } else {
                 error!(

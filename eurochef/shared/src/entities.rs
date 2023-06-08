@@ -481,9 +481,11 @@ pub fn read_entity<R: Read + Seek>(
             }
         }
         EXGeoEntity::UnknownType(u) => {
-            warn!("Unsupported entity type 0x{u:x}")
+            anyhow::bail!("Unsupported entity type 0x{u:x}")
         }
-        _ => {}
+        _ => {
+            anyhow::bail!("Unsupported entity type 0x{:x}", ent.type_code())
+        }
     }
 
     Ok(())

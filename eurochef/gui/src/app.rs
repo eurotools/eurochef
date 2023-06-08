@@ -146,31 +146,34 @@ impl EurochefApp {
         ]
         .contains(&platform)
         {
-            let (entities, skins, ref_entities, textures) =
-                entities::read_from_file(reader, platform);
-            if entities.len() + skins.len() + ref_entities.len() > 0 {
-                self.entities = Some(entities::EntityListPanel::new(
-                    ctx,
-                    self.gl.clone(),
-                    entities.clone(),
-                    skins,
-                    ref_entities.clone(),
-                    &textures,
-                    platform,
-                ));
+            match entities::read_from_file(reader, platform) {
+                Ok((entities, skins, ref_entities, textures)) => {
+                    if entities.len() + skins.len() + ref_entities.len() > 0 {
+                        if self.fileinfo.as_ref().unwrap().header.map_list.len() > 0 {
+                            let map = maps::read_from_file(reader, platform);
+                            self.maps = Some(maps::MapViewerPanel::new(
+                                ctx,
+                                self.gl.clone(),
+                                map,
+                                entities.clone(),
+                                ref_entities.clone(),
+                                &textures,
+                                platform,
+                            ));
+                        }
+                    }
 
-                if self.fileinfo.as_ref().unwrap().header.map_list.len() > 0 {
-                    let map = maps::read_from_file(reader, platform);
-                    self.maps = Some(maps::MapViewerPanel::new(
+                    self.entities = Some(entities::EntityListPanel::new(
                         ctx,
                         self.gl.clone(),
-                        map,
                         entities,
+                        skins,
                         ref_entities,
                         &textures,
                         platform,
                     ));
                 }
+                Err(e) => self.state = AppState::Error(e),
             }
         } else {
             self.entities = None;

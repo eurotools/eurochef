@@ -259,7 +259,7 @@ pub fn read_from_file<R: Read + Seek>(
     UXGeoTexture::read_all(&header, reader, platform)
 }
 
-fn cutoff_string(string: String, max_len: usize) -> String {
+pub fn cutoff_string(string: String, max_len: usize) -> String {
     if string.len() > max_len {
         let new_string = string[..max_len].to_string();
         new_string + "..."
