@@ -10,6 +10,8 @@ use eurochef_shared::{textures::UXGeoTexture, IdentifiableResult};
 use fnv::FnvHashMap;
 use instant::Instant;
 
+use crate::panic_dialog::strip_ansi_codes;
+
 pub struct TextureList {
     textures: Vec<IdentifiableResult<UXGeoTexture>>,
 
@@ -185,7 +187,7 @@ impl TextureList {
                                         "Texture {:x} failed:",
                                         it.hashcode
                                     ));
-                                    ui.colored_label(Color32::LIGHT_RED, cutoff_string(format!("{e:?}"), 1024));
+                                    ui.colored_label(Color32::LIGHT_RED, cutoff_string(strip_ansi_codes(&format!("{e:?}")), 1024));
                                 });
                             },
                         }

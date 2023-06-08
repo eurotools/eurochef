@@ -53,7 +53,7 @@ fn write_panic_to_file(info: &PanicInfo<'_>, bt: Backtrace) -> std::io::Result<(
     Ok(())
 }
 
-fn strip_ansi_codes(input: &str) -> String {
+pub fn strip_ansi_codes(input: &str) -> String {
     let mut output = String::new();
     let mut in_escape = false;
 
