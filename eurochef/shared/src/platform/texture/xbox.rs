@@ -1,6 +1,6 @@
 use anyhow::Context;
 use enumn::N;
-use image::RgbaImage;
+use image::{Rgba, RgbaImage};
 
 use super::TextureDecoder;
 
@@ -101,6 +101,17 @@ impl TextureDecoder for XboxTextureDecoder {
                     buffer[i * 4 + 1] = g as u8 * 8;
                     buffer[i * 4 + 2] = b as u8 * 8;
                     buffer[i * 4 + 3] = a as u8 * 255;
+                }
+            }
+            InternalFormat::P8 => {
+                let clut: &[[u8; 4]] = bytemuck::cast_slice(&input[input.len() - 1024..]);
+                for y in 0..height {
+                    for x in 0..width {
+                        let byte = input[(y * width + x) as usize];
+                        let pixel = clut[byte as usize];
+                        let offset = (y * width + x) as usize;
+                        buffer[offset * 4..offset * 4 + 4].copy_from_slice(&pixel);
+                    }
                 }
             }
             _ => {
