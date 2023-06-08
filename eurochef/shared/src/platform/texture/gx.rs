@@ -59,6 +59,17 @@ impl TextureDecoder for GxTextureDecoder {
                     }
                 }
             }
+            InternalFormat::I8 => {
+                let mut index = 0;
+                for y in 0..height {
+                    for x in 0..width {
+                        let illuminance = input[index];
+                        buffer[(x, y)] = [illuminance, illuminance, illuminance, 0xff].into();
+
+                        index += 1;
+                    }
+                }
+            }
             InternalFormat::IA4 => {
                 let mut index = 0;
                 for y in 0..height {
@@ -253,6 +264,7 @@ impl InternalFormat {
             1 => Self::RGBA8,
             3 => Self::RGB5A3,
             4 => Self::I4,
+            5 => Self::I8,
             7 => Self::IA4,
             8 => Self::IA8,
             _ => {
