@@ -9,11 +9,7 @@ fn main() -> Result<()> {
     use color_eyre::Report;
 
     // Force enable backtraces
-    #[cfg(not(target_family = "windows"))]
     std::env::set_var("RUST_BACKTRACE", "1");
-
-    #[cfg(target_family = "windows")]
-    std::env::set_var("RUST_LIB_BACKTRACE", "0");
 
     eurochef_gui::panic_dialog::setup();
 
