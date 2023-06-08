@@ -176,10 +176,12 @@ impl EurochefApp {
             self.entities = None;
         }
 
-        self.textures = Some(textures::TextureList::new(
-            ctx,
-            textures::read_from_file(reader, platform),
-        ));
+        let textures = textures::read_from_file(reader, platform);
+        if textures.len() == 1 && textures[0].hashcode == 0x06000000 {
+            self.textures = None;
+        } else {
+            self.textures = Some(textures::TextureList::new(ctx, textures));
+        }
 
         self.state = AppState::Ready;
     }

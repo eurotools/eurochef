@@ -100,6 +100,11 @@ impl TextureList {
                 ui.horizontal_wrapped(|ui| {
                     ui.spacing_mut().item_spacing = [4. * self.zoom; 2].into();
                     for (i, it) in self.textures.iter().enumerate() {
+                        // Skip null texture
+                        if it.hashcode == 0x06000000 {
+                            continue;
+                        }
+
                         match &it.data {
                             Ok(t) => {
                                 if self.filter_animated && t.frame_count <= 1 {
