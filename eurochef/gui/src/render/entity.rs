@@ -279,7 +279,7 @@ impl EntityRenderer {
         gl.active_texture(glow::TEXTURE0);
         if (t.texture_index as usize) < textures.len() {
             let tex = &textures[t.texture_index as usize];
-            // Cubemap texture (EngineXT)
+            // Cubemap texture
             if (tex.flags & 0x30000) != 0 {
                 return;
             }

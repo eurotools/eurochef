@@ -161,17 +161,17 @@ impl EurochefApp {
                                 platform,
                             ));
                         }
-                    }
 
-                    self.entities = Some(entities::EntityListPanel::new(
-                        ctx,
-                        self.gl.clone(),
-                        entities,
-                        skins,
-                        ref_entities,
-                        &textures,
-                        platform,
-                    ));
+                        self.entities = Some(entities::EntityListPanel::new(
+                            ctx,
+                            self.gl.clone(),
+                            entities,
+                            skins,
+                            ref_entities,
+                            &textures,
+                            platform,
+                        ));
+                    }
                 }
                 Err(e) => self.state = AppState::Error(e),
             }
