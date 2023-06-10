@@ -43,7 +43,15 @@ impl TextureDecoder for GxTextureDecoder {
         anyhow::ensure!(input.len() >= self.get_data_size(width, height, depth, format)?);
         anyhow::ensure!(output.len() == (width as usize * height as usize * depth as usize) * 4);
 
-        let mut buffer = output.clone();
+        // let (rounded_width, rounded_height) = (
+        //     (width - 1).next_power_of_two(),
+        //     (height - 1).next_power_of_two(),
+        // );
+
+        let (blocks_x, blocks_y) = ((width + 3) / 4, (height + 3) / 4);
+        let (rounded_width, rounded_height) = (blocks_x * 4, blocks_y * 4);
+
+        let mut buffer = RgbaImage::new(rounded_width, rounded_height);
         match fmt {
             InternalFormat::I4 => {
                 let mut index = 0;
@@ -64,6 +72,7 @@ impl TextureDecoder for GxTextureDecoder {
                 for y in 0..height {
                     for x in 0..width {
                         let illuminance = input[index];
+
                         buffer[(x, y)] = [illuminance, illuminance, illuminance, 0xff].into();
 
                         index += 1;
@@ -147,6 +156,10 @@ impl TextureDecoder for GxTextureDecoder {
                 output.copy_from_slice(&buffer);
             }
             InternalFormat::CMPR => {
+                if rounded_width != width || rounded_height != height {
+                    anyhow::bail!("Odd resolutions on CMPR are not supported yet!");
+                }
+
                 let mut index = 0;
                 let mut buffer = vec![0u8; output.len()];
                 for y in (0..height as usize).step_by(8) {
@@ -195,8 +208,11 @@ impl TextureDecoder for GxTextureDecoder {
                             let (sx, sy) = (src_index % width, src_index / width);
                             let pixel = buffer[(sx, sy)];
 
-                            output[(x + bx, y + by)] =
-                                [pixel[0], pixel[1], pixel[2], pixel[3]].into();
+                            if (x + bx) < width && (y + by) < height {
+                                output[(x + bx, y + by)] =
+                                    [pixel[0], pixel[1], pixel[2], pixel[3]].into();
+                            }
+
                             src_index += 1;
                         }
                     }
