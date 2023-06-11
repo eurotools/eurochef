@@ -5,6 +5,7 @@ use eurochef_edb::{
     header::EXGeoHeader,
     text::{EXGeoSpreadSheet, EXGeoTextItem},
 };
+use tracing::warn;
 
 #[derive(Clone)]
 pub struct UXGeoSpreadsheet(pub Vec<UXGeoTextSection>);
@@ -33,6 +34,7 @@ impl UXGeoSpreadsheet {
 
         for s in &header.spreadsheet_list {
             if s.stype != 1 {
+                warn!("Skipping data spreadsheet");
                 continue;
             }
 
