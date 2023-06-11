@@ -19,16 +19,20 @@ pub enum BlendMode {
 pub struct EntityRenderer {
     // TODO(cohae): We shouldn't be compiling shaders more than once (global program struct?)
     mesh_shader: glow::Program,
+    mesh_shader_unlit: glow::Program,
     mesh: Option<(usize, glow::VertexArray, glow::Buffer, Vec<TriStrip>)>,
     platform: Platform,
+    pub vertex_lighting: bool,
 }
 
 impl EntityRenderer {
     pub fn new(gl: &glow::Context, platform: Platform) -> Self {
         Self {
-            mesh_shader: unsafe { Self::create_mesh_program(gl).unwrap() },
+            mesh_shader: unsafe { Self::create_mesh_program(gl, true).unwrap() },
+            mesh_shader_unlit: unsafe { Self::create_mesh_program(gl, false).unwrap() },
             mesh: None,
             platform,
+            vertex_lighting: true,
         }
     }
 
@@ -110,7 +114,10 @@ impl EntityRenderer {
         center
     }
 
-    unsafe fn create_mesh_program(gl: &glow::Context) -> Result<glow::Program, String> {
+    unsafe fn create_mesh_program(
+        gl: &glow::Context,
+        vertex_lighting: bool,
+    ) -> Result<glow::Program, String> {
         let shader_sources = [
             (
                 glow::VERTEX_SHADER,
@@ -122,7 +129,15 @@ impl EntityRenderer {
             ),
         ];
 
-        gl_helper::compile_shader(gl, &shader_sources)
+        gl_helper::compile_shader(
+            gl,
+            &shader_sources,
+            if vertex_lighting {
+                &[]
+            } else {
+                &["#define EC_NO_VERTEX_LIGHTING"]
+            },
+        )
     }
 
     unsafe fn init_draw(
@@ -133,7 +148,11 @@ impl EntityRenderer {
         scale: Vec3,
         uniforms: &RenderUniforms,
     ) {
-        gl.use_program(Some(self.mesh_shader));
+        gl.use_program(Some(if self.vertex_lighting {
+            self.mesh_shader
+        } else {
+            self.mesh_shader_unlit
+        }));
         gl.uniform_matrix_4_f32_slice(
             gl.get_uniform_location(self.mesh_shader, "u_view").as_ref(),
             false,

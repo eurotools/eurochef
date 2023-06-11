@@ -22,7 +22,7 @@ impl GridRenderer {
         ];
 
         let shader = unsafe {
-            let shader = gl_helper::compile_shader(gl, &shader_sources).unwrap();
+            let shader = gl_helper::compile_shader(gl, &shader_sources, &[]).unwrap();
             gl.use_program(Some(shader));
             gl.uniform_1_i32(gl.get_uniform_location(shader, "u_size").as_ref(), size);
             shader

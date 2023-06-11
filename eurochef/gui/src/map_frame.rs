@@ -29,6 +29,8 @@ pub struct MapFrame {
 
     /// Used to prevent keybinds being triggered while a textfield is focused
     textfield_focused: bool,
+
+    vertex_lighting: bool,
 }
 
 impl MapFrame {
@@ -48,6 +50,7 @@ impl MapFrame {
             viewer: Arc::new(Mutex::new(BaseViewer::new(gl))),
             sky_ent: String::new(),
             textfield_focused: false,
+            vertex_lighting: true,
         };
 
         unsafe {
@@ -115,6 +118,20 @@ impl MapFrame {
                     });
             }
             ui.label("Sky ent");
+
+            if ui
+                .checkbox(&mut self.vertex_lighting, "Vertex Lighting")
+                .changed()
+            {
+                // TODO(cohae): Global shaders will make this less painful
+                for r in self
+                    .ref_renderers
+                    .iter()
+                    .chain(self.placement_renderers.iter().map(|r| &r.2))
+                {
+                    r.lock().unwrap().vertex_lighting = self.vertex_lighting;
+                }
+            }
         });
 
         egui::Frame::canvas(ui.style()).show(ui, |ui| self.show_canvas(ui, map));

@@ -16,6 +16,7 @@ pub struct EntityFrame {
     pub viewer: Arc<Mutex<BaseViewer>>,
 
     mesh_center: Vec3,
+    vertex_lighting: bool,
 }
 
 #[derive(Clone)]
@@ -41,6 +42,7 @@ impl EntityFrame {
             renderers: vec![],
             mesh_center: Vec3::ZERO,
             viewer: Arc::new(Mutex::new(BaseViewer::new(gl))),
+            vertex_lighting: true,
         };
 
         unsafe {
@@ -63,6 +65,16 @@ impl EntityFrame {
     pub fn show(&mut self, ui: &mut egui::Ui) {
         ui.horizontal(|ui| {
             self.viewer.lock().unwrap().show_toolbar(ui);
+
+            if ui
+                .checkbox(&mut self.vertex_lighting, "Vertex Lighting")
+                .changed()
+            {
+                // TODO(cohae): Global shaders will make this less painful
+                for r in self.renderers.iter() {
+                    r.lock().unwrap().vertex_lighting = self.vertex_lighting;
+                }
+            }
         });
 
         egui::Frame::canvas(ui.style()).show(ui, |ui| self.show_canvas(ui));

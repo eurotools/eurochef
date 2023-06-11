@@ -3,6 +3,7 @@ use glow::HasContext;
 pub unsafe fn compile_shader(
     gl: &glow::Context,
     shader_sources: &[(u32, &str)],
+    defines: &[&str],
 ) -> Result<glow::Program, String> {
     let shader_version = egui_glow::ShaderVersion::get(gl);
     let program = gl.create_program().expect("Cannot create program");
@@ -15,8 +16,9 @@ pub unsafe fn compile_shader(
             gl.shader_source(
                 shader,
                 &format!(
-                    "{}\n{}",
+                    "{}\n{}\n{}",
                     shader_version.version_declaration(),
+                    defines.join("\n"),
                     shader_source
                 ),
             );

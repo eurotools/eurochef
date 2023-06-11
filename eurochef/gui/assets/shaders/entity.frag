@@ -13,6 +13,7 @@ void main() {
 
 #ifdef EC_NO_VERTEX_LIGHTING
     o_color = texel;
+    o_color.a = texel.a * f_color.a;
 #else
     o_color = texel * f_color;
 #endif
