@@ -83,7 +83,7 @@ impl FileInfoPanel {
         quick_array!("Swooshes", swoosh_list);
         quick_array!("Spreadsheets", spreadsheet_list);
         quick_array!("Fonts", font_list);
-        quick_array!("Force feedback", font_list);
+        quick_array!("Force feedback", forcefeedback_list);
         quick_array!("Materials", material_list);
         quick_array!("Textures", texture_list);
         quick_array!("unk_c0", unk_c0);
