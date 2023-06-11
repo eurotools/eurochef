@@ -441,7 +441,7 @@ impl eframe::App for EurochefApp {
                 }
 
                 if spreadsheetlist.is_some() {
-                    ui.selectable_value(current_panel, Panel::Spreadsheets, "Spreadsheets");
+                    ui.selectable_value(current_panel, Panel::Spreadsheets, "Text");
                 }
 
                 if entities.is_some() {

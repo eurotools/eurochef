@@ -32,7 +32,7 @@ impl UXGeoSpreadsheet {
         let mut spreadsheets = vec![];
 
         for s in &header.spreadsheet_list {
-            if s.m_type != 1 {
+            if s.stype != 1 {
                 continue;
             }
 

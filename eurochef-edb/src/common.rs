@@ -145,7 +145,7 @@ impl<T: BinRead + Debug> Deref for EXRelPtr<T> {
 #[derive(Debug)]
 pub struct EXGeoSpreadSheetHeader {
     pub common: EXGeoCommonArrayElement,
-    pub m_type: u32,
+    pub stype: u32,
 }
 
 #[binrw]
