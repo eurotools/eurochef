@@ -19,7 +19,7 @@ use eurochef_shared::{
 };
 use fnv::FnvHashMap;
 use font_awesome as fa;
-use glam::{Vec2, Vec3};
+use glam::{Quat, Vec2, Vec3};
 use glow::HasContext;
 
 use crate::{
@@ -514,7 +514,7 @@ impl EntityListPanel {
                             &self.gl,
                             &uniforms,
                             -mesh_center,
-                            Vec3::ZERO,
+                            Quat::IDENTITY,
                             Vec3::ONE,
                             0.0, // Thumbnails are static so we don't need time
                             &self.textures,
@@ -534,7 +534,7 @@ impl EntityListPanel {
                                 &self.gl,
                                 &uniforms,
                                 -mesh_center,
-                                Vec3::ZERO,
+                                Quat::IDENTITY,
                                 Vec3::ONE,
                                 0.0,
                                 &self.textures,
@@ -548,7 +548,7 @@ impl EntityListPanel {
                                 &self.gl,
                                 &uniforms,
                                 -mesh_center,
-                                Vec3::ZERO,
+                                Quat::IDENTITY,
                                 Vec3::ONE,
                                 0.0,
                                 &self.textures,

@@ -5,7 +5,7 @@ use eurochef_edb::{
     versions::Platform,
 };
 use eurochef_shared::IdentifiableResult;
-use glam::{Mat4, Quat, Vec3, Vec3Swizzles, Vec4};
+use glam::{Quat, Vec3};
 use glow::HasContext;
 
 use crate::{
@@ -148,7 +148,7 @@ impl MapFrame {
         let time = ui.input(|t| t.time);
 
         let viewer = self.viewer.clone();
-        let camera_pos = {
+        let (camera_pos, camera_rot) = {
             let mut v = viewer.lock().unwrap();
             if !self.textfield_focused {
                 v.update(ui, response);
@@ -159,7 +159,7 @@ impl MapFrame {
                 CameraType::Orbit => &mut v.camera_orbit,
             };
 
-            camera.position()
+            (camera.position(), camera.rotation())
         };
         // TODO(cohae): Why is this necessary?
         let camera_pos = Vec3::new(-camera_pos.x, camera_pos.y, camera_pos.z);
@@ -186,7 +186,7 @@ impl MapFrame {
                     painter.gl(),
                     &viewer.lock().unwrap().uniforms,
                     camera_pos,
-                    Vec3::ZERO,
+                    Quat::IDENTITY,
                     Vec3::ONE,
                     time,
                     &textures,
@@ -202,7 +202,7 @@ impl MapFrame {
                     painter.gl(),
                     &viewer.lock().unwrap().uniforms,
                     Vec3::ZERO,
-                    Vec3::ZERO,
+                    Quat::IDENTITY,
                     Vec3::ONE,
                     time,
                     &textures,
@@ -214,13 +214,15 @@ impl MapFrame {
                     .iter()
                     .find(|(i, _, _)| *i == p.object_ref)
                 {
-                    let mut rotation: Vec3 = p.rotation.into();
+                    let mut rotation: Quat = Quat::from_euler(
+                        glam::EulerRot::ZXY,
+                        p.rotation[2],
+                        p.rotation[0],
+                        p.rotation[1],
+                    );
                     let position: Vec3 = p.position.into();
                     if (base.flags & 0x4) != 0 {
-                        rotation = look_at(position, camera_pos)
-                            .to_euler(glam::EulerRot::ZXY)
-                            .into();
-                        rotation = rotation.yzx();
+                        rotation = -camera_rot;
                     }
 
                     let renderer_lock = r.lock().unwrap();
@@ -244,7 +246,7 @@ impl MapFrame {
                     painter.gl(),
                     &viewer.lock().unwrap().uniforms,
                     Vec3::ZERO,
-                    Vec3::ZERO,
+                    Quat::IDENTITY,
                     Vec3::ONE,
                     time,
                     &textures,
@@ -256,13 +258,16 @@ impl MapFrame {
                     .iter()
                     .find(|(i, _, _)| *i == p.object_ref)
                 {
-                    let mut rotation: Vec3 = p.rotation.into();
+                    let mut rotation: Quat = Quat::from_euler(
+                        glam::EulerRot::ZXY,
+                        p.rotation[2],
+                        p.rotation[0],
+                        p.rotation[1],
+                    );
                     let position: Vec3 = p.position.into();
+                    // TODO(cohae): Shouldn't this be part of the entity renderer?
                     if (base.flags & 0x4) != 0 {
-                        rotation = look_at(position, camera_pos)
-                            .to_euler(glam::EulerRot::ZXY)
-                            .into();
-                        rotation = rotation.yzx();
+                        rotation = -camera_rot;
                     }
 
                     let renderer_lock = r.lock().unwrap();
@@ -284,19 +289,4 @@ impl MapFrame {
         };
         ui.painter().add(callback);
     }
-}
-
-fn look_at(center: Vec3, target: Vec3) -> Quat {
-    let forward = (target - center).normalize();
-    let right = Vec3::Y.cross(forward).normalize();
-    let up = forward.cross(right).normalize();
-
-    let rot = Quat::from_mat4(&Mat4::from_cols(
-        right.extend(0.0),
-        up.extend(0.0),
-        forward.extend(0.0),
-        Vec4::W,
-    ));
-
-    rot.mul_quat(Quat::from_rotation_y(180f32.to_radians()))
 }

@@ -1,4 +1,4 @@
-use glam::{Mat4, Vec2, Vec3, Vec4, Vec4Swizzles};
+use glam::{Mat4, Quat, Vec2, Vec3, Vec4, Vec4Swizzles};
 
 pub trait Camera3D: Sync + Send {
     fn update(&mut self, ui: &egui::Ui, response: Option<egui::Response>, delta: f32);
@@ -11,6 +11,8 @@ pub trait Camera3D: Sync + Send {
     fn position(&mut self) -> Vec3 {
         (self.calculate_matrix() * Vec4::ONE).xyz()
     }
+
+    fn rotation(&self) -> Quat;
 }
 
 fn zoom_factor(zoom_level: f32) -> f32 {
@@ -38,9 +40,9 @@ impl ArcBallCamera {
         }
     }
 
-    fn eye(&self) -> Vec3 {
-        (self.camera_inv * Vec4::W).xyz()
-    }
+    // fn eye(&self) -> Vec3 {
+    //     (self.camera_inv * Vec4::W).xyz()
+    // }
 
     fn dir(&self) -> Vec3 {
         (self.camera_inv * Vec4::Z).xyz().normalize()
@@ -78,15 +80,15 @@ impl Camera3D for ArcBallCamera {
                     || response.dragged_by(egui::PointerButton::Middle)
                 {
                     self.orientation +=
-                        Vec2::new(response.drag_delta().x, response.drag_delta().y) * 0.005;
+                        Vec2::new(response.drag_delta().x, response.drag_delta().y) * 0.10;
                 }
             }
         }
 
         if let Some(response) = &response {
             if response.dragged_by(egui::PointerButton::Secondary) {
-                self.pivot += (-self.up() * response.drag_delta().y * 0.0030) * self.zoom();
-                self.pivot += (-self.right() * response.drag_delta().x * 0.0030) * self.zoom();
+                self.pivot += (-self.up() * response.drag_delta().y * 0.06) * self.zoom();
+                self.pivot += (-self.right() * response.drag_delta().x * 0.06) * self.zoom();
             }
         }
 
@@ -126,16 +128,13 @@ impl Camera3D for ArcBallCamera {
         }
 
         self.zoom = self.zoom.clamp(0.00, 250.0);
-        self.orientation.y = self
-            .orientation
-            .y
-            .clamp(-std::f32::consts::FRAC_PI_2, std::f32::consts::FRAC_PI_2);
+        self.orientation.y = self.orientation.y.clamp(-90., 90.);
     }
 
     fn calculate_matrix(&mut self) -> Mat4 {
         let rotation = Mat4::from_quat(
-            glam::Quat::from_rotation_x(self.orientation.y)
-                * glam::Quat::from_rotation_y(self.orientation.x),
+            glam::Quat::from_rotation_x(self.orientation.y.to_radians())
+                * glam::Quat::from_rotation_y(self.orientation.x.to_radians()),
         );
 
         let translation = Mat4::from_translation(self.pivot);
@@ -153,6 +152,11 @@ impl Camera3D for ArcBallCamera {
         self.camera_inv = view.inverse();
 
         view
+    }
+
+    fn rotation(&self) -> Quat {
+        glam::Quat::from_rotation_y(self.orientation.y.to_radians())
+            * glam::Quat::from_rotation_x(self.orientation.x.to_radians())
     }
 
     fn zoom(&self) -> f32 {
@@ -246,6 +250,11 @@ impl Camera3D for FpsCamera {
 
     fn calculate_matrix(&mut self) -> Mat4 {
         Mat4::look_at_rh(self.position, self.position + self.front, Vec3::Y)
+    }
+
+    fn rotation(&self) -> Quat {
+        glam::Quat::from_rotation_y(self.orientation.y.to_radians())
+            * glam::Quat::from_rotation_x(self.orientation.x.to_radians())
     }
 
     // Abusing this to get the speed value for the status bar

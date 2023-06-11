@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 
 use eurochef_edb::versions::Platform;
-use glam::{Vec2, Vec3};
+use glam::{Quat, Vec2, Vec3};
 use glow::HasContext;
 
 use crate::{
@@ -106,7 +106,7 @@ impl EntityFrame {
                     painter.gl(),
                     &viewer.lock().unwrap().uniforms,
                     -mesh_center,
-                    Vec3::ZERO,
+                    Quat::IDENTITY,
                     Vec3::ONE,
                     time,
                     &textures,
@@ -121,7 +121,7 @@ impl EntityFrame {
                     painter.gl(),
                     &viewer.lock().unwrap().uniforms,
                     -mesh_center,
-                    Vec3::ZERO,
+                    Quat::IDENTITY,
                     Vec3::ONE,
                     time,
                     &textures,

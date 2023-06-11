@@ -1,6 +1,6 @@
 use eurochef_edb::versions::Platform;
 use eurochef_shared::entities::{TriStrip, UXVertex};
-use glam::{Mat4, Vec2, Vec3};
+use glam::{Mat4, Quat, Vec2, Vec3};
 use glow::HasContext;
 
 use crate::{entities::ProcessedEntityMesh, entity_frame::RenderableTexture};
@@ -144,7 +144,7 @@ impl EntityRenderer {
         &self,
         gl: &glow::Context,
         position: Vec3,
-        rotation: Vec3,
+        rotation: Quat,
         scale: Vec3,
         uniforms: &RenderUniforms,
     ) {
@@ -159,9 +159,8 @@ impl EntityRenderer {
             &uniforms.view.to_cols_array(),
         );
 
-        let model = Mat4::from_translation(position)
-            * Mat4::from_euler(glam::EulerRot::ZXY, rotation.z, rotation.x, rotation.y)
-            * Mat4::from_scale(scale);
+        let model =
+            Mat4::from_translation(position) * Mat4::from_quat(rotation) * Mat4::from_scale(scale);
         gl.uniform_matrix_4_f32_slice(
             gl.get_uniform_location(self.mesh_shader, "u_model")
                 .as_ref(),
@@ -181,7 +180,7 @@ impl EntityRenderer {
         gl: &glow::Context,
         uniforms: &RenderUniforms,
         position: Vec3,
-        rotation: Vec3,
+        rotation: Quat,
         scale: Vec3,
         time: f64,
         textures: &[RenderableTexture],
@@ -196,7 +195,7 @@ impl EntityRenderer {
         gl: &glow::Context,
         uniforms: &RenderUniforms,
         position: Vec3,
-        rotation: Vec3,
+        rotation: Quat,
         scale: Vec3,
         time: f64,
         textures: &[RenderableTexture],
@@ -220,7 +219,7 @@ impl EntityRenderer {
         gl: &glow::Context,
         uniforms: &RenderUniforms,
         position: Vec3,
-        rotation: Vec3,
+        rotation: Quat,
         scale: Vec3,
         time: f64,
         textures: &[RenderableTexture],
