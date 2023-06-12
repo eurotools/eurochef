@@ -95,10 +95,11 @@ impl EntityFrame {
 
         let renderers = self.renderers.clone();
         let cb = egui_glow::CallbackFn::new(move |info, painter| unsafe {
-            viewer
-                .lock()
-                .unwrap()
-                .start_render(painter.gl(), info.viewport.aspect_ratio());
+            viewer.lock().unwrap().start_render(
+                painter.gl(),
+                info.viewport.aspect_ratio(),
+                time as f32,
+            );
 
             for r in &renderers {
                 let renderer_lock = r.lock().unwrap();

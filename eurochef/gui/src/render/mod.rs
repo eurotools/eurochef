@@ -9,12 +9,14 @@ pub mod camera;
 pub mod entity;
 pub mod gl_helper;
 pub mod grid;
+pub mod trigger;
 pub mod viewer;
 
 #[derive(Default)]
 pub struct RenderUniforms {
     pub view: Mat4,
     pub camera_rotation: Quat,
+    pub time: f32,
 }
 
 impl RenderUniforms {
@@ -23,6 +25,7 @@ impl RenderUniforms {
         orthographic: bool,
         camera: &mut C,
         aspect_ratio: f32,
+        time: f32,
     ) {
         let projection = if orthographic {
             glam::Mat4::orthographic_rh_gl(
@@ -39,6 +42,7 @@ impl RenderUniforms {
 
         self.view = projection * camera.calculate_matrix();
         self.camera_rotation = camera.rotation();
+        self.time = time;
     }
 }
 

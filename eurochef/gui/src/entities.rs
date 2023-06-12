@@ -491,6 +491,7 @@ impl EntityListPanel {
                     true,
                     &mut ArcBallCamera::new(Vec3::ZERO, Vec2::new(140., 30.), zoom, false),
                     1.0,
+                    0.0,
                 );
 
                 unsafe {

@@ -20,6 +20,7 @@ use crate::{
         camera::Camera3D,
         entity::EntityRenderer,
         gl_helper,
+        trigger::LinkLineRenderer,
         viewer::{BaseViewer, CameraType},
     },
 };
@@ -30,6 +31,8 @@ pub struct MapFrame {
     pub placement_renderers: Vec<(u32, EXGeoBaseEntity, Arc<Mutex<EntityRenderer>>)>,
     billboard_renderer: Arc<BillboardRenderer>,
     trigger_texture: glow::Texture,
+    link_renderer: Arc<LinkLineRenderer>,
+    selected_trigger: usize,
 
     pub viewer: Arc<Mutex<BaseViewer>>,
     sky_ent: String,
@@ -71,6 +74,7 @@ impl MapFrame {
             textfield_focused: false,
             vertex_lighting: true,
             billboard_renderer: Arc::new(BillboardRenderer::new(gl).unwrap()),
+            link_renderer: Arc::new(LinkLineRenderer::new(gl).unwrap()),
             trigger_texture: unsafe {
                 gl_helper::load_texture(
                     gl,
@@ -81,6 +85,7 @@ impl MapFrame {
                     0,
                 )
             },
+            selected_trigger: 0,
         };
 
         unsafe {
@@ -162,6 +167,13 @@ impl MapFrame {
                     r.lock().unwrap().vertex_lighting = self.vertex_lighting;
                 }
             }
+
+            ui.add(
+                egui::DragValue::new(&mut self.selected_trigger)
+                    .speed(0.5)
+                    .clamp_range(0..=(map.triggers.len() - 1)),
+            );
+            ui.label("Selected trigger");
         });
 
         egui::Frame::canvas(ui.style()).show(ui, |ui| self.show_canvas(ui, map));
@@ -175,7 +187,7 @@ impl MapFrame {
             egui::Sense::click_and_drag(),
         );
 
-        let time = ui.input(|t| t.time);
+        let time: f64 = ui.input(|t| t.time);
 
         let viewer = self.viewer.clone();
         let (camera_pos, camera_rot) = {
@@ -200,14 +212,17 @@ impl MapFrame {
         let sky_ent = u32::from_str_radix(&self.sky_ent, 16).unwrap_or(u32::MAX);
         let trigger_texture = self.trigger_texture.clone();
         let billboard_renderer = self.billboard_renderer.clone();
+        let link_renderer = self.link_renderer.clone();
+        let selected_trigger = self.selected_trigger;
 
         let placement_renderers = self.placement_renderers.clone();
         let renderers = self.ref_renderers.clone();
         let cb = egui_glow::CallbackFn::new(move |info, painter| unsafe {
-            viewer
-                .lock()
-                .unwrap()
-                .start_render(painter.gl(), info.viewport.aspect_ratio());
+            viewer.lock().unwrap().start_render(
+                painter.gl(),
+                info.viewport.aspect_ratio(),
+                time as f32,
+            );
 
             if let Some((_, _, sky_renderer)) =
                 placement_renderers.iter().find(|(hc, _, _)| *hc == sky_ent)
@@ -315,6 +330,44 @@ impl MapFrame {
                 }
             }
 
+            if let Some(trig) = map.triggers.get(selected_trigger) {
+                for l in &trig.links {
+                    if *l != -1 {
+                        if *l >= map.triggers.len() as i32 {
+                            warn!("Trigger doesnt exist! ({l})");
+                            continue;
+                        }
+
+                        let end = map.triggers[*l as usize].position;
+                        link_renderer.render(
+                            painter.gl(),
+                            &viewer.lock().unwrap().uniforms,
+                            trig.position,
+                            end,
+                            Vec3::new(0.913, 0.547, 0.125),
+                        );
+                    }
+                }
+
+                for l in &trig.incoming_links {
+                    if *l != -1 {
+                        if *l >= map.triggers.len() as i32 {
+                            warn!("Trigger doesnt exist! ({l})");
+                            continue;
+                        }
+
+                        let end = map.triggers[*l as usize].position;
+                        link_renderer.render(
+                            painter.gl(),
+                            &viewer.lock().unwrap().uniforms,
+                            end,
+                            trig.position,
+                            Vec3::new(0.169, 0.554, 0.953),
+                        );
+                    }
+                }
+            }
+
             for t in &map.triggers {
                 billboard_renderer.render(
                     painter.gl(),
@@ -326,6 +379,7 @@ impl MapFrame {
                 );
             }
         });
+
         let callback = egui::PaintCallback {
             rect,
             callback: Arc::new(cb),

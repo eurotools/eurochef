@@ -108,7 +108,7 @@ impl BaseViewer {
         self.last_frame = Instant::now();
     }
 
-    pub fn start_render(&mut self, gl: &glow::Context, aspect_ratio: f32) {
+    pub fn start_render(&mut self, gl: &glow::Context, aspect_ratio: f32, time: f32) {
         unsafe {
             super::start_render(gl);
         }
@@ -125,6 +125,7 @@ impl BaseViewer {
             },
             camera,
             aspect_ratio,
+            time,
         );
 
         if self.show_grid {

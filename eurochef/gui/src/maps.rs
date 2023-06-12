@@ -59,6 +59,9 @@ pub struct ProcessedTrigger {
     pub data: Vec<u32>,
     pub links: Vec<i32>,
     pub extra_data: Vec<u32>,
+
+    /// Every trigger that links to this one
+    pub incoming_links: Vec<i32>,
 }
 
 impl MapViewerPanel {
@@ -230,9 +233,27 @@ pub fn read_from_file<R: Read + Seek>(reader: &mut R, platform: Platform) -> Pro
             extra_data,
             data,
             links,
+            incoming_links: vec![],
         };
 
         map.triggers.push(trigger);
+    }
+
+    for i in 0..map.triggers.len() {
+        for ei in 0..map.triggers.len() {
+            if i == ei {
+                continue;
+            }
+
+            if map.triggers[ei]
+                .links
+                .iter()
+                .find(|v| **v == i as i32)
+                .is_some()
+            {
+                map.triggers[i].incoming_links.push(ei as i32);
+            }
+        }
     }
 
     map

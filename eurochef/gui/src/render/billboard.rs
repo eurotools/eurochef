@@ -72,7 +72,7 @@ impl BillboardRenderer {
         pos: Vec3,
         scale: f32,
     ) {
-        set_blending_mode(gl, super::blend::BlendMode::Blend);
+        set_blending_mode(gl, super::blend::BlendMode::Cutout);
         unsafe {
             gl.use_program(Some(self.shader));
             gl.active_texture(glow::TEXTURE0);
