@@ -1,8 +1,10 @@
-use glam::Mat4;
+use glam::{Mat4, Quat};
 use glow::HasContext;
 
 use self::camera::Camera3D;
 
+pub mod billboard;
+pub mod blend;
 pub mod camera;
 pub mod entity;
 pub mod gl_helper;
@@ -12,6 +14,7 @@ pub mod viewer;
 #[derive(Default)]
 pub struct RenderUniforms {
     pub view: Mat4,
+    pub camera_rotation: Quat,
 }
 
 impl RenderUniforms {
@@ -35,6 +38,7 @@ impl RenderUniforms {
         };
 
         self.view = projection * camera.calculate_matrix();
+        self.camera_rotation = camera.rotation();
     }
 }
 

@@ -1,4 +1,7 @@
-use std::sync::{Arc, Mutex};
+use std::{
+    io::Cursor,
+    sync::{Arc, Mutex},
+};
 
 use eurochef_edb::{
     entity::{EXGeoBaseEntity, EXGeoEntity},
@@ -13,8 +16,10 @@ use crate::{
     entity_frame::RenderableTexture,
     maps::ProcessedMap,
     render::{
+        billboard::BillboardRenderer,
         camera::Camera3D,
         entity::EntityRenderer,
+        gl_helper,
         viewer::{BaseViewer, CameraType},
     },
 };
@@ -23,6 +28,8 @@ pub struct MapFrame {
     pub textures: Vec<RenderableTexture>,
     pub ref_renderers: Vec<Arc<Mutex<EntityRenderer>>>,
     pub placement_renderers: Vec<(u32, EXGeoBaseEntity, Arc<Mutex<EntityRenderer>>)>,
+    billboard_renderer: Arc<BillboardRenderer>,
+    trigger_texture: glow::Texture,
 
     pub viewer: Arc<Mutex<BaseViewer>>,
     sky_ent: String,
@@ -32,6 +39,8 @@ pub struct MapFrame {
 
     vertex_lighting: bool,
 }
+
+const DEFAULT_ICON_DATA: &[u8] = include_bytes!("../../../assets/icons/triggers/default.png");
 
 impl MapFrame {
     pub fn new(
@@ -43,6 +52,16 @@ impl MapFrame {
     ) -> Self {
         assert!(textures.len() != 0);
 
+        let (default_icon_data, default_icon_info) = {
+            let mut cursor = Cursor::new(DEFAULT_ICON_DATA);
+            let mut decoder = png::Decoder::new(&mut cursor);
+            decoder.set_transformations(png::Transformations::normalize_to_color8());
+            let mut reader = decoder.read_info().unwrap();
+            let mut img_data = vec![0; reader.output_buffer_size()];
+            let info = reader.next_frame(&mut img_data).unwrap();
+            (img_data[..info.buffer_size()].to_vec(), info)
+        };
+
         let mut s = Self {
             textures: textures.to_vec(),
             ref_renderers: vec![],
@@ -51,6 +70,17 @@ impl MapFrame {
             sky_ent: String::new(),
             textfield_focused: false,
             vertex_lighting: true,
+            billboard_renderer: Arc::new(BillboardRenderer::new(gl).unwrap()),
+            trigger_texture: unsafe {
+                gl_helper::load_texture(
+                    gl,
+                    default_icon_info.width as i32,
+                    default_icon_info.height as i32,
+                    &default_icon_data,
+                    glow::RGBA,
+                    0,
+                )
+            },
         };
 
         unsafe {
@@ -168,6 +198,8 @@ impl MapFrame {
         let textures = self.textures.clone(); // FIXME: UUUUGH.
         let map = map.clone(); // FIXME(cohae): ugh.
         let sky_ent = u32::from_str_radix(&self.sky_ent, 16).unwrap_or(u32::MAX);
+        let trigger_texture = self.trigger_texture.clone();
+        let billboard_renderer = self.billboard_renderer.clone();
 
         let placement_renderers = self.placement_renderers.clone();
         let renderers = self.ref_renderers.clone();
@@ -281,6 +313,17 @@ impl MapFrame {
                         &textures,
                     );
                 }
+            }
+
+            for t in &map.triggers {
+                billboard_renderer.render(
+                    painter.gl(),
+                    &viewer.lock().unwrap().uniforms,
+                    trigger_texture,
+                    t.position,
+                    // TODO(cohae): This scaling is too small for spyro
+                    0.25,
+                );
             }
         });
         let callback = egui::PaintCallback {

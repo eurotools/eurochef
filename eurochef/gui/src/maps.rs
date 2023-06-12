@@ -12,11 +12,8 @@ use eurochef_edb::{
     map::{EXGeoMap, EXGeoPlacement},
     versions::Platform,
 };
-use eurochef_shared::{
-    maps::{parse_trigger_data, UXGeoTrigger},
-    textures::UXGeoTexture,
-    IdentifiableResult,
-};
+use eurochef_shared::{maps::parse_trigger_data, textures::UXGeoTexture, IdentifiableResult};
+use glam::Vec3;
 
 use crate::{
     entities::{EntityListPanel, ProcessedEntityMesh},
@@ -41,6 +38,27 @@ pub struct MapViewerPanel {
 pub struct ProcessedMap {
     pub mapzone_entities: Vec<EXGeoMapZoneEntity>,
     pub placements: Vec<EXGeoPlacement>,
+    pub triggers: Vec<ProcessedTrigger>,
+}
+
+#[derive(Clone)]
+pub struct ProcessedTrigger {
+    pub link_ref: i32,
+
+    pub ttype: u32,
+    pub tsubtype: Option<u32>,
+
+    pub debug: u16,
+    pub game_flags: u32,
+    pub trig_flags: u32,
+    pub position: Vec3,
+    pub rotation: Vec3,
+    pub scale: Vec3,
+
+    pub raw_data: Vec<u32>,
+    pub data: Vec<u32>,
+    pub links: Vec<i32>,
+    pub extra_data: Vec<u32>,
 }
 
 impl MapViewerPanel {
@@ -145,6 +163,7 @@ pub fn read_from_file<R: Read + Seek>(reader: &mut R, platform: Platform) -> Pro
     let mut map = ProcessedMap {
         mapzone_entities: vec![],
         placements: xmap.placements.data().clone(),
+        triggers: vec![],
     };
 
     for z in &xmap.zones {
@@ -193,25 +212,27 @@ pub fn read_from_file<R: Read + Seek>(reader: &mut R, platform: Platform) -> Pro
 
         let (data, links, extra_data) =
             parse_trigger_data(header.version, trig.trig_flags, &trig.data[..trigdata_size]);
-        let _trigger = UXGeoTrigger {
+        let trigger = ProcessedTrigger {
             link_ref: t.link_ref,
-            ttype: format!("Trig_{ttype}"),
+            ttype,
             tsubtype: if tsubtype != 0 && tsubtype != 0x42000001 {
-                Some(format!("TrigSub_{tsubtype}"))
+                Some(tsubtype)
             } else {
                 None
             },
             debug: trig.debug,
             game_flags: trig.game_flags,
             trig_flags: trig.trig_flags,
-            position: trig.position,
-            rotation: trig.rotation,
-            scale: trig.scale,
+            position: trig.position.into(),
+            rotation: trig.rotation.into(),
+            scale: trig.scale.into(),
             raw_data: trig.data[..trigdata_size].to_vec(),
             extra_data,
             data,
             links,
         };
+
+        map.triggers.push(trigger);
     }
 
     map

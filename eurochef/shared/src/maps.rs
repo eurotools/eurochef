@@ -1,7 +1,7 @@
 use serde::Serialize;
 use tracing::warn;
 
-#[derive(Serialize)]
+#[derive(Serialize, Clone)]
 pub struct UXGeoTrigger {
     // TODO(cohae): Is this related to a refptr?
     pub link_ref: i32,
@@ -22,6 +22,7 @@ pub struct UXGeoTrigger {
     pub extra_data: Vec<u32>,
 }
 
+// TODO(cohae): Move this to eurochef-edb so we can parse trigger collisions
 pub fn parse_trigger_data(
     _version: u32,
     trig_flags: u32,
