@@ -87,8 +87,8 @@ impl Camera3D for ArcBallCamera {
 
         if let Some(response) = &response {
             if response.dragged_by(egui::PointerButton::Secondary) {
-                self.pivot += (-self.up() * response.drag_delta().y * 0.06) * self.zoom();
-                self.pivot += (-self.right() * response.drag_delta().x * 0.06) * self.zoom();
+                self.pivot += (-self.up() * response.drag_delta().y * 0.003) * self.zoom();
+                self.pivot += (-self.right() * response.drag_delta().x * 0.003) * self.zoom();
             }
         }
 
@@ -99,32 +99,32 @@ impl Camera3D for ArcBallCamera {
 
         // Right view
         if ui.input(|i| i.key_pressed(egui::Key::Num3)) {
-            self.orientation = Vec2::new(std::f32::consts::FRAC_PI_2, 0.);
+            self.orientation = Vec2::new(180., 0.);
         }
 
         // Top view
         if ui.input(|i| i.key_pressed(egui::Key::Num7)) {
-            self.orientation = Vec2::new(0., std::f32::consts::FRAC_PI_2);
+            self.orientation = Vec2::new(0., 180.);
         }
 
         // Rotate right
         if ui.input(|i| i.key_pressed(egui::Key::Num6)) {
-            self.orientation.x -= std::f32::consts::FRAC_PI_2 / 6.;
+            self.orientation.x -= 180. / 6.;
         }
 
         // Rotate left
         if ui.input(|i| i.key_pressed(egui::Key::Num4)) {
-            self.orientation.x += std::f32::consts::FRAC_PI_2 / 6.;
+            self.orientation.x += 180. / 6.;
         }
 
         // Rotate up
         if ui.input(|i| i.key_pressed(egui::Key::Num8)) {
-            self.orientation.y += std::f32::consts::FRAC_PI_2 / 6.;
+            self.orientation.y += 180. / 6.;
         }
 
         // Rotate down
         if ui.input(|i| i.key_pressed(egui::Key::Num2)) {
-            self.orientation.y -= std::f32::consts::FRAC_PI_2 / 6.;
+            self.orientation.y -= 180. / 6.;
         }
 
         self.zoom = self.zoom.clamp(0.00, 250.0);
