@@ -61,7 +61,7 @@ impl Default for ArcBallCamera {
     fn default() -> Self {
         ArcBallCamera {
             pivot: Vec3::ZERO,
-            orientation: Vec2::new(2.5, 0.5),
+            orientation: Vec2::new(140., 30.),
             zoom: 5.0,
             log_zoom: true,
             camera_inv: Mat4::IDENTITY,
