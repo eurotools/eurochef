@@ -25,7 +25,7 @@ use crate::{
 pub struct MapViewerPanel {
     _gl: Arc<glow::Context>,
 
-    map: ProcessedMap,
+    maps: Vec<ProcessedMap>,
     _entities: Vec<IdentifiableResult<(EXGeoEntity, ProcessedEntityMesh)>>,
     _ref_entities: Vec<IdentifiableResult<(EXGeoEntity, ProcessedEntityMesh)>>,
     _textures: Vec<RenderableTexture>,
@@ -36,6 +36,7 @@ pub struct MapViewerPanel {
 
 #[derive(Clone)]
 pub struct ProcessedMap {
+    pub hashcode: u32,
     pub mapzone_entities: Vec<EXGeoMapZoneEntity>,
     pub placements: Vec<EXGeoPlacement>,
     pub triggers: Vec<ProcessedTrigger>,
@@ -68,7 +69,7 @@ impl MapViewerPanel {
     pub fn new(
         _ctx: &egui::Context,
         gl: Arc<glow::Context>,
-        map: ProcessedMap,
+        maps: Vec<ProcessedMap>,
         entities: Vec<IdentifiableResult<(EXGeoEntity, ProcessedEntityMesh)>>,
         ref_entities: Vec<IdentifiableResult<(EXGeoEntity, ProcessedEntityMesh)>>,
         textures: &[IdentifiableResult<UXGeoTexture>],
@@ -78,7 +79,7 @@ impl MapViewerPanel {
         MapViewerPanel {
             frame: Self::load_map_meshes(
                 gl.clone(),
-                &map,
+                &maps,
                 &ref_entities,
                 &entities,
                 &textures,
@@ -86,7 +87,7 @@ impl MapViewerPanel {
             ),
             _textures: textures,
             _gl: gl,
-            map,
+            maps,
             _entities: entities,
             _ref_entities: ref_entities,
         }
@@ -94,7 +95,7 @@ impl MapViewerPanel {
 
     fn load_map_meshes(
         gl: Arc<glow::Context>,
-        map: &ProcessedMap,
+        maps: &[ProcessedMap],
         ref_entities: &Vec<IdentifiableResult<(EXGeoEntity, ProcessedEntityMesh)>>,
         entities: &Vec<IdentifiableResult<(EXGeoEntity, ProcessedEntityMesh)>>,
         textures: &[RenderableTexture],
@@ -102,18 +103,21 @@ impl MapViewerPanel {
     ) -> MapFrame {
         let mut map_entities = vec![];
 
-        for v in &map.mapzone_entities {
-            if let Some(Ok((_, e))) = &ref_entities
-                .iter()
-                .find(|ir| ir.hashcode == v.entity_refptr)
-                .map(|v| v.data.as_ref())
-            {
-                map_entities.push(e);
-            } else {
-                error!(
-                    "Couldn't find ref entity #{} for mapzone entity!",
-                    v.entity_refptr
-                );
+        // FIXME(cohae): Map picking is a bit dirty at the moment
+        for map in maps.iter() {
+            for v in &map.mapzone_entities {
+                if let Some(Ok((_, e))) = &ref_entities
+                    .iter()
+                    .find(|ir| ir.hashcode == v.entity_refptr)
+                    .map(|v| v.data.as_ref())
+                {
+                    map_entities.push((map.hashcode, e));
+                } else {
+                    error!(
+                        "Couldn't find ref entity #{} for mapzone entity!",
+                        v.entity_refptr
+                    );
+                }
             }
         }
 
@@ -130,12 +134,12 @@ impl MapViewerPanel {
     }
 
     pub fn show(&mut self, _context: &egui::Context, ui: &mut egui::Ui) {
-        self.frame.show(ui, &self.map)
+        self.frame.show(ui, &self.maps)
     }
 }
 
 // TODO(cohae): EdbFile struct so we dont have to read endianness separately
-pub fn read_from_file<R: Read + Seek>(reader: &mut R, platform: Platform) -> ProcessedMap {
+pub fn read_from_file<R: Read + Seek>(reader: &mut R, platform: Platform) -> Vec<ProcessedMap> {
     reader.seek(std::io::SeekFrom::Start(0)).ok();
     let endian = if reader.read_ne::<u8>().unwrap() == 0x47 {
         Endian::Big
@@ -148,120 +152,113 @@ pub fn read_from_file<R: Read + Seek>(reader: &mut R, platform: Platform) -> Pro
         .read_type::<EXGeoHeader>(endian)
         .expect("Failed to read header");
 
-    let mut xmap: Option<EXGeoMap> = None;
+    let mut maps = vec![];
     for m in header.map_list.iter() {
         reader
             .seek(std::io::SeekFrom::Start(m.address as u64))
             .unwrap();
 
-        let nmap = reader
+        let xmap = reader
             .read_type_args::<EXGeoMap>(endian, (header.version,))
             .context("Failed to read map")
             .unwrap();
 
-        if let Some(oxmap) = &xmap {
-            if nmap.placements.len() > oxmap.placements.len() {
-                xmap = Some(nmap);
-            }
-        } else {
-            xmap = Some(nmap)
-        }
-    }
-
-    let xmap = xmap.unwrap();
-
-    let mut map = ProcessedMap {
-        mapzone_entities: vec![],
-        placements: xmap.placements.data().clone(),
-        triggers: vec![],
-    };
-
-    for z in &xmap.zones {
-        let entity_offset = header.refpointer_list[z.entity_refptr as usize].address;
-        reader
-            .seek(std::io::SeekFrom::Start(entity_offset as u64))
-            .context("Mapzone refptr pointer to a non-entity object!")
-            .unwrap();
-
-        let ent = reader
-            .read_type_args::<EXGeoEntity>(endian, (header.version, platform))
-            .unwrap();
-
-        if let EXGeoEntity::MapZone(mapzone) = ent {
-            map.mapzone_entities.push(mapzone);
-        } else {
-            error!("Refptr entity does not have a mapzone entity!");
-            // Result::<()>::Err(anyhow::anyhow!(
-            //     "Refptr entity does not have a mapzone entity!"
-            // ))
-            // .unwrap();
-        }
-    }
-
-    for (i, t) in xmap.trigger_header.triggers.iter().enumerate() {
-        let trig = &t.trigger;
-        let (ttype, tsubtype) = {
-            let t = &xmap.trigger_header.trigger_types[trig.type_index as usize];
-
-            (t.trig_type, t.trig_subtype)
+        let mut map = ProcessedMap {
+            hashcode: m.hashcode,
+            mapzone_entities: vec![],
+            placements: xmap.placements.data().clone(),
+            triggers: vec![],
         };
 
-        // FIXME: This requires triggers to be sorted. This is the case in official EDB files but it is not a requirement
-        let trigdata_size = {
-            if (i + 1) == xmap.trigger_header.triggers.len() {
-                32
+        for z in &xmap.zones {
+            let entity_offset = header.refpointer_list[z.entity_refptr as usize].address;
+            reader
+                .seek(std::io::SeekFrom::Start(entity_offset as u64))
+                .context("Mapzone refptr pointer to a non-entity object!")
+                .unwrap();
+
+            let ent = reader
+                .read_type_args::<EXGeoEntity>(endian, (header.version, platform))
+                .unwrap();
+
+            if let EXGeoEntity::MapZone(mapzone) = ent {
+                map.mapzone_entities.push(mapzone);
             } else {
-                let current_addr = trig.offset_absolute();
-                let next_addr = xmap.trigger_header.triggers.data()[i + 1]
-                    .trigger
-                    .offset_absolute();
-
-                ((next_addr - current_addr - 0x30) / 4) as usize
-            }
-        };
-
-        let (data, links, extra_data) =
-            parse_trigger_data(header.version, trig.trig_flags, &trig.data[..trigdata_size]);
-        let trigger = ProcessedTrigger {
-            link_ref: t.link_ref,
-            ttype,
-            tsubtype: if tsubtype != 0 && tsubtype != 0x42000001 {
-                Some(tsubtype)
-            } else {
-                None
-            },
-            debug: trig.debug,
-            game_flags: trig.game_flags,
-            trig_flags: trig.trig_flags,
-            position: trig.position.into(),
-            rotation: trig.rotation.into(),
-            scale: trig.scale.into(),
-            raw_data: trig.data[..trigdata_size].to_vec(),
-            extra_data,
-            data,
-            links,
-            incoming_links: vec![],
-        };
-
-        map.triggers.push(trigger);
-    }
-
-    for i in 0..map.triggers.len() {
-        for ei in 0..map.triggers.len() {
-            if i == ei {
-                continue;
-            }
-
-            if map.triggers[ei]
-                .links
-                .iter()
-                .find(|v| **v == i as i32)
-                .is_some()
-            {
-                map.triggers[i].incoming_links.push(ei as i32);
+                error!("Refptr entity does not have a mapzone entity!");
+                // Result::<()>::Err(anyhow::anyhow!(
+                //     "Refptr entity does not have a mapzone entity!"
+                // ))
+                // .unwrap();
             }
         }
+
+        for (i, t) in xmap.trigger_header.triggers.iter().enumerate() {
+            let trig = &t.trigger;
+            let (ttype, tsubtype) = {
+                let t = &xmap.trigger_header.trigger_types[trig.type_index as usize];
+
+                (t.trig_type, t.trig_subtype)
+            };
+
+            // FIXME: This requires triggers to be sorted. This is the case in official EDB files but it is not a requirement
+            let trigdata_size = {
+                if (i + 1) == xmap.trigger_header.triggers.len() {
+                    32
+                } else {
+                    let current_addr = trig.offset_absolute();
+                    let next_addr = xmap.trigger_header.triggers.data()[i + 1]
+                        .trigger
+                        .offset_absolute();
+
+                    ((next_addr - current_addr - 0x30) / 4) as usize
+                }
+            };
+
+            let (data, links, extra_data) =
+                parse_trigger_data(header.version, trig.trig_flags, &trig.data[..trigdata_size]);
+            let trigger = ProcessedTrigger {
+                link_ref: t.link_ref,
+                ttype,
+                tsubtype: if tsubtype != 0 && tsubtype != 0x42000001 {
+                    Some(tsubtype)
+                } else {
+                    None
+                },
+                debug: trig.debug,
+                game_flags: trig.game_flags,
+                trig_flags: trig.trig_flags,
+                position: trig.position.into(),
+                rotation: trig.rotation.into(),
+                scale: trig.scale.into(),
+                raw_data: trig.data[..trigdata_size].to_vec(),
+                extra_data,
+                data,
+                links,
+                incoming_links: vec![],
+            };
+
+            map.triggers.push(trigger);
+        }
+
+        for i in 0..map.triggers.len() {
+            for ei in 0..map.triggers.len() {
+                if i == ei {
+                    continue;
+                }
+
+                if map.triggers[ei]
+                    .links
+                    .iter()
+                    .find(|v| **v == i as i32)
+                    .is_some()
+                {
+                    map.triggers[i].incoming_links.push(ei as i32);
+                }
+            }
+        }
+
+        maps.push(map);
     }
 
-    map
+    maps
 }

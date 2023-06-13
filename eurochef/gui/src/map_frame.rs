@@ -31,7 +31,7 @@ use crate::{
 pub struct MapFrame {
     gl: Arc<glow::Context>,
     pub textures: Vec<RenderableTexture>,
-    pub ref_renderers: Vec<Arc<Mutex<EntityRenderer>>>,
+    pub ref_renderers: Vec<(u32, Arc<Mutex<EntityRenderer>>)>,
     pub placement_renderers: Vec<(u32, EXGeoBaseEntity, Arc<Mutex<EntityRenderer>>)>,
     billboard_renderer: Arc<BillboardRenderer>,
     trigger_texture: glow::Texture,
@@ -49,6 +49,8 @@ pub struct MapFrame {
     show_triggers: bool,
     // ray_debug: Option<RayDebug>,
     pickbuffer: PickBuffer,
+
+    selected_map: usize,
 }
 
 const DEFAULT_ICON_DATA: &[u8] = include_bytes!("../../../assets/icons/triggers/default.png");
@@ -56,7 +58,7 @@ const DEFAULT_ICON_DATA: &[u8] = include_bytes!("../../../assets/icons/triggers/
 impl MapFrame {
     pub fn new(
         gl: Arc<glow::Context>,
-        meshes: &[&ProcessedEntityMesh],
+        meshes: &[(u32, &ProcessedEntityMesh)],
         textures: &[RenderableTexture],
         entities: &Vec<IdentifiableResult<(EXGeoEntity, ProcessedEntityMesh)>>,
         platform: Platform,
@@ -98,13 +100,14 @@ impl MapFrame {
             selected_trigger: None,
             pickbuffer: PickBuffer::new(&gl),
             gl: gl.clone(),
+            selected_map: 0,
         };
 
         unsafe {
-            for m in meshes {
+            for (i, m) in meshes {
                 let r = Arc::new(Mutex::new(EntityRenderer::new(&gl, platform)));
                 r.lock().unwrap().load_mesh(&gl, m);
-                s.ref_renderers.push(r);
+                s.ref_renderers.push((*i, r));
             }
 
             for (i, (e, m)) in entities
@@ -133,8 +136,23 @@ impl MapFrame {
         s
     }
 
-    pub fn show(&mut self, ui: &mut egui::Ui, map: &ProcessedMap) {
+    pub fn show(&mut self, ui: &mut egui::Ui, maps: &[ProcessedMap]) {
         ui.horizontal(|ui| {
+            egui::ComboBox::from_label("Map")
+                .selected_text({
+                    let map = &maps[self.selected_map];
+                    format!("{:x} ({} zones)", map.hashcode, map.mapzone_entities.len())
+                })
+                .show_ui(ui, |ui| {
+                    for (i, m) in maps.iter().enumerate() {
+                        ui.selectable_value(
+                            &mut self.selected_map,
+                            i,
+                            format!("{:x} ({} zones)", m.hashcode, m.mapzone_entities.len()),
+                        );
+                    }
+                });
+
             self.viewer.lock().unwrap().show_toolbar(ui);
 
             ui.label("  |  ");
@@ -174,6 +192,7 @@ impl MapFrame {
                 for r in self
                     .ref_renderers
                     .iter()
+                    .map(|(_, v)| v)
                     .chain(self.placement_renderers.iter().map(|r| &r.2))
                 {
                     r.lock().unwrap().vertex_lighting = self.vertex_lighting;
@@ -182,6 +201,7 @@ impl MapFrame {
 
             ui.checkbox(&mut self.show_triggers, "Show Triggers")
         });
+        let mut map = &maps[self.selected_map];
 
         egui::Frame::canvas(ui.style()).show(ui, |ui| self.show_canvas(ui, map));
 
@@ -297,7 +317,7 @@ impl MapFrame {
             }
 
             // Render base (ref) entities
-            for r in &renderers {
+            for (_, r) in renderers.iter().filter(|(i, _)| *i == map.hashcode) {
                 let renderer_lock = r.lock().unwrap();
                 renderer_lock.draw_opaque(
                     painter.gl(),
@@ -341,7 +361,7 @@ impl MapFrame {
 
             painter.gl().depth_mask(false);
 
-            for r in &renderers {
+            for (_, r) in renderers.iter().filter(|(i, _)| *i == map.hashcode) {
                 let renderer_lock = r.lock().unwrap();
                 renderer_lock.draw_transparent(
                     painter.gl(),
