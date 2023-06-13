@@ -69,17 +69,15 @@ impl BaseViewer {
             CameraType::Orbit => &mut self.camera_orbit,
         };
 
-        ui.horizontal(|ui| {
-            if self.selected_camera == CameraType::Fly {
-                ui.strong("Speed:");
-            } else {
-                ui.strong("Zoom:");
-            }
-            ui.label(format!("{:.2}", camera.zoom()));
-        });
+        if self.selected_camera == CameraType::Fly {
+            ui.strong("Speed:");
+        } else {
+            ui.strong("Zoom:");
+        }
+        ui.label(format!("{:.2}", camera.zoom()));
     }
 
-    pub fn update(&mut self, ui: &mut egui::Ui, response: egui::Response) {
+    pub fn update(&mut self, ui: &mut egui::Ui, response: &egui::Response) {
         if ui.input(|i| i.key_pressed(egui::Key::F)) {
             self.selected_camera = match self.selected_camera {
                 CameraType::Orbit => CameraType::Fly,

@@ -2,7 +2,12 @@ use anyhow::Result;
 use glam::{Mat4, Vec3};
 use glow::HasContext;
 
-use super::{blend::set_blending_mode, gl_helper, RenderUniforms};
+use super::{
+    blend::set_blending_mode,
+    gl_helper,
+    pickbuffer::{PickBuffer, PickBufferType},
+    RenderUniforms,
+};
 
 pub struct BillboardRenderer {
     quad: glow::VertexArray,
@@ -101,5 +106,24 @@ impl BillboardRenderer {
             gl.bind_vertex_array(Some(self.quad));
             gl.draw_arrays(glow::TRIANGLE_STRIP, 0, 4);
         }
+    }
+
+    pub fn render_pickbuffer(
+        &self,
+        gl: &glow::Context,
+        uniforms: &RenderUniforms,
+        pos: Vec3,
+        scale: f32,
+        id: (PickBufferType, u32),
+        pb: &PickBuffer,
+    ) {
+        let model = Mat4::from_translation(pos)
+            * Mat4::from_quat(-uniforms.camera_rotation)
+            * Mat4::from_scale(Vec3::splat(scale));
+
+        pb.draw(uniforms, gl, model, id, |gl| unsafe {
+            gl.bind_vertex_array(Some(self.quad));
+            gl.draw_arrays(glow::TRIANGLE_STRIP, 0, 4);
+        });
     }
 }

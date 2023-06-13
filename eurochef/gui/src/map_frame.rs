@@ -3,6 +3,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+use egui::{emath, Pos2, Rect, Vec2};
 use eurochef_edb::{
     entity::{EXGeoBaseEntity, EXGeoEntity},
     versions::Platform,
@@ -20,19 +21,22 @@ use crate::{
         camera::Camera3D,
         entity::EntityRenderer,
         gl_helper,
-        trigger::LinkLineRenderer,
+        pickbuffer::{PickBuffer, PickBufferType},
+        trigger::{LinkLineRenderer, SelectCubeRenderer},
         viewer::{BaseViewer, CameraType},
     },
 };
 
 pub struct MapFrame {
+    gl: Arc<glow::Context>,
     pub textures: Vec<RenderableTexture>,
     pub ref_renderers: Vec<Arc<Mutex<EntityRenderer>>>,
     pub placement_renderers: Vec<(u32, EXGeoBaseEntity, Arc<Mutex<EntityRenderer>>)>,
     billboard_renderer: Arc<BillboardRenderer>,
     trigger_texture: glow::Texture,
     link_renderer: Arc<LinkLineRenderer>,
-    selected_trigger: usize,
+    selected_trigger: Option<usize>,
+    select_renderer: Arc<SelectCubeRenderer>,
 
     pub viewer: Arc<Mutex<BaseViewer>>,
     sky_ent: String,
@@ -41,13 +45,15 @@ pub struct MapFrame {
     textfield_focused: bool,
 
     vertex_lighting: bool,
+    // ray_debug: Option<RayDebug>,
+    pickbuffer: PickBuffer,
 }
 
 const DEFAULT_ICON_DATA: &[u8] = include_bytes!("../../../assets/icons/triggers/default.png");
 
 impl MapFrame {
     pub fn new(
-        gl: &glow::Context,
+        gl: Arc<glow::Context>,
         meshes: &[&ProcessedEntityMesh],
         textures: &[RenderableTexture],
         entities: &Vec<IdentifiableResult<(EXGeoEntity, ProcessedEntityMesh)>>,
@@ -69,15 +75,16 @@ impl MapFrame {
             textures: textures.to_vec(),
             ref_renderers: vec![],
             placement_renderers: vec![],
-            viewer: Arc::new(Mutex::new(BaseViewer::new(gl))),
+            viewer: Arc::new(Mutex::new(BaseViewer::new(&gl))),
             sky_ent: String::new(),
             textfield_focused: false,
             vertex_lighting: true,
-            billboard_renderer: Arc::new(BillboardRenderer::new(gl).unwrap()),
-            link_renderer: Arc::new(LinkLineRenderer::new(gl).unwrap()),
+            billboard_renderer: Arc::new(BillboardRenderer::new(&gl).unwrap()),
+            link_renderer: Arc::new(LinkLineRenderer::new(&gl).unwrap()),
+            select_renderer: Arc::new(SelectCubeRenderer::new(&gl).unwrap()),
             trigger_texture: unsafe {
                 gl_helper::load_texture(
-                    gl,
+                    &gl,
                     default_icon_info.width as i32,
                     default_icon_info.height as i32,
                     &default_icon_data,
@@ -85,13 +92,15 @@ impl MapFrame {
                     0,
                 )
             },
-            selected_trigger: 0,
+            selected_trigger: None,
+            pickbuffer: PickBuffer::new(&gl),
+            gl: gl.clone(),
         };
 
         unsafe {
             for m in meshes {
-                let r = Arc::new(Mutex::new(EntityRenderer::new(gl, platform)));
-                r.lock().unwrap().load_mesh(gl, m);
+                let r = Arc::new(Mutex::new(EntityRenderer::new(&gl, platform)));
+                r.lock().unwrap().load_mesh(&gl, m);
                 s.ref_renderers.push(r);
             }
 
@@ -107,8 +116,8 @@ impl MapFrame {
                     _ => continue,
                 };
 
-                let r = Arc::new(Mutex::new(EntityRenderer::new(gl, platform)));
-                r.lock().unwrap().load_mesh(gl, m);
+                let r = Arc::new(Mutex::new(EntityRenderer::new(&gl, platform)));
+                r.lock().unwrap().load_mesh(&gl, m);
 
                 let base = e.base().unwrap().clone();
                 s.placement_renderers.push((i, base, r));
@@ -167,18 +176,17 @@ impl MapFrame {
                     r.lock().unwrap().vertex_lighting = self.vertex_lighting;
                 }
             }
-
-            ui.add(
-                egui::DragValue::new(&mut self.selected_trigger)
-                    .speed(0.5)
-                    .clamp_range(0..=(map.triggers.len() - 1)),
-            );
-            ui.label("Selected trigger");
         });
 
         egui::Frame::canvas(ui.style()).show(ui, |ui| self.show_canvas(ui, map));
 
-        self.viewer.lock().unwrap().show_statusbar(ui);
+        ui.horizontal(|ui| {
+            self.viewer.lock().unwrap().show_statusbar(ui);
+            if let Some(trig_id) = self.selected_trigger {
+                ui.strong("Selected trigger:");
+                ui.label(format!("{}", trig_id));
+            }
+        });
     }
 
     fn show_canvas(&mut self, ui: &mut egui::Ui, map: &ProcessedMap) {
@@ -187,13 +195,52 @@ impl MapFrame {
             egui::Sense::click_and_drag(),
         );
 
+        if response.clicked() {
+            if let Some(pointer_pos) = response.interact_pointer_pos() {
+                self.render_pickbuffer(rect.size(), map);
+                let to_screen = emath::RectTransform::from_to(
+                    Rect::from_min_size(Pos2::ZERO, rect.size()),
+                    response.rect,
+                );
+                let from_screen = to_screen.inverse();
+
+                let viewport_pos = from_screen * pointer_pos;
+                let viewport_pos = egui::pos2(viewport_pos.x, rect.height() - viewport_pos.y);
+                let mut pixel = [0u8; 4];
+                unsafe {
+                    self.gl
+                        .bind_framebuffer(glow::FRAMEBUFFER, self.pickbuffer.framebuffer);
+                    self.gl.read_pixels(
+                        viewport_pos.x as i32,
+                        viewport_pos.y as i32,
+                        1,
+                        1,
+                        glow::RGB,
+                        glow::UNSIGNED_BYTE,
+                        glow::PixelPackData::Slice(&mut pixel),
+                    );
+                    self.gl.bind_framebuffer(glow::FRAMEBUFFER, None);
+                }
+
+                let id = u32::from_le_bytes(pixel);
+                let ty = (id >> 20) & 0x0f;
+                let id = id & 0x0fffff;
+
+                if ty == 1 {
+                    self.selected_trigger = Some(id as usize);
+                } else {
+                    self.selected_trigger = None;
+                }
+            }
+        }
+
         let time: f64 = ui.input(|t| t.time);
 
         let viewer = self.viewer.clone();
         let (camera_pos, camera_rot) = {
             let mut v = viewer.lock().unwrap();
             if !self.textfield_focused {
-                v.update(ui, response);
+                v.update(ui, &response);
             }
 
             let camera: &mut dyn Camera3D = match v.selected_camera {
@@ -214,6 +261,7 @@ impl MapFrame {
         let billboard_renderer = self.billboard_renderer.clone();
         let link_renderer = self.link_renderer.clone();
         let selected_trigger = self.selected_trigger;
+        let select_renderer = self.select_renderer.clone();
 
         let placement_renderers = self.placement_renderers.clone();
         let renderers = self.ref_renderers.clone();
@@ -330,7 +378,9 @@ impl MapFrame {
                 }
             }
 
-            if let Some(trig) = map.triggers.get(selected_trigger) {
+            painter.gl().depth_mask(true);
+
+            if let Some(Some(trig)) = selected_trigger.map(|v| map.triggers.get(v)) {
                 for l in &trig.links {
                     if *l != -1 {
                         if *l >= map.triggers.len() as i32 {
@@ -366,9 +416,17 @@ impl MapFrame {
                         );
                     }
                 }
+
+                select_renderer.render(
+                    painter.gl(),
+                    &viewer.lock().unwrap().uniforms,
+                    trig.position,
+                    // TODO(cohae): This scaling is too small for spyro
+                    0.25,
+                );
             }
 
-            for t in &map.triggers {
+            for t in map.triggers.iter() {
                 billboard_renderer.render(
                     painter.gl(),
                     &viewer.lock().unwrap().uniforms,
@@ -385,5 +443,21 @@ impl MapFrame {
             callback: Arc::new(cb),
         };
         ui.painter().add(callback);
+    }
+
+    fn render_pickbuffer(&mut self, res: Vec2, map: &ProcessedMap) {
+        self.pickbuffer
+            .init_draw(&self.gl, glam::ivec2(res.x as i32, res.y as i32));
+        for (i, t) in map.triggers.iter().enumerate() {
+            self.billboard_renderer.render_pickbuffer(
+                &self.gl,
+                &self.viewer.lock().unwrap().uniforms,
+                t.position,
+                // TODO(cohae): This scaling is too small for spyro
+                0.25,
+                (PickBufferType::Trigger, i as u32),
+                &self.pickbuffer,
+            );
+        }
     }
 }

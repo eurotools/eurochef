@@ -1,7 +1,7 @@
 use glam::{Mat4, Quat, Vec2, Vec3, Vec4, Vec4Swizzles};
 
 pub trait Camera3D: Sync + Send {
-    fn update(&mut self, ui: &egui::Ui, response: Option<egui::Response>, delta: f32);
+    fn update(&mut self, ui: &egui::Ui, response: Option<&egui::Response>, delta: f32);
 
     /// Calculate the view matrix
     fn calculate_matrix(&mut self) -> Mat4;
@@ -70,7 +70,7 @@ impl Default for ArcBallCamera {
 }
 
 impl Camera3D for ArcBallCamera {
-    fn update(&mut self, ui: &egui::Ui, response: Option<egui::Response>, _delta: f32) {
+    fn update(&mut self, ui: &egui::Ui, response: Option<&egui::Response>, _delta: f32) {
         self.zoom += -ui.input(|i| i.scroll_delta).y * 0.005;
         if let Some(multi_touch) = ui.ctx().multi_touch() {
             self.zoom += -(multi_touch.zoom_delta - 1.0);
@@ -202,7 +202,7 @@ impl FpsCamera {
 }
 
 impl Camera3D for FpsCamera {
-    fn update(&mut self, ui: &egui::Ui, response: Option<egui::Response>, delta: f32) {
+    fn update(&mut self, ui: &egui::Ui, response: Option<&egui::Response>, delta: f32) {
         let scroll = ui.input(|i| i.scroll_delta);
         self.speed_mul = (self.speed_mul + scroll.y * 0.005).clamp(0.0, 5.0);
 

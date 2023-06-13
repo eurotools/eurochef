@@ -88,7 +88,7 @@ impl EntityFrame {
         let time = ui.input(|t| t.time);
 
         let viewer = self.viewer.clone();
-        viewer.lock().unwrap().update(ui, response);
+        viewer.lock().unwrap().update(ui, &response);
 
         // TODO(cohae): How do we get out of this situation
         let textures = self.textures.clone(); // FIXME: UUUUGH.

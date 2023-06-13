@@ -76,7 +76,14 @@ impl MapViewerPanel {
     ) -> Self {
         let textures = EntityListPanel::load_textures(&gl, textures);
         MapViewerPanel {
-            frame: Self::load_map_meshes(&gl, &map, &ref_entities, &entities, &textures, platform),
+            frame: Self::load_map_meshes(
+                gl.clone(),
+                &map,
+                &ref_entities,
+                &entities,
+                &textures,
+                platform,
+            ),
             _textures: textures,
             _gl: gl,
             map,
@@ -86,7 +93,7 @@ impl MapViewerPanel {
     }
 
     fn load_map_meshes(
-        gl: &glow::Context,
+        gl: Arc<glow::Context>,
         map: &ProcessedMap,
         ref_entities: &Vec<IdentifiableResult<(EXGeoEntity, ProcessedEntityMesh)>>,
         entities: &Vec<IdentifiableResult<(EXGeoEntity, ProcessedEntityMesh)>>,
