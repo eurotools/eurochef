@@ -296,6 +296,11 @@ impl EntityRenderer {
                 return;
             }
 
+            // Null texture
+            if tex.hashcode == 0x06000000 {
+                return;
+            }
+
             let frametime_scale = tex.frame_count as f32 / tex.frames.len() as f32;
             let frame_time = (1. / tex.framerate as f32) * frametime_scale;
 

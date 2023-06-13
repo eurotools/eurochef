@@ -120,8 +120,8 @@ impl EntityListPanel {
     ) -> Vec<RenderableTexture> {
         textures
             .iter()
-            .map(|t| unsafe {
-                if let Ok(t) = &t.data {
+            .map(|it| unsafe {
+                if let Ok(t) = &it.data {
                     let mut frames = vec![];
 
                     for d in &t.frames {
@@ -143,6 +143,7 @@ impl EntityListPanel {
                         flags: t.flags,
                         // EngineX(T) calculates these as step per frame by dividing each axis by 30000. We're calculating this with seconds instead of frames
                         scroll: Vec2::new(t.scroll[0] as f32 / 500.0, t.scroll[1] as f32 / 500.0),
+                        hashcode: it.hashcode,
                     }
                 } else {
                     let handle = gl_helper::load_texture(
@@ -162,6 +163,7 @@ impl EntityListPanel {
                         frame_count: 0,
                         flags: 0,
                         scroll: Vec2::ZERO,
+                        hashcode: it.hashcode,
                     }
                 }
             })

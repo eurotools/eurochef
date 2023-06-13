@@ -18,6 +18,7 @@ use crate::{
     maps::ProcessedMap,
     render::{
         billboard::BillboardRenderer,
+        blend::{set_blending_mode, BlendMode},
         camera::Camera3D,
         entity::EntityRenderer,
         gl_helper,
@@ -45,6 +46,7 @@ pub struct MapFrame {
     textfield_focused: bool,
 
     vertex_lighting: bool,
+    show_triggers: bool,
     // ray_debug: Option<RayDebug>,
     pickbuffer: PickBuffer,
 }
@@ -79,6 +81,7 @@ impl MapFrame {
             sky_ent: String::new(),
             textfield_focused: false,
             vertex_lighting: true,
+            show_triggers: true,
             billboard_renderer: Arc::new(BillboardRenderer::new(&gl).unwrap()),
             link_renderer: Arc::new(LinkLineRenderer::new(&gl).unwrap()),
             select_renderer: Arc::new(SelectCubeRenderer::new(&gl).unwrap()),
@@ -176,6 +179,8 @@ impl MapFrame {
                     r.lock().unwrap().vertex_lighting = self.vertex_lighting;
                 }
             }
+
+            ui.checkbox(&mut self.show_triggers, "Show Triggers")
         });
 
         egui::Frame::canvas(ui.style()).show(ui, |ui| self.show_canvas(ui, map));
@@ -195,7 +200,7 @@ impl MapFrame {
             egui::Sense::click_and_drag(),
         );
 
-        if response.clicked() {
+        if response.clicked() && self.show_triggers {
             if let Some(pointer_pos) = response.interact_pointer_pos() {
                 self.render_pickbuffer(rect.size(), map);
                 let to_screen = emath::RectTransform::from_to(
@@ -262,6 +267,7 @@ impl MapFrame {
         let link_renderer = self.link_renderer.clone();
         let selected_trigger = self.selected_trigger;
         let select_renderer = self.select_renderer.clone();
+        let show_triggers = self.show_triggers;
 
         let placement_renderers = self.placement_renderers.clone();
         let renderers = self.ref_renderers.clone();
@@ -378,63 +384,65 @@ impl MapFrame {
                 }
             }
 
-            painter.gl().depth_mask(true);
+            if show_triggers {
+                painter.gl().depth_mask(true);
+                if let Some(Some(trig)) = selected_trigger.map(|v| map.triggers.get(v)) {
+                    for l in &trig.links {
+                        if *l != -1 {
+                            if *l >= map.triggers.len() as i32 {
+                                warn!("Trigger doesnt exist! ({l})");
+                                continue;
+                            }
 
-            if let Some(Some(trig)) = selected_trigger.map(|v| map.triggers.get(v)) {
-                for l in &trig.links {
-                    if *l != -1 {
-                        if *l >= map.triggers.len() as i32 {
-                            warn!("Trigger doesnt exist! ({l})");
-                            continue;
+                            let end = map.triggers[*l as usize].position;
+                            link_renderer.render(
+                                painter.gl(),
+                                &viewer.lock().unwrap().uniforms,
+                                trig.position,
+                                end,
+                                Vec3::new(0.913, 0.547, 0.125),
+                            );
                         }
-
-                        let end = map.triggers[*l as usize].position;
-                        link_renderer.render(
-                            painter.gl(),
-                            &viewer.lock().unwrap().uniforms,
-                            trig.position,
-                            end,
-                            Vec3::new(0.913, 0.547, 0.125),
-                        );
                     }
+
+                    for l in &trig.incoming_links {
+                        if *l != -1 {
+                            if *l >= map.triggers.len() as i32 {
+                                warn!("Trigger doesnt exist! ({l})");
+                                continue;
+                            }
+
+                            let end = map.triggers[*l as usize].position;
+                            link_renderer.render(
+                                painter.gl(),
+                                &viewer.lock().unwrap().uniforms,
+                                end,
+                                trig.position,
+                                Vec3::new(0.169, 0.554, 0.953),
+                            );
+                        }
+                    }
+
+                    select_renderer.render(
+                        painter.gl(),
+                        &viewer.lock().unwrap().uniforms,
+                        trig.position,
+                        // TODO(cohae): This scaling is too small for spyro
+                        0.25,
+                    );
                 }
 
-                for l in &trig.incoming_links {
-                    if *l != -1 {
-                        if *l >= map.triggers.len() as i32 {
-                            warn!("Trigger doesnt exist! ({l})");
-                            continue;
-                        }
-
-                        let end = map.triggers[*l as usize].position;
-                        link_renderer.render(
-                            painter.gl(),
-                            &viewer.lock().unwrap().uniforms,
-                            end,
-                            trig.position,
-                            Vec3::new(0.169, 0.554, 0.953),
-                        );
-                    }
+                for t in map.triggers.iter() {
+                    billboard_renderer.render(
+                        painter.gl(),
+                        &viewer.lock().unwrap().uniforms,
+                        trigger_texture,
+                        t.position,
+                        // TODO(cohae): This scaling is too small for spyro
+                        0.25,
+                    );
                 }
-
-                select_renderer.render(
-                    painter.gl(),
-                    &viewer.lock().unwrap().uniforms,
-                    trig.position,
-                    // TODO(cohae): This scaling is too small for spyro
-                    0.25,
-                );
-            }
-
-            for t in map.triggers.iter() {
-                billboard_renderer.render(
-                    painter.gl(),
-                    &viewer.lock().unwrap().uniforms,
-                    trigger_texture,
-                    t.position,
-                    // TODO(cohae): This scaling is too small for spyro
-                    0.25,
-                );
+                set_blending_mode(painter.gl(), BlendMode::None);
             }
         });
 

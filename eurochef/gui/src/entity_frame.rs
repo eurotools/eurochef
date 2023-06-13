@@ -26,6 +26,7 @@ pub struct RenderableTexture {
     pub frame_count: usize,
     pub flags: u32,
     pub scroll: Vec2,
+    pub hashcode: u32,
 }
 
 impl EntityFrame {
