@@ -38,6 +38,7 @@ pub struct MapFrame {
     trigger_texture: glow::Texture,
     link_renderer: Arc<LinkLineRenderer>,
     selected_trigger: Option<usize>,
+    selected_link: Option<i32>,
     select_renderer: Arc<SelectCubeRenderer>,
 
     pub viewer: Arc<Mutex<BaseViewer>>,
@@ -106,6 +107,7 @@ impl MapFrame {
             selected_map: 0,
             trigger_scale: 0.25,
             trigger_focus_tween: None,
+            selected_link: None,
         };
 
         unsafe {
@@ -142,6 +144,7 @@ impl MapFrame {
     }
 
     pub fn show(&mut self, ui: &mut egui::Ui, context: &egui::Context, maps: &[ProcessedMap]) {
+        self.selected_link = None;
         ui.horizontal(|ui| {
             egui::ComboBox::from_label("Map")
                 .selected_text({
@@ -315,6 +318,7 @@ impl MapFrame {
         let select_renderer = self.select_renderer.clone();
         let show_triggers = self.show_triggers;
         let trigger_scale = self.trigger_scale;
+        let hovered_link = self.selected_link;
 
         let placement_renderers = self.placement_renderers.clone();
         let renderers = self.ref_renderers.clone();
@@ -447,7 +451,11 @@ impl MapFrame {
                                 &viewer.lock().unwrap().uniforms,
                                 trig.position,
                                 end,
-                                Vec3::new(0.913, 0.547, 0.125),
+                                if hovered_link.map(|v| v == *l).unwrap_or_default() {
+                                    Vec3::ONE
+                                } else {
+                                    Vec3::new(0.913, 0.547, 0.125)
+                                },
                                 trigger_scale,
                             );
                         }
@@ -466,7 +474,11 @@ impl MapFrame {
                                 &viewer.lock().unwrap().uniforms,
                                 end,
                                 trig.position,
-                                Vec3::new(0.169, 0.554, 0.953),
+                                if hovered_link.map(|v| v == *l).unwrap_or_default() {
+                                    Vec3::ONE
+                                } else {
+                                    Vec3::new(0.169, 0.554, 0.953)
+                                },
                                 trigger_scale,
                             );
                         }
@@ -590,7 +602,7 @@ impl MapFrame {
                                     trig.links.iter().enumerate().filter(|(_, v)| **v != -1)
                                 {
                                     let ltrig = &map.triggers[*l as usize];
-                                    ui.horizontal(|ui| {
+                                    let resp = ui.horizontal(|ui| {
                                         readonly_input!(
                                             ui,
                                             format!("#{i} "),
@@ -601,6 +613,10 @@ impl MapFrame {
                                             self.go_to_trigger(*l as usize, ltrig)
                                         }
                                     });
+
+                                    if resp.response.hovered() {
+                                        self.selected_link = Some(*l);
+                                    }
                                 }
                             }
 
@@ -613,7 +629,7 @@ impl MapFrame {
 
                                 for l in trig.incoming_links.iter() {
                                     let ltrig = &map.triggers[*l as usize];
-                                    ui.horizontal(|ui| {
+                                    let resp = ui.horizontal(|ui| {
                                         readonly_input!(
                                             ui,
                                             format!("{} (type 0x{:x})", l, ltrig.ttype)
@@ -623,6 +639,10 @@ impl MapFrame {
                                             self.go_to_trigger(*l as usize, ltrig)
                                         }
                                     });
+
+                                    if resp.response.hovered() {
+                                        self.selected_link = Some(*l);
+                                    }
                                 }
                             }
                         }
