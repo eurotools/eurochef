@@ -15,6 +15,10 @@ pub trait Camera3D: Sync + Send {
     fn rotation(&self) -> Quat;
 
     fn focus_on_point(&mut self, point: Vec3, dist_scale: f32);
+
+    fn focus_offset(&mut self, _dist_scale: f32) -> Vec3 {
+        Vec3::ZERO
+    }
 }
 
 fn zoom_factor(zoom_level: f32) -> f32 {
@@ -277,6 +281,10 @@ impl Camera3D for FpsCamera {
     fn focus_on_point(&mut self, point: Vec3, dist_scale: f32) {
         self.position = point;
         self.position.x = -self.position.x;
-        self.position -= self.front * (1.5 * dist_scale)
+        self.position -= self.front * (2.5 * dist_scale)
+    }
+
+    fn focus_offset(&mut self, dist_scale: f32) -> Vec3 {
+        self.front * (2.5 * dist_scale)
     }
 }

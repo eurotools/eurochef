@@ -24,6 +24,7 @@ use crate::{
         gl_helper,
         pickbuffer::{PickBuffer, PickBufferType},
         trigger::{LinkLineRenderer, SelectCubeRenderer},
+        tweeny::{self, Tweeny3D},
         viewer::{BaseViewer, CameraType},
     },
 };
@@ -52,6 +53,7 @@ pub struct MapFrame {
 
     selected_map: usize,
     trigger_scale: f32,
+    trigger_focus_tween: Option<Tweeny3D>,
 }
 
 const DEFAULT_ICON_DATA: &[u8] = include_bytes!("../../../assets/icons/triggers/default.png");
@@ -103,6 +105,7 @@ impl MapFrame {
             gl: gl.clone(),
             selected_map: 0,
             trigger_scale: 0.25,
+            trigger_focus_tween: None,
         };
 
         unsafe {
@@ -285,7 +288,18 @@ impl MapFrame {
                 CameraType::Orbit => &mut v.camera_orbit,
             };
 
-            (camera.position(), camera.rotation())
+            let (cp, cr) = (camera.position(), camera.rotation());
+
+            if let Some(tween) = &mut self.trigger_focus_tween {
+                if tween.is_finished() {
+                    self.trigger_focus_tween = None;
+                } else {
+                    let p = tween.update();
+                    v.focus_on_point(p, self.trigger_scale);
+                }
+            }
+
+            (cp, cr)
         };
         // TODO(cohae): Why is this necessary?
         let camera_pos = Vec3::new(-camera_pos.x, camera_pos.y, camera_pos.z);
@@ -618,9 +632,20 @@ impl MapFrame {
 
     fn go_to_trigger(&mut self, index: usize, trig: &ProcessedTrigger) {
         self.selected_trigger = Some(index);
-        self.viewer
-            .lock()
-            .unwrap()
-            .focus_on_point(trig.position, self.trigger_scale * 4.);
+        let mut v = self.viewer.lock().unwrap();
+
+        let camera: &mut dyn Camera3D = match v.selected_camera {
+            CameraType::Fly => &mut v.camera_fly,
+            CameraType::Orbit => &mut v.camera_orbit,
+        };
+
+        let mut start_pos = camera.position();
+        start_pos.x = -start_pos.x;
+        self.trigger_focus_tween = Some(Tweeny3D::new(
+            tweeny::ease_out_exponential,
+            start_pos + camera.focus_offset(self.trigger_scale),
+            trig.position,
+            0.5,
+        ))
     }
 }

@@ -11,6 +11,7 @@ pub mod gl_helper;
 pub mod grid;
 pub mod pickbuffer;
 pub mod trigger;
+pub mod tweeny;
 pub mod viewer;
 
 #[derive(Default)]
