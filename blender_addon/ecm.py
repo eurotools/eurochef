@@ -302,7 +302,7 @@ class EcmLoader(bpy.types.Operator, ImportHelper):
                 obj['subtype'] = t['tsubtype']
 
             for di, d in enumerate(t['data']):
-                if d != 0:
+                if d is not None:
                     obj[f'data[0x{di:X}]'] = f"0x{d:X}"
 
             for li, l in enumerate(t['links']):

@@ -57,7 +57,7 @@ pub struct ProcessedTrigger {
     pub scale: Vec3,
 
     pub raw_data: Vec<u32>,
-    pub data: Vec<u32>,
+    pub data: Vec<Option<u32>>,
     pub links: Vec<i32>,
     pub extra_data: Vec<u32>,
 

@@ -567,9 +567,10 @@ impl MapFrame {
                             if !trig.data.is_empty() {
                                 ui.separator();
                                 ui.strong("Values");
-                                for (i, v) in trig.data.iter().enumerate().filter(|(_, v)| **v != 0)
-                                {
-                                    readonly_input!(ui, format!("#{i} "), format!("0x{:x}", v));
+                                for (i, v) in trig.data.iter().enumerate() {
+                                    if let Some(v) = v {
+                                        readonly_input!(ui, format!("#{i} "), format!("0x{:x}", v));
+                                    }
                                 }
                             }
 

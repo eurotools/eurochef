@@ -17,7 +17,7 @@ pub struct UXGeoTrigger {
     pub scale: [f32; 3],
 
     pub raw_data: Vec<u32>,
-    pub data: Vec<u32>,
+    pub data: Vec<Option<u32>>,
     pub links: Vec<i32>,
     pub extra_data: Vec<u32>,
 }
@@ -27,7 +27,7 @@ pub fn parse_trigger_data(
     _version: u32,
     trig_flags: u32,
     raw_data: &[u32],
-) -> (Vec<u32>, Vec<i32>, Vec<u32>) {
+) -> (Vec<Option<u32>>, Vec<i32>, Vec<u32>) {
     let mut data = vec![];
     let mut links = vec![];
 
@@ -37,10 +37,10 @@ pub fn parse_trigger_data(
     // TODO(cohae): Some older games use only 8 values instead of 16
     for _ in 0..16 {
         if (trig_flags & flag_accessor) != 0 {
-            data.push(raw_data[data_offset]);
+            data.push(Some(raw_data[data_offset]));
             data_offset += 1;
         } else {
-            data.push(0);
+            data.push(None);
         }
 
         flag_accessor <<= 1;
