@@ -37,6 +37,7 @@ impl LinkLineRenderer {
         start: Vec3,
         end: Vec3,
         color: Vec3,
+        scale: f32,
     ) {
         set_blending_mode(gl, BlendMode::None);
         unsafe {
@@ -62,6 +63,11 @@ impl LinkLineRenderer {
             gl.uniform_1_f32(
                 gl.get_uniform_location(self.shader, "u_time").as_ref(),
                 uniforms.time,
+            );
+
+            gl.uniform_1_f32(
+                gl.get_uniform_location(self.shader, "u_scale").as_ref(),
+                scale,
             );
 
             gl.uniform_3_f32_slice(

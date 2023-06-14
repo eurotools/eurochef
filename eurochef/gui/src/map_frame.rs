@@ -51,6 +51,7 @@ pub struct MapFrame {
     pickbuffer: PickBuffer,
 
     selected_map: usize,
+    trigger_scale: f32,
 }
 
 const DEFAULT_ICON_DATA: &[u8] = include_bytes!("../../../assets/icons/triggers/default.png");
@@ -101,6 +102,7 @@ impl MapFrame {
             pickbuffer: PickBuffer::new(&gl),
             gl: gl.clone(),
             selected_map: 0,
+            trigger_scale: 0.25,
         };
 
         unsafe {
@@ -199,9 +201,17 @@ impl MapFrame {
                 }
             }
 
-            ui.checkbox(&mut self.show_triggers, "Show Triggers")
+            ui.checkbox(&mut self.show_triggers, "Show Triggers");
+
+            ui.add(
+                egui::DragValue::new(&mut self.trigger_scale)
+                    .clamp_range(0.25..=2.0)
+                    .max_decimals(2)
+                    .speed(0.05),
+            );
+            ui.label("Trigger scale");
         });
-        let mut map = &maps[self.selected_map];
+        let map = &maps[self.selected_map];
 
         egui::Frame::canvas(ui.style()).show(ui, |ui| self.show_canvas(ui, map));
 
@@ -288,6 +298,7 @@ impl MapFrame {
         let selected_trigger = self.selected_trigger;
         let select_renderer = self.select_renderer.clone();
         let show_triggers = self.show_triggers;
+        let trigger_scale = self.trigger_scale;
 
         let placement_renderers = self.placement_renderers.clone();
         let renderers = self.ref_renderers.clone();
@@ -421,6 +432,7 @@ impl MapFrame {
                                 trig.position,
                                 end,
                                 Vec3::new(0.913, 0.547, 0.125),
+                                trigger_scale,
                             );
                         }
                     }
@@ -439,6 +451,7 @@ impl MapFrame {
                                 end,
                                 trig.position,
                                 Vec3::new(0.169, 0.554, 0.953),
+                                trigger_scale,
                             );
                         }
                     }
@@ -448,7 +461,7 @@ impl MapFrame {
                         &viewer.lock().unwrap().uniforms,
                         trig.position,
                         // TODO(cohae): This scaling is too small for spyro
-                        0.25,
+                        trigger_scale,
                     );
                 }
 
@@ -459,7 +472,7 @@ impl MapFrame {
                         trigger_texture,
                         t.position,
                         // TODO(cohae): This scaling is too small for spyro
-                        0.25,
+                        trigger_scale,
                     );
                 }
                 set_blending_mode(painter.gl(), BlendMode::None);
@@ -482,7 +495,7 @@ impl MapFrame {
                 &self.viewer.lock().unwrap().uniforms,
                 t.position,
                 // TODO(cohae): This scaling is too small for spyro
-                0.25,
+                self.trigger_scale,
                 (PickBufferType::Trigger, i as u32),
                 &self.pickbuffer,
             );

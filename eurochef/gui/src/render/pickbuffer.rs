@@ -1,6 +1,6 @@
 use std::mem::transmute;
 
-use glam::{IVec2, Mat4, Vec3};
+use glam::{IVec2, Mat4};
 use glow::HasContext;
 
 use super::{gl_helper, RenderUniforms};
