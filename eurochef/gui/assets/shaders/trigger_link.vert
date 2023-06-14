@@ -9,16 +9,11 @@ uniform mat4 u_view;
 
 void main()
 {
-    vec3 start = u_start;
-    start.x = -start.x;
-    vec3 end = u_end;
-    end.x = -end.x;
-
     o_pos = float(gl_VertexID);
-    o_length = distance(start, end);
+    o_length = distance(u_start, u_end);
     
     if(gl_VertexID == 0)
-        gl_Position = u_view * vec4(start, 1.0);
+        gl_Position = u_view * vec4(u_start, 1.0);
     else
-        gl_Position = u_view * vec4(end, 1.0);
+        gl_Position = u_view * vec4(u_end, 1.0);
 }

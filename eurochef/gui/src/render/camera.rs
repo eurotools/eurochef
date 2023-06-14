@@ -85,8 +85,9 @@ impl Camera3D for ArcBallCamera {
                 if response.dragged_by(egui::PointerButton::Primary)
                     || response.dragged_by(egui::PointerButton::Middle)
                 {
+                    let mouse_delta = response.drag_delta();
                     self.orientation +=
-                        Vec2::new(response.drag_delta().x, response.drag_delta().y) * 0.10;
+                        Vec2::new(mouse_delta.y as f32 * 0.8, mouse_delta.x as f32) * 0.15;
                 }
             }
         }
@@ -94,7 +95,7 @@ impl Camera3D for ArcBallCamera {
         if let Some(response) = &response {
             if response.dragged_by(egui::PointerButton::Secondary) {
                 self.pivot += (-self.up() * response.drag_delta().y * 0.003) * self.zoom();
-                self.pivot += (-self.right() * response.drag_delta().x * 0.003) * self.zoom();
+                self.pivot += (self.right() * response.drag_delta().x * 0.003) * self.zoom();
             }
         }
 
@@ -105,42 +106,42 @@ impl Camera3D for ArcBallCamera {
 
         // Right view
         if ui.input(|i| i.key_pressed(egui::Key::Num3)) {
-            self.orientation = Vec2::new(180., 0.);
+            self.orientation = Vec2::new(90., 0.);
         }
 
         // Top view
         if ui.input(|i| i.key_pressed(egui::Key::Num7)) {
-            self.orientation = Vec2::new(0., 180.);
+            self.orientation = Vec2::new(0., 90.);
         }
 
         // Rotate right
         if ui.input(|i| i.key_pressed(egui::Key::Num6)) {
-            self.orientation.x -= 180. / 6.;
+            self.orientation.x -= 90. / 6.;
         }
 
         // Rotate left
         if ui.input(|i| i.key_pressed(egui::Key::Num4)) {
-            self.orientation.x += 180. / 6.;
+            self.orientation.x += 90. / 6.;
         }
 
         // Rotate up
         if ui.input(|i| i.key_pressed(egui::Key::Num8)) {
-            self.orientation.y += 180. / 6.;
+            self.orientation.y += 90. / 6.;
         }
 
         // Rotate down
         if ui.input(|i| i.key_pressed(egui::Key::Num2)) {
-            self.orientation.y -= 180. / 6.;
+            self.orientation.y -= 90. / 6.;
         }
 
         self.zoom = self.zoom.clamp(0.00, 250.0);
-        self.orientation.y = self.orientation.y.clamp(-90., 90.);
+        self.orientation.x = self.orientation.x.clamp(-90., 90.);
     }
 
     fn calculate_matrix(&mut self) -> Mat4 {
         let rotation = Mat4::from_quat(
-            glam::Quat::from_rotation_x(self.orientation.y.to_radians())
-                * glam::Quat::from_rotation_y(self.orientation.x.to_radians()),
+            glam::Quat::from_rotation_x(self.orientation.x.to_radians())
+                * glam::Quat::from_rotation_y(-self.orientation.y.to_radians()),
         );
 
         let translation = Mat4::from_translation(self.pivot);
@@ -161,8 +162,9 @@ impl Camera3D for ArcBallCamera {
     }
 
     fn rotation(&self) -> Quat {
+        // FIXME(cohae): This still isn't right, billboards are flipped horizontally
         glam::Quat::from_rotation_y(self.orientation.y.to_radians())
-            * glam::Quat::from_rotation_x(self.orientation.x.to_radians())
+            * glam::Quat::from_rotation_x(-self.orientation.x.to_radians())
     }
 
     fn zoom(&self) -> f32 {
@@ -204,12 +206,12 @@ impl Default for FpsCamera {
 impl FpsCamera {
     fn update_vectors(&mut self) {
         let mut front = Vec3::ZERO;
-        front.x = -self.orientation.x.to_radians().cos() * self.orientation.y.to_radians().sin();
+        front.x = self.orientation.x.to_radians().cos() * self.orientation.y.to_radians().sin();
         front.y = -self.orientation.x.to_radians().sin();
         front.z = self.orientation.x.to_radians().cos() * self.orientation.y.to_radians().cos();
 
         self.front = front.normalize();
-        self.right = self.front.cross(Vec3::Y).normalize();
+        self.right = -self.front.cross(Vec3::Y).normalize();
     }
 }
 
@@ -280,7 +282,7 @@ impl Camera3D for FpsCamera {
 
     fn focus_on_point(&mut self, point: Vec3, dist_scale: f32) {
         self.position = point;
-        self.position.x = -self.position.x;
+        // self.position.x = -self.position.x;
         self.position -= self.front * (2.5 * dist_scale)
     }
 

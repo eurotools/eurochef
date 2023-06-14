@@ -11,8 +11,5 @@ uniform mat4 u_model;
 void main()
 {
     f_uv = a_uv;
-    vec4 new_pos = (u_model * vec4(a_pos, 1.0));
-    new_pos.x = - new_pos.x;
-
-    gl_Position = u_view * new_pos;
+    gl_Position = u_view * u_model * vec4(a_pos, 1.0);
 }

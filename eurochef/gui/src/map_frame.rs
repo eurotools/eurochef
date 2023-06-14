@@ -19,13 +19,12 @@ use crate::{
     render::{
         billboard::BillboardRenderer,
         blend::{set_blending_mode, BlendMode},
-        camera::Camera3D,
         entity::EntityRenderer,
         gl_helper,
         pickbuffer::{PickBuffer, PickBufferType},
         trigger::{LinkLineRenderer, SelectCubeRenderer},
         tweeny::{self, Tweeny3D},
-        viewer::{BaseViewer, CameraType},
+        viewer::BaseViewer,
     },
 };
 
@@ -645,15 +644,13 @@ impl MapFrame {
 
     fn go_to_trigger(&mut self, index: usize, trig: &ProcessedTrigger) {
         self.selected_trigger = Some(index);
-        let mut v = self.viewer.lock().unwrap();
 
+        let mut v = self.viewer.lock().unwrap();
         let camera = v.camera_mut();
 
-        let mut start_pos = camera.position();
-        start_pos.x = -start_pos.x;
         self.trigger_focus_tween = Some(Tweeny3D::new(
             tweeny::ease_out_exponential,
-            start_pos + camera.focus_offset(self.trigger_scale),
+            camera.position() + camera.focus_offset(self.trigger_scale),
             trig.position,
             0.5,
         ))
