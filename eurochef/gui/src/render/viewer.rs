@@ -64,18 +64,27 @@ impl BaseViewer {
             });
     }
 
-    pub fn show_statusbar(&mut self, ui: &mut egui::Ui) {
-        let camera: &mut dyn Camera3D = match self.selected_camera {
+    pub fn camera(&self) -> &dyn Camera3D {
+        match self.selected_camera {
+            CameraType::Fly => &self.camera_fly,
+            CameraType::Orbit => &self.camera_orbit,
+        }
+    }
+
+    pub fn camera_mut(&mut self) -> &mut dyn Camera3D {
+        match self.selected_camera {
             CameraType::Fly => &mut self.camera_fly,
             CameraType::Orbit => &mut self.camera_orbit,
-        };
+        }
+    }
 
+    pub fn show_statusbar(&mut self, ui: &mut egui::Ui) {
         if self.selected_camera == CameraType::Fly {
             ui.strong("Speed:");
         } else {
             ui.strong("Zoom:");
         }
-        ui.label(format!("{:.2}", camera.zoom()));
+        ui.label(format!("{:.2}", self.camera().zoom()));
     }
 
     pub fn update(&mut self, ui: &mut egui::Ui, response: &egui::Response) {
@@ -94,16 +103,9 @@ impl BaseViewer {
             self.orthographic = !self.orthographic;
         }
 
-        let camera: &mut dyn Camera3D = match self.selected_camera {
-            CameraType::Fly => &mut self.camera_fly,
-            CameraType::Orbit => &mut self.camera_orbit,
-        };
-
-        camera.update(
-            ui,
-            Some(response),
-            (Instant::now() - self.last_frame).as_secs_f32(),
-        );
+        let delta = (Instant::now() - self.last_frame).as_secs_f32();
+        let camera = self.camera_mut();
+        camera.update(ui, Some(response), delta);
         self.last_frame = Instant::now();
     }
 
@@ -133,11 +135,6 @@ impl BaseViewer {
     }
 
     pub fn focus_on_point(&mut self, point: Vec3, dist_scale: f32) {
-        let camera: &mut dyn Camera3D = match self.selected_camera {
-            CameraType::Fly => &mut self.camera_fly,
-            CameraType::Orbit => &mut self.camera_orbit,
-        };
-
-        camera.focus_on_point(point, dist_scale);
+        self.camera_mut().focus_on_point(point, dist_scale);
     }
 }

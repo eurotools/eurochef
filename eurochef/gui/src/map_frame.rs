@@ -286,11 +286,7 @@ impl MapFrame {
                 v.update(ui, &response);
             }
 
-            let camera: &mut dyn Camera3D = match v.selected_camera {
-                CameraType::Fly => &mut v.camera_fly,
-                CameraType::Orbit => &mut v.camera_orbit,
-            };
-
+            let camera = v.camera_mut();
             let (cp, cr) = (camera.position(), camera.rotation());
 
             if let Some(tween) = &mut self.trigger_focus_tween {
@@ -488,7 +484,6 @@ impl MapFrame {
                         painter.gl(),
                         &viewer.lock().unwrap().uniforms,
                         trig.position,
-                        // TODO(cohae): This scaling is too small for spyro
                         trigger_scale,
                     );
                 }
@@ -499,7 +494,6 @@ impl MapFrame {
                         &viewer.lock().unwrap().uniforms,
                         trigger_texture,
                         t.position,
-                        // TODO(cohae): This scaling is too small for spyro
                         trigger_scale,
                     );
                 }
@@ -522,7 +516,6 @@ impl MapFrame {
                 &self.gl,
                 &self.viewer.lock().unwrap().uniforms,
                 t.position,
-                // TODO(cohae): This scaling is too small for spyro
                 self.trigger_scale,
                 (PickBufferType::Trigger, i as u32),
                 &self.pickbuffer,
@@ -654,10 +647,7 @@ impl MapFrame {
         self.selected_trigger = Some(index);
         let mut v = self.viewer.lock().unwrap();
 
-        let camera: &mut dyn Camera3D = match v.selected_camera {
-            CameraType::Fly => &mut v.camera_fly,
-            CameraType::Orbit => &mut v.camera_orbit,
-        };
+        let camera = v.camera_mut();
 
         let mut start_pos = camera.position();
         start_pos.x = -start_pos.x;
