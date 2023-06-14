@@ -133,8 +133,8 @@ impl MapViewerPanel {
         ef
     }
 
-    pub fn show(&mut self, _context: &egui::Context, ui: &mut egui::Ui) {
-        self.frame.show(ui, &self.maps)
+    pub fn show(&mut self, context: &egui::Context, ui: &mut egui::Ui) {
+        self.frame.show(ui, context, &self.maps)
     }
 }
 

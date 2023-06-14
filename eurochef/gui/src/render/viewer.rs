@@ -1,5 +1,6 @@
 use std::fmt::Display;
 
+use glam::Vec3;
 use instant::Instant;
 
 use super::{
@@ -129,5 +130,14 @@ impl BaseViewer {
         if self.show_grid {
             unsafe { self.grid.draw(&self.uniforms, gl) }
         }
+    }
+
+    pub fn focus_on_point(&mut self, point: Vec3, dist_scale: f32) {
+        let camera: &mut dyn Camera3D = match self.selected_camera {
+            CameraType::Fly => &mut self.camera_fly,
+            CameraType::Orbit => &mut self.camera_orbit,
+        };
+
+        camera.focus_on_point(point, dist_scale);
     }
 }

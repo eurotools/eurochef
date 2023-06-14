@@ -15,7 +15,7 @@ use glow::HasContext;
 use crate::{
     entities::ProcessedEntityMesh,
     entity_frame::RenderableTexture,
-    maps::ProcessedMap,
+    maps::{ProcessedMap, ProcessedTrigger},
     render::{
         billboard::BillboardRenderer,
         blend::{set_blending_mode, BlendMode},
@@ -138,7 +138,7 @@ impl MapFrame {
         s
     }
 
-    pub fn show(&mut self, ui: &mut egui::Ui, maps: &[ProcessedMap]) {
+    pub fn show(&mut self, ui: &mut egui::Ui, context: &egui::Context, maps: &[ProcessedMap]) {
         ui.horizontal(|ui| {
             egui::ComboBox::from_label("Map")
                 .selected_text({
@@ -213,7 +213,7 @@ impl MapFrame {
         });
         let map = &maps[self.selected_map];
 
-        egui::Frame::canvas(ui.style()).show(ui, |ui| self.show_canvas(ui, map));
+        egui::Frame::canvas(ui.style()).show(ui, |ui| self.show_canvas(ui, context, map));
 
         ui.horizontal(|ui| {
             self.viewer.lock().unwrap().show_statusbar(ui);
@@ -224,7 +224,7 @@ impl MapFrame {
         });
     }
 
-    fn show_canvas(&mut self, ui: &mut egui::Ui, map: &ProcessedMap) {
+    fn show_canvas(&mut self, ui: &mut egui::Ui, context: &egui::Context, map: &ProcessedMap) {
         let (rect, response) = ui.allocate_exact_size(
             ui.available_size() - egui::vec2(0., 16.),
             egui::Sense::click_and_drag(),
@@ -268,6 +268,8 @@ impl MapFrame {
                 }
             }
         }
+
+        self.draw_trigger_inspector(context, &map);
 
         let time: f64 = ui.input(|t| t.time);
 
@@ -500,5 +502,125 @@ impl MapFrame {
                 &self.pickbuffer,
             );
         }
+    }
+
+    fn draw_trigger_inspector(&mut self, ctx: &egui::Context, map: &ProcessedMap) {
+        let screen_space = ctx.screen_rect();
+        egui::Window::new("Inspector")
+            .scroll2([false, true])
+            .show(ctx, |ui| {
+                if self.selected_trigger.is_none() || !self.show_triggers {
+                    ui.heading("No object selected");
+                    return;
+                }
+
+                macro_rules! readonly_input {
+                    ($ui:expr, $string:expr) => {
+                        let mut tmp = $string;
+                        $ui.add_enabled(false, egui::TextEdit::singleline(&mut tmp));
+                    };
+                    ($ui:expr, $label:expr, $string:expr) => {
+                        $ui.horizontal(|ui| {
+                            ui.label($label);
+                            let mut tmp = $string;
+                            ui.add_enabled(false, egui::TextEdit::singleline(&mut tmp));
+                        })
+                    };
+                }
+                // let available_space = ui.clip_rect();
+
+                egui::ScrollArea::vertical()
+                    .max_height(screen_space.height() - 100.0)
+                    .show(ui, |ui| {
+                        if let Some(Some(trig)) = self.selected_trigger.map(|v| map.triggers.get(v))
+                        {
+                            readonly_input!(ui, "Type ", format!("0x{:x}", trig.ttype));
+                            readonly_input!(
+                                ui,
+                                "Subtype ",
+                                if let Some(subtype) = trig.tsubtype {
+                                    format!("0x{:x}", subtype)
+                                } else {
+                                    "None".to_string()
+                                }
+                            );
+                            readonly_input!(ui, "Flags ", format!("0x{:x}", trig.game_flags));
+
+                            if !trig.data.is_empty() {
+                                ui.separator();
+                                ui.strong("Values");
+                                for (i, v) in trig.data.iter().enumerate().filter(|(_, v)| **v != 0)
+                                {
+                                    readonly_input!(ui, format!("#{i} "), format!("0x{:x}", v));
+                                }
+                            }
+
+                            if !trig.extra_data.is_empty() {
+                                ui.separator();
+                                ui.strong("Extra values");
+                                for (i, v) in trig
+                                    .extra_data
+                                    .iter()
+                                    .enumerate()
+                                    .filter(|(_, v)| **v != u32::MAX)
+                                {
+                                    readonly_input!(ui, format!("#{i} "), format!("0x{:x}", v));
+                                }
+                            }
+
+                            if trig.links.iter().find(|v| **v != -1).is_some() {
+                                ui.separator();
+                                ui.strong("Outgoing Links");
+
+                                for (i, l) in
+                                    trig.links.iter().enumerate().filter(|(_, v)| **v != -1)
+                                {
+                                    let ltrig = &map.triggers[*l as usize];
+                                    ui.horizontal(|ui| {
+                                        readonly_input!(
+                                            ui,
+                                            format!("#{i} "),
+                                            format!("{} (type 0x{:x})", l, ltrig.ttype)
+                                        );
+
+                                        if ui.button(font_awesome::BULLSEYE.to_string()).clicked() {
+                                            self.go_to_trigger(*l as usize, ltrig)
+                                        }
+                                    });
+                                }
+                            }
+
+                            if !trig.incoming_links.is_empty() {
+                                ui.separator();
+                                ui.strong(format!(
+                                    "Incoming Links ({} links)",
+                                    trig.incoming_links.len()
+                                ));
+
+                                for l in trig.incoming_links.iter() {
+                                    let ltrig = &map.triggers[*l as usize];
+                                    ui.horizontal(|ui| {
+                                        readonly_input!(
+                                            ui,
+                                            format!("{} (type 0x{:x})", l, ltrig.ttype)
+                                        );
+
+                                        if ui.button(font_awesome::BULLSEYE.to_string()).clicked() {
+                                            self.go_to_trigger(*l as usize, ltrig)
+                                        }
+                                    });
+                                }
+                            }
+                        }
+                    });
+            });
+    }
+
+    fn go_to_trigger(&mut self, index: usize, trig: &ProcessedTrigger) {
+        self.selected_trigger = Some(index);
+        self.viewer
+            .lock()
+            .unwrap()
+            .focus_on_point(trig.position, self.trigger_scale * 4.);
     }
 }

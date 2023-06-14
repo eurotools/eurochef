@@ -13,6 +13,8 @@ pub trait Camera3D: Sync + Send {
     }
 
     fn rotation(&self) -> Quat;
+
+    fn focus_on_point(&mut self, point: Vec3, dist_scale: f32);
 }
 
 fn zoom_factor(zoom_level: f32) -> f32 {
@@ -166,6 +168,12 @@ impl Camera3D for ArcBallCamera {
             self.zoom
         }
     }
+
+    fn focus_on_point(&mut self, point: Vec3, _dist_scale: f32) {
+        self.pivot = point;
+        self.pivot.z = -self.pivot.z;
+        self.pivot.y = -self.pivot.y;
+    }
 }
 
 #[derive(Clone)]
@@ -264,5 +272,11 @@ impl Camera3D for FpsCamera {
 
     fn position(&mut self) -> Vec3 {
         self.position
+    }
+
+    fn focus_on_point(&mut self, point: Vec3, dist_scale: f32) {
+        self.position = point;
+        self.position.x = -self.position.x;
+        self.position -= self.front * (1.5 * dist_scale)
     }
 }
