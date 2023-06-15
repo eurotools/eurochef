@@ -1,5 +1,6 @@
 0:
   name: OB_Static
+  icon: OB_Static
 1:
   name: OB_Path
 2:
@@ -13,8 +14,19 @@
     0: { name: Count, type: u32 }
 5:
   name: TR_Timer
+  icon: TR_Timer
 6:
   name: TR_Link
+  icon: TR_Link
+  values:
+    0: { name: Link 0 Msg, type: hashcode }
+    1: { name: Link 1 Msg, type: hashcode }
+    2: { name: Link 2 Msg, type: hashcode }
+    3: { name: Link 3 Msg, type: hashcode }
+    4: { name: Link 4 Msg, type: hashcode }
+    5: { name: Link 5 Msg, type: hashcode }
+    6: { name: Link 6 Msg, type: hashcode }
+    7: { name: Link 7 Msg, type: hashcode }
 8:
   name: CO_Generic
 9:

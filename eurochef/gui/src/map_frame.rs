@@ -31,7 +31,7 @@ use crate::{
         entity::EntityRenderer,
         gl_helper,
         pickbuffer::{PickBuffer, PickBufferType},
-        trigger::{LinkLineRenderer, SelectCubeRenderer},
+        trigger::{CollisionCubeRenderer, LinkLineRenderer, SelectCubeRenderer},
         tweeny::{self, Tweeny3D},
         viewer::BaseViewer,
     },
@@ -43,6 +43,8 @@ pub struct MapFrame {
     pub ref_renderers: Vec<(u32, Arc<Mutex<EntityRenderer>>)>,
     pub placement_renderers: Vec<(u32, EXGeoBaseEntity, Arc<Mutex<EntityRenderer>>)>,
     billboard_renderer: Arc<BillboardRenderer>,
+    collision_renderer: Arc<CollisionCubeRenderer>,
+    default_trigger_icon: glow::Texture,
     trigger_texture: glow::Texture,
     link_renderer: Arc<LinkLineRenderer>,
     selected_trigger: Option<usize>,
@@ -73,6 +75,18 @@ pub struct MapFrame {
 }
 
 const DEFAULT_ICON_DATA: &[u8] = include_bytes!("../../../assets/icons/triggers/default.png");
+const TRIG_TEX_TRIGGER_DATA: &[u8] = include_bytes!("../assets/trigger.png");
+const TRIG_TEX_LOAD_DATA: &[u8] = include_bytes!("../assets/load.png");
+
+fn load_png_frame(data: &[u8]) -> (Vec<u8>, png::OutputInfo) {
+    let mut cursor = Cursor::new(data);
+    let mut decoder = png::Decoder::new(&mut cursor);
+    decoder.set_transformations(png::Transformations::normalize_to_color8());
+    let mut reader = decoder.read_info().unwrap();
+    let mut img_data = vec![0; reader.output_buffer_size()];
+    let info = reader.next_frame(&mut img_data).unwrap();
+    (img_data[..info.buffer_size()].to_vec(), info)
+}
 
 impl MapFrame {
     pub fn new(
@@ -85,15 +99,9 @@ impl MapFrame {
     ) -> Self {
         assert!(textures.len() != 0);
 
-        let (default_icon_data, default_icon_info) = {
-            let mut cursor = Cursor::new(DEFAULT_ICON_DATA);
-            let mut decoder = png::Decoder::new(&mut cursor);
-            decoder.set_transformations(png::Transformations::normalize_to_color8());
-            let mut reader = decoder.read_info().unwrap();
-            let mut img_data = vec![0; reader.output_buffer_size()];
-            let info = reader.next_frame(&mut img_data).unwrap();
-            (img_data[..info.buffer_size()].to_vec(), info)
-        };
+        let (default_icon_data, default_icon_info) = load_png_frame(DEFAULT_ICON_DATA);
+        let (ttt_data, ttt_info) = load_png_frame(TRIG_TEX_TRIGGER_DATA);
+        // let (ttl_data, ttl_info) = load_png_frame(TRIG_TEX_LOAD_DATA);
 
         let mut available_triginfo_paths = vec![];
         if let Ok(d) = std::fs::read_dir("./assets") {
@@ -166,7 +174,7 @@ impl MapFrame {
             billboard_renderer: Arc::new(BillboardRenderer::new(&gl).unwrap()),
             link_renderer: Arc::new(LinkLineRenderer::new(&gl).unwrap()),
             select_renderer: Arc::new(SelectCubeRenderer::new(&gl).unwrap()),
-            trigger_texture: unsafe {
+            default_trigger_icon: unsafe {
                 gl_helper::load_texture(
                     &gl,
                     default_icon_info.width as i32,
@@ -176,8 +184,19 @@ impl MapFrame {
                     0,
                 )
             },
+            trigger_texture: unsafe {
+                gl_helper::load_texture(
+                    &gl,
+                    ttt_info.width as i32,
+                    ttt_info.height as i32,
+                    &ttt_data,
+                    glow::RGBA,
+                    0,
+                )
+            },
             selected_trigger: None,
             pickbuffer: PickBuffer::new(&gl),
+            collision_renderer: Arc::new(CollisionCubeRenderer::new(&gl).unwrap()),
             gl: gl.clone(),
             selected_map: 0,
             trigger_scale: 0.25,
@@ -434,7 +453,7 @@ impl MapFrame {
         let textures = self.textures.clone(); // FIXME: UUUUGH.
         let map = map.clone(); // FIXME(cohae): ugh.
         let sky_ent = u32::from_str_radix(&self.sky_ent, 16).unwrap_or(u32::MAX);
-        let default_trigger_icon = self.trigger_texture.clone();
+        let default_trigger_icon = self.default_trigger_icon.clone();
         let billboard_renderer = self.billboard_renderer.clone();
         let link_renderer = self.link_renderer.clone();
         let selected_trigger = self.selected_trigger;
@@ -445,6 +464,7 @@ impl MapFrame {
         let trigger_info = self.trigger_info.clone();
         let trigger_icons = self.trigger_icons.clone();
 
+        let collision_renderer = self.collision_renderer.clone();
         let placement_renderers = self.placement_renderers.clone();
         let renderers = self.ref_renderers.clone();
         let cb = egui_glow::CallbackFn::new(move |info, painter| unsafe {
@@ -641,6 +661,35 @@ impl MapFrame {
                     );
                 }
                 set_blending_mode(painter.gl(), BlendMode::None);
+
+                // Trigger collisions
+                set_blending_mode(painter.gl(), BlendMode::Blend);
+                // for t in map.triggers.iter() {
+                if let Some(t) = selected_trigger.and_then(|t| map.triggers.get(t)) {
+                    if let Some(coll) = t
+                        .extra_data
+                        .get(3)
+                        .and_then(|c| map.trigger_collisions.get(*c as usize))
+                    {
+                        if coll.dtype != 0 {
+                            warn!("Unknown collision type {}", coll.dtype);
+                            // continue;
+                        }
+
+                        collision_renderer.render(
+                            painter.gl(),
+                            &viewer.lock().unwrap().uniforms,
+                            t.position,
+                            Quat::from_euler(
+                                glam::EulerRot::ZXY,
+                                t.rotation.z,
+                                t.rotation.x,
+                                t.rotation.y,
+                            ),
+                            coll,
+                        );
+                    }
+                }
             }
         });
 

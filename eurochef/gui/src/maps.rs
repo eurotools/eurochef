@@ -9,7 +9,7 @@ use eurochef_edb::{
     binrw::{BinReaderExt, Endian},
     entity::{EXGeoEntity, EXGeoMapZoneEntity},
     header::EXGeoHeader,
-    map::{EXGeoMap, EXGeoPlacement},
+    map::{EXGeoBaseDatum, EXGeoMap, EXGeoPlacement},
     versions::Platform,
 };
 use eurochef_shared::{maps::parse_trigger_data, textures::UXGeoTexture, IdentifiableResult};
@@ -41,6 +41,7 @@ pub struct ProcessedMap {
     pub mapzone_entities: Vec<EXGeoMapZoneEntity>,
     pub placements: Vec<EXGeoPlacement>,
     pub triggers: Vec<ProcessedTrigger>,
+    pub trigger_collisions: Vec<EXGeoBaseDatum>,
 }
 
 #[derive(Clone)]
@@ -172,6 +173,7 @@ pub fn read_from_file<R: Read + Seek>(reader: &mut R, platform: Platform) -> Vec
             mapzone_entities: vec![],
             placements: xmap.placements.data().clone(),
             triggers: vec![],
+            trigger_collisions: xmap.trigger_header.trigger_collisions.0.clone(),
         };
 
         for z in &xmap.zones {
