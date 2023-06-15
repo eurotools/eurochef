@@ -1,4 +1,6 @@
-use serde::Serialize;
+use std::collections::BTreeMap;
+
+use serde::{Deserialize, Serialize};
 use tracing::warn;
 
 #[derive(Serialize, Clone)]
@@ -83,4 +85,10 @@ pub fn parse_trigger_data(
     }
 
     (data, links, extra_data)
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct TriggerInformation {
+    pub name: String,
+    pub values: Option<BTreeMap<usize, String>>,
 }

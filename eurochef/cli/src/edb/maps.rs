@@ -1,7 +1,7 @@
 use std::{
-    collections::HashMap,
+    collections::BTreeMap,
     fs::File,
-    io::{BufRead, BufReader, Seek, Write},
+    io::{BufReader, Seek, Write},
     path::Path,
 };
 
@@ -14,7 +14,7 @@ use eurochef_edb::{
     versions::Platform,
 };
 
-use eurochef_shared::maps::{parse_trigger_data, UXGeoTrigger};
+use eurochef_shared::maps::{parse_trigger_data, TriggerInformation, UXGeoTrigger};
 use serde::Serialize;
 
 use crate::PlatformArg;
@@ -149,13 +149,13 @@ pub fn execute_command(
 
             if let Some(ref typemap) = trigger_typemap {
                 match typemap.get(&ttype) {
-                    Some(t) => trigger.ttype = t.clone(),
+                    Some(t) => trigger.ttype = t.name.clone(),
                     None => warn!("Couldn't find trigger type {ttype}"),
                 }
 
                 if trigger.tsubtype.is_some() {
                     match typemap.get(&tsubtype) {
-                        Some(t) => trigger.tsubtype = Some(t.clone()),
+                        Some(t) => trigger.tsubtype = Some(t.name.clone()),
                         None => warn!("Couldn't find trigger subtype {tsubtype}"),
                     }
                 }
@@ -186,25 +186,10 @@ pub struct EurochefMapExport {
     pub triggers: Vec<UXGeoTrigger>,
 }
 
-fn load_trigger_types<P: AsRef<Path>>(path: P) -> anyhow::Result<HashMap<u32, String>> {
-    let mut map = HashMap::new();
+fn load_trigger_types<P: AsRef<Path>>(
+    path: P,
+) -> anyhow::Result<BTreeMap<u32, TriggerInformation>> {
     let file = File::open(path).unwrap();
-    let reader = BufReader::new(file);
-    for line in reader.lines() {
-        let line = line?;
-        if line.is_empty() {
-            continue;
-        }
-
-        let mut split = line.split(',');
-        let hashcode = parse_int::parse(split.next().unwrap())?;
-        let name = split.next().unwrap().to_string();
-        map.insert(hashcode, name);
-        if split.next().is_some() {
-            warn!("Extra data in trigger type file!");
-            continue;
-        }
-    }
-
-    Ok(map)
+    let mut reader = BufReader::new(file);
+    Ok(serde_yaml::from_reader(&mut reader)?)
 }

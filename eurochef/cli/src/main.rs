@@ -104,7 +104,7 @@ enum EdbCommand {
         #[arg(value_enum, short, long, ignore_case = true)]
         platform: Option<PlatformArg>,
 
-        /// File with trigger names (assets/triggers_*.txt)
+        /// File with trigger definitions (assets/triggers_*.yml)
         #[arg(short, long)]
         trigger_defs: Option<String>,
     },

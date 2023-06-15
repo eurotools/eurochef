@@ -13,7 +13,8 @@ anyhow = { version = "1", features = ["backtrace"] }
 bytemuck = { version = "1.13", features = ["derive"] }
 enumn = "0.1"
 image = { version = "0.24", default-features = false, features = ["png", "tga"] }
-serde = "1.0.160"
+serde = { version =  "1", features = ["derive"] }
+serde_yaml = "0.9"
 squish = "1.0"
 tracing = "0.1.37"
 bitflags = "2.3.1"

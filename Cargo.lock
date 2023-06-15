@@ -983,6 +983,7 @@ dependencies = [
  "qoi",
  "serde",
  "serde_json",
+ "serde_yaml",
  "tracing",
  "tracing-subscriber",
  "walkdir",
@@ -1040,7 +1041,6 @@ dependencies = [
  "native-dialog",
  "png",
  "rfd",
- "serde",
  "serde_json",
  "serde_yaml",
  "tracing",
@@ -1061,6 +1061,7 @@ dependencies = [
  "eurochef-filelist",
  "image",
  "serde",
+ "serde_yaml",
  "squish",
  "tracing",
 ]

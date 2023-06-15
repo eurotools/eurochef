@@ -9,10 +9,9 @@ use eurochef_edb::{
     entity::{EXGeoBaseEntity, EXGeoEntity},
     versions::Platform,
 };
-use eurochef_shared::IdentifiableResult;
+use eurochef_shared::{maps::TriggerInformation, IdentifiableResult};
 use glam::{Quat, Vec3};
 use glow::HasContext;
-use serde::Deserialize;
 
 use crate::{
     entities::ProcessedEntityMesh,
@@ -775,10 +774,4 @@ impl MapFrame {
             0.5,
         ))
     }
-}
-
-#[derive(Debug, Deserialize)]
-pub struct TriggerInformation {
-    pub name: String,
-    pub values: Option<BTreeMap<usize, String>>,
 }
