@@ -38,6 +38,8 @@ egui_glow = "0.21.0"
 glam = "0.24.0"
 chrono = "0.4.26"
 png = "0.17.9"
+serde_yaml = "0.9.21"
+serde = "1"
 
 # native:
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]

@@ -9,7 +9,7 @@ use super::{gl_helper, RenderUniforms};
 #[derive()]
 pub enum PickBufferType {
     Trigger = 1,
-    Placement = 2,
+    // Placement = 2,
 }
 
 #[derive(Clone)]

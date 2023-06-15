@@ -96,9 +96,7 @@ pub struct EXGeoTriggerHeader {
     #[br(count = if triggers.len() != 0 { triggers.iter().map(|v| v.trigger.type_index).max().unwrap()+1 } else { 0 })]
     pub trigger_types: EXRelPtr<Vec<EXGeoTriggerType>>,
     // pub trigger_types: EXRelPtr<()>, // Last element is marked by a trig_type of -1?
-
-    // pub trigger_collisions: EXRelPtr<Vec<EXGeoBaseDatum>>,
-    pub trigger_collisions: EXRelPtr<()>,
+    pub trigger_collisions: EXRelPtr<EXGeoTriggerCollision>,
 }
 
 #[binrw]
@@ -123,7 +121,7 @@ pub struct EXGeoTrigScriptHeader {
 #[binrw]
 #[derive(Debug, Serialize, Clone)]
 pub struct EXGeoBaseDatum {
-    pub hashcode: u32,
+    pub hashref: u32,
     pub flags: u16,
     pub dtype: u8,
     pub hash_index: u8,
@@ -335,4 +333,30 @@ pub struct EXGeoBspNode {
     pub nodes: [i16; 2],
     #[serde(skip)]
     pad: [i32; 3], // TODO: Use binrw attribute to pad instead
+}
+
+#[derive(Debug, Serialize, Clone)]
+pub struct EXGeoTriggerCollision(pub Vec<EXGeoBaseDatum>);
+
+impl BinRead for EXGeoTriggerCollision {
+    type Args<'a> = ();
+
+    fn read_options<R: std::io::Read + std::io::Seek>(
+        reader: &mut R,
+        endian: binrw::Endian,
+        _args: Self::Args<'_>,
+    ) -> binrw::BinResult<Self> {
+        let mut datums = vec![];
+
+        loop {
+            let datum: EXGeoBaseDatum = reader.read_type(endian)?;
+            if datum.hashref != u32::MAX {
+                break;
+            }
+
+            datums.push(datum);
+        }
+
+        Ok(Self(datums))
+    }
 }

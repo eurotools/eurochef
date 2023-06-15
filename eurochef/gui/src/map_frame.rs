@@ -1,4 +1,5 @@
 use std::{
+    collections::BTreeMap,
     io::Cursor,
     sync::{Arc, Mutex},
 };
@@ -11,6 +12,7 @@ use eurochef_edb::{
 use eurochef_shared::IdentifiableResult;
 use glam::{Quat, Vec3};
 use glow::HasContext;
+use serde::Deserialize;
 
 use crate::{
     entities::ProcessedEntityMesh,
@@ -54,6 +56,10 @@ pub struct MapFrame {
     selected_map: usize,
     trigger_scale: f32,
     trigger_focus_tween: Option<Tweeny3D>,
+
+    trigger_info: BTreeMap<u32, TriggerInformation>,
+    selected_triginfo_path: String,
+    available_triginfo_paths: Vec<String>,
 }
 
 const DEFAULT_ICON_DATA: &[u8] = include_bytes!("../../../assets/icons/triggers/default.png");
@@ -77,6 +83,30 @@ impl MapFrame {
             let info = reader.next_frame(&mut img_data).unwrap();
             (img_data[..info.buffer_size()].to_vec(), info)
         };
+
+        let mut available_triginfo_paths = vec![];
+        if let Ok(d) = std::fs::read_dir("./assets") {
+            available_triginfo_paths = d
+                .filter(|d| {
+                    d.as_ref().unwrap().file_type().unwrap().is_file()
+                        && d.as_ref()
+                            .unwrap()
+                            .file_name()
+                            .to_os_string()
+                            .to_string_lossy()
+                            .to_lowercase()
+                            .ends_with(".yml")
+                })
+                .map(|d| {
+                    d.as_ref()
+                        .unwrap()
+                        .file_name()
+                        .as_os_str()
+                        .to_string_lossy()
+                        .to_string()
+                })
+                .collect();
+        }
 
         let mut s = Self {
             textures: textures.to_vec(),
@@ -107,6 +137,9 @@ impl MapFrame {
             trigger_scale: 0.25,
             trigger_focus_tween: None,
             selected_link: None,
+            trigger_info: Default::default(),
+            selected_triginfo_path: String::new(),
+            available_triginfo_paths,
         };
 
         unsafe {
@@ -215,6 +248,38 @@ impl MapFrame {
                     .speed(0.05),
             );
             ui.label("Trigger scale");
+
+            let trig_resp = egui::ComboBox::from_label("Triggers")
+                .selected_text(&self.selected_triginfo_path)
+                .width(164.0)
+                .show_ui(ui, |ui| {
+                    let mut resp = ui.selectable_value(
+                        &mut self.selected_triginfo_path,
+                        String::new(),
+                        "None",
+                    );
+                    for p in &self.available_triginfo_paths {
+                        resp = resp.union(ui.selectable_value(
+                            &mut self.selected_triginfo_path,
+                            p.to_string(),
+                            p,
+                        ));
+                    }
+                    resp
+                });
+
+            if trig_resp.inner.map(|i| i.changed()).unwrap_or_default() {
+                if self.selected_triginfo_path.is_empty() {
+                    self.trigger_info.clear();
+                } else {
+                    let v = std::fs::read_to_string(&format!(
+                        "./assets/{}",
+                        self.selected_triginfo_path
+                    ))
+                    .unwrap();
+                    self.trigger_info = serde_yaml::from_str(&v).unwrap();
+                }
+            }
         });
         let map = &maps[self.selected_map];
 
@@ -538,79 +603,133 @@ impl MapFrame {
                         $ui.add_enabled(false, egui::TextEdit::singleline(&mut tmp));
                     };
                     ($ui:expr, $label:expr, $string:expr) => {
-                        $ui.horizontal(|ui| {
-                            ui.label($label);
-                            let mut tmp = $string;
-                            ui.add_enabled(false, egui::TextEdit::singleline(&mut tmp));
-                        })
+                        // $ui.horizontal(|ui| {
+                        $ui.label($label);
+                        let mut tmp = $string;
+                        $ui.add_enabled(
+                            false,
+                            egui::TextEdit::singleline(&mut tmp), // .desired_width(f32::INFINITY),
+                        );
+                        // })
                     };
                 }
-                // let available_space = ui.clip_rect();
+
+                macro_rules! ttype_or_hex {
+                    ($v:expr) => {
+                        if let Some(ti) = self.trigger_info.get(&$v) {
+                            format!("{} (0x{:x})", ti.name, $v)
+                        } else {
+                            format!("0x{:x}", $v)
+                        }
+                    };
+                }
+
+                macro_rules! quick_grid {
+                    ($ui:expr, $label:expr, $contents:expr) => {
+                        egui::Grid::new($label)
+                            .num_columns(2)
+                            .spacing([40.0, 4.0])
+                            .striped(true)
+                            .show($ui, $contents);
+                    };
+                }
 
                 egui::ScrollArea::vertical()
                     .max_height(screen_space.height() - 100.0)
                     .show(ui, |ui| {
                         if let Some(Some(trig)) = self.selected_trigger.map(|v| map.triggers.get(v))
                         {
-                            readonly_input!(ui, "Type ", format!("0x{:x}", trig.ttype));
-                            readonly_input!(
-                                ui,
-                                "Subtype ",
-                                if let Some(subtype) = trig.tsubtype {
-                                    format!("0x{:x}", subtype)
-                                } else {
-                                    "None".to_string()
-                                }
-                            );
-                            readonly_input!(ui, "Flags ", format!("0x{:x}", trig.game_flags));
+                            quick_grid!(ui, "t_info", |ui| {
+                                readonly_input!(ui, "Type ", ttype_or_hex!(trig.ttype));
+                                ui.end_row();
+                                readonly_input!(
+                                    ui,
+                                    "Subtype ",
+                                    if let Some(subtype) = trig.tsubtype {
+                                        ttype_or_hex!(subtype)
+                                    } else {
+                                        "None".to_string()
+                                    }
+                                );
+                                ui.end_row();
+                                readonly_input!(ui, "Flags ", format!("0x{:x}", trig.game_flags));
+                                ui.end_row();
+                            });
 
                             if !trig.data.is_empty() {
                                 ui.separator();
                                 ui.strong("Values");
-                                for (i, v) in trig.data.iter().enumerate() {
-                                    if let Some(v) = v {
-                                        readonly_input!(ui, format!("#{i} "), format!("0x{:x}", v));
+                                quick_grid!(ui, "t_values", |ui| {
+                                    for (i, v) in trig.data.iter().enumerate() {
+                                        if let Some(v) = v {
+                                            let name: String = if let Some(Some(Some(ti))) = self
+                                                .trigger_info
+                                                .get(&trig.ttype)
+                                                .map(|v| v.values.as_ref().map(|m| m.get(&i)))
+                                            {
+                                                ti.clone()
+                                            } else {
+                                                format!("#{i} ")
+                                            };
+
+                                            readonly_input!(ui, name, format!("0x{:x}", v));
+                                            ui.end_row();
+                                        }
                                     }
-                                }
+                                });
                             }
 
-                            if !trig.extra_data.is_empty() {
+                            if trig.extra_data.iter().any(|v| *v != u32::MAX) {
                                 ui.separator();
                                 ui.strong("Extra values");
-                                for (i, v) in trig
-                                    .extra_data
-                                    .iter()
-                                    .enumerate()
-                                    .filter(|(_, v)| **v != u32::MAX)
-                                {
-                                    readonly_input!(ui, format!("#{i} "), format!("0x{:x}", v));
-                                }
+                                quick_grid!(ui, "t_extravalues", |ui| {
+                                    for (i, v) in trig
+                                        .extra_data
+                                        .iter()
+                                        .enumerate()
+                                        .filter(|(_, v)| **v != u32::MAX)
+                                    {
+                                        readonly_input!(ui, format!("#{i} "), format!("0x{:x}", v));
+                                        ui.end_row();
+                                    }
+                                });
                             }
 
                             if trig.links.iter().find(|v| **v != -1).is_some() {
                                 ui.separator();
                                 ui.strong("Outgoing Links");
 
-                                for (i, l) in
-                                    trig.links.iter().enumerate().filter(|(_, v)| **v != -1)
-                                {
-                                    let ltrig = &map.triggers[*l as usize];
-                                    let resp = ui.horizontal(|ui| {
-                                        readonly_input!(
-                                            ui,
-                                            format!("#{i} "),
-                                            format!("{} (type 0x{:x})", l, ltrig.ttype)
-                                        );
+                                quick_grid!(ui, "t_outlinks", |ui| {
+                                    for (i, l) in
+                                        trig.links.iter().enumerate().filter(|(_, v)| **v != -1)
+                                    {
+                                        let ltrig = &map.triggers[*l as usize];
+                                        let resp = ui.horizontal(|ui| {
+                                            readonly_input!(
+                                                ui,
+                                                format!("#{i} "),
+                                                format!(
+                                                    "{} (type {})",
+                                                    l,
+                                                    ttype_or_hex!(ltrig.ttype)
+                                                )
+                                            );
 
-                                        if ui.button(font_awesome::BULLSEYE.to_string()).clicked() {
-                                            self.go_to_trigger(*l as usize, ltrig)
+                                            if ui
+                                                .button(font_awesome::BULLSEYE.to_string())
+                                                .clicked()
+                                            {
+                                                self.go_to_trigger(*l as usize, ltrig)
+                                            }
+                                        });
+
+                                        if resp.response.hovered() {
+                                            self.selected_link = Some(*l);
                                         }
-                                    });
 
-                                    if resp.response.hovered() {
-                                        self.selected_link = Some(*l);
+                                        ui.end_row();
                                     }
-                                }
+                                });
                             }
 
                             if !trig.incoming_links.is_empty() {
@@ -625,7 +744,7 @@ impl MapFrame {
                                     let resp = ui.horizontal(|ui| {
                                         readonly_input!(
                                             ui,
-                                            format!("{} (type 0x{:x})", l, ltrig.ttype)
+                                            format!("{} (type {})", l, ttype_or_hex!(ltrig.ttype))
                                         );
 
                                         if ui.button(font_awesome::BULLSEYE.to_string()).clicked() {
@@ -656,4 +775,10 @@ impl MapFrame {
             0.5,
         ))
     }
+}
+
+#[derive(Debug, Deserialize)]
+pub struct TriggerInformation {
+    pub name: String,
+    pub values: Option<BTreeMap<usize, String>>,
 }

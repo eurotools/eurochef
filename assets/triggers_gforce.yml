@@ -1,0 +1,313 @@
+0:
+  name: OB_Static
+1:
+  name: OB_Path
+2:
+  name: OB_Cutscene
+3:
+  name: TR_Distance
+4:
+  name: TR_Counter
+5:
+  name: TR_Timer
+6:
+  name: TR_Link
+8:
+  name: CO_Generic
+9:
+  name: CO_UseItem
+10:
+  name: MO_Enemy
+11:
+  name: OB_Rotator
+12:
+  name: Phs_CollisionGroup
+13:
+  name: TR_LoadLevel
+  values:
+    1: Level
+    2: Entrance
+14:
+  name: OB_Pickup
+16:
+  name: OB_Rope
+17:
+  name: OB_ZipLine
+18:
+  name: Phs_Cloth
+19:
+  name: Phs_Wind
+20:
+  name: TR_Hurtzone
+22:
+  name: FX_Precipitation
+23:
+  name: TR_Killzone
+24:
+  name: TR_Duplicator
+27:
+  name: TR_SavePoint
+28:
+  name: OB_Static_Effect
+29:
+  name: TR_Darkness
+30:
+  name: TR_Visible
+32:
+  name: CO_Grapple
+33:
+  name: MO_Dummy
+36:
+  name: FX_LensFlare
+40:
+  name: CO_Crane
+41:
+  name: OB_Tilt
+43:
+  name: TR_DistanceAction
+44:
+  name: PL_StartPoint
+45:
+  name: FS_StaticFile
+46:
+  name: FS_ForceLoad
+47:
+  name: FS_ForceDeload
+48:
+  name: FS_PreloadMap
+49:
+  name: FS_ReleaseMap
+50:
+  name: FS_PreloadCutscene
+51:
+  name: FS_ReleaseCutscene
+52:
+  name: FS_LoadSoundBank
+53:
+  name: FS_PreloadFinalHits
+54:
+  name: FS_PreloadCharacter
+55:
+  name: FS_ReleaseCharacter
+56:
+  name: FS_PreloadPlayer
+57:
+  name: FS_ReleasePlayer
+58:
+  name: AI_LOSBox
+59:
+  name: AI_CoverPoint
+61:
+  name: CO_Door
+66:
+  name: TR_MoochTrap
+67:
+  name: OB_Shield
+68:
+  name: MO_ExtractorFan
+69:
+  name: MO_SatelliteDish
+70:
+  name: MO_Toaster
+71:
+  name: MO_WaterCooler
+72:
+  name: MO_ElectricShaver
+73:
+  name: MO_Blender
+74:
+  name: MO_FireExtinguisher
+75:
+  name: MO_WaffleMaker
+76:
+  name: MO_VacuumCleaner
+77:
+  name: MO_SpeakerWall
+78:
+  name: MO_SpeakerCeiling
+79:
+  name: MO_MotionSensor
+81:
+  name: MO_TableLamp
+82:
+  name: MO_PaperShredder
+83:
+  name: MO_CPUFan
+84:
+  name: MO_AirConUnit
+85:
+  name: AI_SquadCPUFan
+86:
+  name: AI_Squad
+87:
+  name: AudioEffect
+88:
+  name: AudioMixerGroup
+89:
+  name: AudioMixerGroupModify
+90:
+  name: AudioMixerGroupModify2
+91:
+  name: AudioModify
+92:
+  name: AudioModify2
+93:
+  name: AudioPlay
+94:
+  name: AudioStop
+95:
+  name: AudioSoundBankLoad
+96:
+  name: OB_IceBarrier
+97:
+  name: NP_NPCGeneric
+98:
+  name: TR_SlowMotionOnly
+99:
+  name: TR_NormalMotionOnly
+100:
+  name: TR_InfraRedOnly
+101:
+  name: AI_Waypoint
+102:
+  name: AI_Anchor
+104:
+  name: TR_Tweaks
+105:
+  name: OB_LiquidHazard
+106:
+  name: MO_FlyingVacuum
+107:
+  name: OB_WeaponAttachment
+108:
+  name: MO_EggFan
+109:
+  name: AI_SquadElectricShaver
+110:
+  name: MO_Torch
+111:
+  name: MO_Iron
+112:
+  name: AI_SquadIron
+113:
+  name: RV_Path
+114:
+  name: RV_Speed
+115:
+  name: RV_Branch
+116:
+  name: RV_Damage
+117:
+  name: CA_VidWall
+118:
+  name: CA_Highlight
+119:
+  name: MO_EggFanMoving
+120:
+  name: MO_SecurityCamera
+121:
+  name: OB_Container
+122:
+  name: CA_Tweak
+123:
+  name: MO_SecurityTurret
+124:
+  name: MO_Human
+125:
+  name: OB_PowerCore
+126:
+  name: MO_AirFreshener
+127:
+  name: MO_CoffeeMaker
+128:
+  name: RV_Audio
+129:
+  name: CO_MiniGameMatcher
+130:
+  name: TR_DistanceObject
+131:
+  name: PL_CheckPoint
+132:
+  name: MO_HumanSWAT
+133:
+  name: MO_ZombieComputer
+134:
+  name: MO_Microwave
+135:
+  name: OB_PowerCore_Generator
+136:
+  name: OB_PowerCore_Socket
+137:
+  name: OB_Conveyor
+138:
+  name: MO_Berserk
+139:
+  name: AI_SpawnPoint
+140:
+  name: AI_SpawnController
+141:
+  name: OB_Grapple
+142:
+  name: CO_HolographicScanner
+143:
+  name: OB_OpticSwitch
+144:
+  name: CO_ThermalSinkGenerator
+145:
+  name: MO_RDVTarget
+146:
+  name: MO_RDVAttacker
+147:
+  name: MO_Mouse
+148:
+  name: OB_SecurityKey_Socket
+149:
+  name: OB_SecurityKey
+150:
+  name: OB_Holographic_Socket
+151:
+  name: OB_AITarget
+152:
+  name: RV_Jump
+153:
+  name: OB_BatteryMine
+154:
+  name: OB_FireBarrier
+155:
+  name: OB_ScrollSign
+156:
+  name: MO_DeskFan
+157:
+  name: MO_CDPlayer
+158:
+  name: MO_Headphones
+159:
+  name: MO_AlarmClock
+160:
+  name: CO_Kiosk
+161:
+  name: OB_Collision
+162:
+  name: TR_Signpost
+163:
+  name: TR_ObjectiveMarker
+164:
+  name: AI_SquadAlarmClock
+165:
+  name: AI_SquadFlyingEggFan
+166:
+  name: MO_FlyingEggFan
+167:
+  name: CO_SavePoint
+168:
+  name: AI_SquadAirFreshner
+169:
+  name: TR_MoochInterference
+170:
+  name: TR_MoochTrapExclusion
+171:
+  name: FS_PrecachePriority
+172:
+  name: FX_PlatformObject
+173:
+  name: FX_Fog
