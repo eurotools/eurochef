@@ -8,6 +8,9 @@
   name: TR_Distance
 4:
   name: TR_Counter
+  icon: TR_Counter
+  values:
+    0: { name: Count, type: u32 }
 5:
   name: TR_Timer
 6:
@@ -45,6 +48,7 @@
   name: FX_Precipitation
 23:
   name: TR_Killzone
+  icon: TR_Killzone
 24:
   name: TR_Duplicator
 27:
@@ -61,6 +65,7 @@
   name: MO_Dummy
 36:
   name: FX_LensFlare
+  icon: FX_LensFlare
 40:
   name: CO_Crane
 41:
@@ -69,6 +74,7 @@
   name: TR_DistanceAction
 44:
   name: PL_StartPoint
+  icon: PL_StartPoint
 45:
   name: FS_StaticFile
 46:
@@ -209,6 +215,7 @@
   name: MO_SecurityCamera
 121:
   name: OB_Container
+  icon: OB_Container
 122:
   name: CA_Tweak
 123:
@@ -229,6 +236,7 @@
   name: TR_DistanceObject
 131:
   name: PL_CheckPoint
+  icon: PL_CheckPoint
 132:
   name: MO_HumanSWAT
 133:
@@ -293,6 +301,8 @@
   name: TR_Signpost
 163:
   name: TR_ObjectiveMarker
+  values:
+    4: { name: Icon, type: hashcode }
 164:
   name: AI_SquadAlarmClock
 165:

@@ -4,6 +4,7 @@
   name: HT_TriggerType_Pickup
 0x41000003:
   name: HT_TriggerType_StartPoint
+  icon: PL_StartPoint
 0x41000004:
   name: HT_TriggerType_Grunt
 0x41000005:

@@ -90,6 +90,7 @@ pub fn parse_trigger_data(
 #[derive(Clone, Debug, Deserialize)]
 pub struct TriggerInformation {
     pub name: String,
+    pub icon: Option<String>,
     #[serde(default)]
     pub values: BTreeMap<usize, TriggerValue>,
 }

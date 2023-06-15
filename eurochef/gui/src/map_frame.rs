@@ -1,5 +1,6 @@
 use std::{
     collections::BTreeMap,
+    fs::File,
     io::Cursor,
     mem::transmute,
     sync::{Arc, Mutex},
@@ -15,6 +16,7 @@ use eurochef_shared::{
     maps::{TrigDataType, TriggerInformation},
     IdentifiableResult,
 };
+use fxhash::FxHashMap;
 use glam::{Quat, Vec3};
 use glow::HasContext;
 use nohash_hasher::IntMap;
@@ -62,11 +64,12 @@ pub struct MapFrame {
     trigger_scale: f32,
     trigger_focus_tween: Option<Tweeny3D>,
 
-    trigger_info: BTreeMap<u32, TriggerInformation>,
+    trigger_info: Arc<BTreeMap<u32, TriggerInformation>>,
     selected_triginfo_path: String,
     available_triginfo_paths: Vec<String>,
 
     hashcodes: Arc<IntMap<u32, String>>,
+    trigger_icons: Arc<FxHashMap<String, glow::Texture>>,
 }
 
 const DEFAULT_ICON_DATA: &[u8] = include_bytes!("../../../assets/icons/triggers/default.png");
@@ -116,6 +119,41 @@ impl MapFrame {
                 .collect();
         }
 
+        let mut trigger_icons = FxHashMap::default();
+        if let Ok(d) = std::fs::read_dir("./assets/icons/triggers") {
+            for p in d
+                .filter(|d| d.as_ref().unwrap().file_type().unwrap().is_file())
+                .map(|d| {
+                    d.as_ref()
+                        .unwrap()
+                        .file_name()
+                        .as_os_str()
+                        .to_string_lossy()
+                        .to_string()
+                })
+                .filter(|d| d.to_lowercase().ends_with(".png"))
+            {
+                let mut file = File::open(format!("./assets/icons/triggers/{p}")).unwrap();
+                let mut decoder = png::Decoder::new(&mut file);
+                decoder.set_transformations(png::Transformations::normalize_to_color8());
+                let mut reader = decoder.read_info().unwrap();
+                let mut img_data = vec![0; reader.output_buffer_size()];
+                let info = reader.next_frame(&mut img_data).unwrap();
+
+                let name = p.trim_end_matches(".png");
+                trigger_icons.insert(name.to_lowercase(), unsafe {
+                    gl_helper::load_texture(
+                        &gl,
+                        info.width as i32,
+                        info.height as i32,
+                        &img_data[..info.buffer_size()],
+                        glow::RGBA,
+                        0,
+                    )
+                });
+            }
+        }
+
         let mut s = Self {
             textures: textures.to_vec(),
             ref_renderers: vec![],
@@ -149,6 +187,7 @@ impl MapFrame {
             selected_triginfo_path: String::new(),
             available_triginfo_paths,
             hashcodes,
+            trigger_icons: Arc::new(trigger_icons),
         };
 
         unsafe {
@@ -288,7 +327,7 @@ impl MapFrame {
                 || trig_reload_resp.clicked()
             {
                 if self.selected_triginfo_path.is_empty() {
-                    self.trigger_info.clear();
+                    self.trigger_info = Default::default();
                 } else {
                     let v = std::fs::read_to_string(&format!(
                         "./assets/{}",
@@ -395,7 +434,7 @@ impl MapFrame {
         let textures = self.textures.clone(); // FIXME: UUUUGH.
         let map = map.clone(); // FIXME(cohae): ugh.
         let sky_ent = u32::from_str_radix(&self.sky_ent, 16).unwrap_or(u32::MAX);
-        let trigger_texture = self.trigger_texture.clone();
+        let default_trigger_icon = self.trigger_texture.clone();
         let billboard_renderer = self.billboard_renderer.clone();
         let link_renderer = self.link_renderer.clone();
         let selected_trigger = self.selected_trigger;
@@ -403,6 +442,8 @@ impl MapFrame {
         let show_triggers = self.show_triggers;
         let trigger_scale = self.trigger_scale;
         let hovered_link = self.selected_link;
+        let trigger_info = self.trigger_info.clone();
+        let trigger_icons = self.trigger_icons.clone();
 
         let placement_renderers = self.placement_renderers.clone();
         let renderers = self.ref_renderers.clone();
@@ -583,6 +624,14 @@ impl MapFrame {
                 }
 
                 for t in map.triggers.iter() {
+                    let trigger_texture_path = trigger_info
+                        .get(&t.ttype)
+                        .and_then(|m| m.icon.as_ref().map(|v| v.to_lowercase()));
+
+                    let trigger_texture = *trigger_texture_path
+                        .and_then(|p| trigger_icons.get(&p))
+                        .unwrap_or(&default_trigger_icon);
+
                     billboard_renderer.render(
                         painter.gl(),
                         &viewer.lock().unwrap().uniforms,
@@ -745,7 +794,7 @@ impl MapFrame {
                                                         format!("{} (0x{v:x})", human_num(*v))
                                                     }
                                                 }
-                                                TrigDataType::U32 => format!("{0} (0x{0:x})", v),
+                                                TrigDataType::U32 => format!("{0}", v),
                                                 TrigDataType::F32 => unsafe {
                                                     format!("{:.5}", transmute::<u32, f32>(*v))
                                                 },
