@@ -427,7 +427,7 @@ impl eframe::App for EurochefApp {
                                 Color32::from_rgb(250, 40, 40),
                             );
 
-                            ui.label(format!("{e}"));
+                            ui.label(remove_stacktrace(&format!("{e:?}")));
                         });
 
                         if !e.backtrace().to_string().starts_with("disabled backtrace") {
@@ -479,7 +479,11 @@ impl eframe::App for EurochefApp {
                 Panel::Textures => textures.as_mut().map(|s| s.show(ui)),
                 Panel::Entities => entities.as_mut().map(|s| s.show(ctx, ui)),
                 Panel::Spreadsheets => spreadsheetlist.as_mut().map(|s| s.show(ui)),
-                Panel::Maps => maps.as_mut().map(|s| s.show(ctx, ui)),
+                Panel::Maps => Some({
+                    if let Some(Err(e)) = maps.as_mut().map(|s| s.show(ctx, ui)) {
+                        self.state = AppState::Error(e);
+                    }
+                }),
             };
         });
 
@@ -487,5 +491,13 @@ impl eframe::App for EurochefApp {
             Panel::Textures => textures.as_mut().map(|s| s.show_enlarged_window(ctx)),
             _ => None,
         };
+    }
+}
+
+fn remove_stacktrace(s: &str) -> &str {
+    if let Some(v) = s.to_lowercase().find("stack backtrace:") {
+        &s[..v].trim()
+    } else {
+        s
     }
 }

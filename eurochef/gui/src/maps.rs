@@ -137,7 +137,7 @@ impl MapViewerPanel {
         ef
     }
 
-    pub fn show(&mut self, context: &egui::Context, ui: &mut egui::Ui) {
+    pub fn show(&mut self, context: &egui::Context, ui: &mut egui::Ui) -> anyhow::Result<()> {
         self.frame.show(ui, context, &self.maps)
     }
 }

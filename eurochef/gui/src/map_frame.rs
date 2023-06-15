@@ -5,6 +5,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+use anyhow::Context;
 use egui::{emath, Pos2, Rect, Vec2};
 use eurochef_edb::{
     entity::{EXGeoBaseEntity, EXGeoEntity},
@@ -183,9 +184,14 @@ impl MapFrame {
         s
     }
 
-    pub fn show(&mut self, ui: &mut egui::Ui, context: &egui::Context, maps: &[ProcessedMap]) {
+    pub fn show(
+        &mut self,
+        ui: &mut egui::Ui,
+        context: &egui::Context,
+        maps: &[ProcessedMap],
+    ) -> anyhow::Result<()> {
         self.selected_link = None;
-        ui.horizontal(|ui| {
+        ui.horizontal(|ui| -> anyhow::Result<()> {
             egui::ComboBox::from_label("Map")
                 .selected_text({
                     let map = &maps[self.selected_map];
@@ -276,7 +282,11 @@ impl MapFrame {
                     resp
                 });
 
-            if trig_resp.inner.map(|i| i.changed()).unwrap_or_default() {
+            let trig_reload_resp = ui.button("\u{f2f1}");
+
+            if trig_resp.inner.map(|i| i.changed()).unwrap_or_default()
+                || trig_reload_resp.clicked()
+            {
                 if self.selected_triginfo_path.is_empty() {
                     self.trigger_info.clear();
                 } else {
@@ -285,10 +295,14 @@ impl MapFrame {
                         self.selected_triginfo_path
                     ))
                     .unwrap();
-                    self.trigger_info = serde_yaml::from_str(&v).unwrap();
+                    self.trigger_info = serde_yaml::from_str(&v)
+                        .context("Failed to load trigger definition file")?;
                 }
             }
-        });
+
+            Ok(())
+        })
+        .inner?;
         let map = &maps[self.selected_map];
 
         egui::Frame::canvas(ui.style()).show(ui, |ui| self.show_canvas(ui, context, map));
@@ -300,6 +314,8 @@ impl MapFrame {
                 ui.label(format!("{}", trig_id));
             }
         });
+
+        Ok(())
     }
 
     fn show_canvas(&mut self, ui: &mut egui::Ui, context: &egui::Context, map: &ProcessedMap) {
