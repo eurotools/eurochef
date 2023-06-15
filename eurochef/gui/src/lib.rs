@@ -12,11 +12,14 @@ pub mod panic_dialog;
 mod entities;
 mod entity_frame;
 mod fileinfo;
+mod hashcodes;
 mod map_frame;
 mod maps;
 mod render;
 mod spreadsheet;
 mod textures;
+
+pub use hashcodes::parse_hashcodes;
 
 pub fn strip_ansi_codes(input: &str) -> String {
     let mut output = String::new();

@@ -16,6 +16,7 @@ use eurochef_shared::{
 };
 use glam::{Quat, Vec3};
 use glow::HasContext;
+use nohash_hasher::IntMap;
 
 use crate::{
     entities::ProcessedEntityMesh,
@@ -63,6 +64,8 @@ pub struct MapFrame {
     trigger_info: BTreeMap<u32, TriggerInformation>,
     selected_triginfo_path: String,
     available_triginfo_paths: Vec<String>,
+
+    hashcodes: Arc<IntMap<u32, String>>,
 }
 
 const DEFAULT_ICON_DATA: &[u8] = include_bytes!("../../../assets/icons/triggers/default.png");
@@ -74,6 +77,7 @@ impl MapFrame {
         textures: &[RenderableTexture],
         entities: &Vec<IdentifiableResult<(EXGeoEntity, ProcessedEntityMesh)>>,
         platform: Platform,
+        hashcodes: Arc<IntMap<u32, String>>,
     ) -> Self {
         assert!(textures.len() != 0);
 
@@ -143,6 +147,7 @@ impl MapFrame {
             trigger_info: Default::default(),
             selected_triginfo_path: String::new(),
             available_triginfo_paths,
+            hashcodes,
         };
 
         unsafe {
@@ -717,14 +722,23 @@ impl MapFrame {
                                                 .unwrap_or_default();
 
                                             let typestring = match dtype {
-                                                TrigDataType::U32 => format!("0x{:x}", v),
+                                                TrigDataType::Unknown => {
+                                                    if let Some(hc) = self.hashcodes.get(v) {
+                                                        format!("{hc} (0x{v:x})")
+                                                    } else {
+                                                        format!("{} (0x{v:x})", human_num(*v))
+                                                    }
+                                                }
+                                                TrigDataType::U32 => format!("{0} (0x{0:x})", v),
                                                 TrigDataType::F32 => unsafe {
                                                     format!("{:.5}", transmute::<u32, f32>(*v))
                                                 },
                                                 // TODO(cohae): hashcode lookup
-                                                TrigDataType::Hashcode => {
-                                                    format!("HT_Unk_{:08x}", v)
-                                                }
+                                                TrigDataType::Hashcode => self
+                                                    .hashcodes
+                                                    .get(v)
+                                                    .unwrap_or(&format!("HT_Invalid_{v:08x}"))
+                                                    .clone(),
                                             };
                                             readonly_input!(ui, name, typestring);
                                             ui.end_row();
@@ -829,4 +843,21 @@ impl MapFrame {
             0.5,
         ))
     }
+}
+
+// https://github.com/Swyter/poptools/blob/9a22651d7cb16a1edb7894c36e9695138b25b2c1/pop_djinn_sav.bt#L32
+fn human_num(v: u32) -> String {
+    let i = v as i32;
+    let f: f32 = unsafe { transmute(v) };
+
+    if i > -9999 && i < 9999 {
+        return i.to_string();
+    }
+    if f < -0.003 && f > -1e7 {
+        return format!("{f:.2}");
+    }
+    if f > 0.003 && f < 1e7 {
+        return format!("{f:.2}");
+    }
+    return format!("0x{v:x}/{f:.2}");
 }

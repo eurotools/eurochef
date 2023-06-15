@@ -104,6 +104,7 @@ pub struct TriggerValue {
 #[derive(Copy, Clone, Debug, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum TrigDataType {
+    Unknown,
     U32,
     F32,
     Hashcode,
@@ -111,6 +112,6 @@ pub enum TrigDataType {
 
 impl Default for TrigDataType {
     fn default() -> Self {
-        TrigDataType::U32
+        TrigDataType::Unknown
     }
 }

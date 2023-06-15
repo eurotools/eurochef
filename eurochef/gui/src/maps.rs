@@ -14,6 +14,7 @@ use eurochef_edb::{
 };
 use eurochef_shared::{maps::parse_trigger_data, textures::UXGeoTexture, IdentifiableResult};
 use glam::Vec3;
+use nohash_hasher::IntMap;
 
 use crate::{
     entities::{EntityListPanel, ProcessedEntityMesh},
@@ -74,6 +75,7 @@ impl MapViewerPanel {
         ref_entities: Vec<IdentifiableResult<(EXGeoEntity, ProcessedEntityMesh)>>,
         textures: &[IdentifiableResult<UXGeoTexture>],
         platform: Platform,
+        hashcodes: Arc<IntMap<u32, String>>,
     ) -> Self {
         let textures = EntityListPanel::load_textures(&gl, textures);
         MapViewerPanel {
@@ -84,6 +86,7 @@ impl MapViewerPanel {
                 &entities,
                 &textures,
                 platform,
+                hashcodes.clone(),
             ),
             _textures: textures,
             _gl: gl,
@@ -100,6 +103,7 @@ impl MapViewerPanel {
         entities: &Vec<IdentifiableResult<(EXGeoEntity, ProcessedEntityMesh)>>,
         textures: &[RenderableTexture],
         platform: Platform,
+        hashcodes: Arc<IntMap<u32, String>>,
     ) -> MapFrame {
         let mut map_entities = vec![];
 
@@ -121,7 +125,7 @@ impl MapViewerPanel {
             }
         }
 
-        let ef = MapFrame::new(gl, &map_entities, textures, entities, platform);
+        let ef = MapFrame::new(gl, &map_entities, textures, entities, platform, hashcodes);
         ef.viewer
             .lock()
             .map(|mut v| {

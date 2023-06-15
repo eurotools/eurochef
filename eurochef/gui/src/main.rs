@@ -6,7 +6,19 @@ use color_eyre::eyre::Result;
 // When compiling natively:
 #[cfg(not(target_arch = "wasm32"))]
 fn main() -> Result<()> {
+    use clap::Parser;
     use color_eyre::Report;
+
+    #[derive(Parser, Debug)]
+    struct Args {
+        /// Input file
+        file: Option<String>,
+
+        /// hashcodes.h
+        #[arg(long, short = 't')]
+        hashcodes: Option<String>,
+    }
+    let args = Args::parse();
 
     // Force enable backtraces
     std::env::set_var("RUST_BACKTRACE", "1");
@@ -26,7 +38,13 @@ fn main() -> Result<()> {
     let res = eframe::run_native(
         "Eurochef",
         native_options,
-        Box::new(|cc| Box::new(eurochef_gui::EurochefApp::new(std::env::args().nth(1), cc))),
+        Box::new(|cc| {
+            Box::new(eurochef_gui::EurochefApp::new(
+                args.file,
+                args.hashcodes,
+                cc,
+            ))
+        }),
     );
 
     match res {
@@ -50,7 +68,7 @@ fn main() {
         eframe::start_web(
             "the_canvas_id", // hardcode it
             web_options,
-            Box::new(|cc| Box::new(eurochef_gui::EurochefApp::new(None, cc))),
+            Box::new(|cc| Box::new(eurochef_gui::EurochefApp::new(None, None, cc))),
         )
         .await
         .expect("failed to start eframe");

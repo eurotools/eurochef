@@ -39,6 +39,9 @@ glam = "0.24.0"
 chrono = "0.4.26"
 png = "0.17.9"
 serde_yaml = "0.9"
+parse_int = "0.6.0"
+nohash-hasher = "0.2.0"
+clap = "4.3.4"
 
 # native:
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]

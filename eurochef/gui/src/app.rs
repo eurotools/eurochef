@@ -9,8 +9,9 @@ use eframe::CreationContext;
 use egui::{Color32, FontData, FontDefinitions, NumExt};
 use eurochef_edb::versions::Platform;
 use glow::HasContext;
+use nohash_hasher::IntMap;
 
-use crate::{entities, fileinfo, maps, spreadsheet, textures};
+use crate::{entities, fileinfo, maps, parse_hashcodes, spreadsheet, textures};
 
 /// Basic app tracking state
 pub enum AppState {
@@ -46,11 +47,17 @@ pub struct EurochefApp {
     selected_platform: Platform,
 
     ps2_warning: bool,
+
+    hashcodes: Arc<IntMap<u32, String>>,
 }
 
 impl EurochefApp {
     /// Called once before the first frame.
-    pub fn new(path: Option<String>, cc: &CreationContext<'_>) -> Self {
+    pub fn new(
+        path: Option<String>,
+        hashcodes_path: Option<String>,
+        cc: &CreationContext<'_>,
+    ) -> Self {
         // Install FontAwesome font and place it second
         let mut fonts = FontDefinitions::default();
         fonts.font_data.insert(
@@ -78,6 +85,13 @@ impl EurochefApp {
             gl.debug_message_control(glow::DONT_CARE, glow::DONT_CARE, glow::DONT_CARE, &[], true);
         }
 
+        let hashcodes = if let Some(hashcodes_path) = hashcodes_path {
+            let hfs = std::fs::read_to_string(hashcodes_path).unwrap();
+            parse_hashcodes(&hfs)
+        } else {
+            Default::default()
+        };
+
         let mut s = Self {
             gl: cc.gl.clone().unwrap(),
             state: AppState::Ready,
@@ -91,6 +105,7 @@ impl EurochefApp {
             pending_file: None,
             selected_platform: Platform::Ps2,
             ps2_warning: false,
+            hashcodes: Arc::new(hashcodes),
         };
 
         if let Some(path) = path {
@@ -159,6 +174,7 @@ impl EurochefApp {
                                 ref_entities.clone(),
                                 &textures,
                                 platform,
+                                self.hashcodes.clone(),
                             ));
                         }
 
