@@ -90,5 +90,27 @@ pub fn parse_trigger_data(
 #[derive(Clone, Debug, Deserialize)]
 pub struct TriggerInformation {
     pub name: String,
-    pub values: Option<BTreeMap<usize, String>>,
+    #[serde(default)]
+    pub values: BTreeMap<usize, TriggerValue>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct TriggerValue {
+    pub name: Option<String>,
+    #[serde(alias = "type", default)]
+    pub dtype: TrigDataType,
+}
+
+#[derive(Copy, Clone, Debug, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum TrigDataType {
+    U32,
+    F32,
+    Hashcode,
+}
+
+impl Default for TrigDataType {
+    fn default() -> Self {
+        TrigDataType::U32
+    }
 }

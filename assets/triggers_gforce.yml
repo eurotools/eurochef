@@ -25,8 +25,8 @@
 13:
   name: TR_LoadLevel
   values:
-    1: Level
-    2: Entrance
+    1: { name: Level, type: hashcode }
+    2: { name: Entrance }
 14:
   name: OB_Pickup
 16:
@@ -39,6 +39,8 @@
   name: Phs_Wind
 20:
   name: TR_Hurtzone
+  values:
+    3: { type: f32 }
 22:
   name: FX_Precipitation
 23:

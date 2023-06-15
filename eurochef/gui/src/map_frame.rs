@@ -1,6 +1,7 @@
 use std::{
     collections::BTreeMap,
     io::Cursor,
+    mem::transmute,
     sync::{Arc, Mutex},
 };
 
@@ -9,7 +10,10 @@ use eurochef_edb::{
     entity::{EXGeoBaseEntity, EXGeoEntity},
     versions::Platform,
 };
-use eurochef_shared::{maps::TriggerInformation, IdentifiableResult};
+use eurochef_shared::{
+    maps::{TrigDataType, TriggerInformation},
+    IdentifiableResult,
+};
 use glam::{Quat, Vec3};
 use glow::HasContext;
 
@@ -547,6 +551,12 @@ impl MapFrame {
                         painter.gl(),
                         &viewer.lock().unwrap().uniforms,
                         trig.position,
+                        Quat::from_euler(
+                            glam::EulerRot::ZXY,
+                            trig.rotation.z,
+                            trig.rotation.x,
+                            trig.rotation.y,
+                        ),
                         trigger_scale,
                     );
                 }
@@ -661,17 +671,35 @@ impl MapFrame {
                                 quick_grid!(ui, "t_values", |ui| {
                                     for (i, v) in trig.data.iter().enumerate() {
                                         if let Some(v) = v {
-                                            let name: String = if let Some(Some(Some(ti))) = self
+                                            let name: String = if let Some(Some(ti)) = self
                                                 .trigger_info
                                                 .get(&trig.ttype)
-                                                .map(|v| v.values.as_ref().map(|m| m.get(&i)))
+                                                .map(|v| v.values.get(&i))
                                             {
-                                                ti.clone()
+                                                ti.name.clone()
                                             } else {
-                                                format!("#{i} ")
-                                            };
+                                                None
+                                            }
+                                            .unwrap_or(format!("#{i} "));
 
-                                            readonly_input!(ui, name, format!("0x{:x}", v));
+                                            let dtype: TrigDataType = self
+                                                .trigger_info
+                                                .get(&trig.ttype)
+                                                .map(|v| v.values.get(&i).map(|v| v.dtype))
+                                                .unwrap_or_default()
+                                                .unwrap_or_default();
+
+                                            let typestring = match dtype {
+                                                TrigDataType::U32 => format!("0x{:x}", v),
+                                                TrigDataType::F32 => unsafe {
+                                                    format!("{:.5}", transmute::<u32, f32>(*v))
+                                                },
+                                                // TODO(cohae): hashcode lookup
+                                                TrigDataType::Hashcode => {
+                                                    format!("HT_Unk_{:08x}", v)
+                                                }
+                                            };
+                                            readonly_input!(ui, name, typestring);
                                             ui.end_row();
                                         }
                                     }

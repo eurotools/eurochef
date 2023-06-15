@@ -1,4 +1,4 @@
-use glam::{Mat4, Vec3};
+use glam::{Mat4, Quat, Vec3};
 use glow::HasContext;
 
 use super::{
@@ -154,7 +154,14 @@ impl SelectCubeRenderer {
         }
     }
 
-    pub fn render(&self, gl: &glow::Context, uniforms: &RenderUniforms, pos: Vec3, scale: f32) {
+    pub fn render(
+        &self,
+        gl: &glow::Context,
+        uniforms: &RenderUniforms,
+        pos: Vec3,
+        rotation: Quat,
+        scale: f32,
+    ) {
         set_blending_mode(gl, BlendMode::None);
         unsafe {
             gl.line_width(1.0);
@@ -168,7 +175,9 @@ impl SelectCubeRenderer {
                 &uniforms.view.to_cols_array(),
             );
 
-            let model = Mat4::from_translation(pos) * Mat4::from_scale(Vec3::splat(scale));
+            let model = Mat4::from_translation(pos)
+                * Mat4::from_quat(rotation)
+                * Mat4::from_scale(Vec3::splat(scale));
             gl.uniform_matrix_4_f32_slice(
                 gl.get_uniform_location(self.shader, "u_model").as_ref(),
                 false,
