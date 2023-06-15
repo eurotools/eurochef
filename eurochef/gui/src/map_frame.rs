@@ -663,6 +663,33 @@ impl MapFrame {
                                 ui.end_row();
                                 readonly_input!(ui, "Flags ", format!("0x{:x}", trig.game_flags));
                                 ui.end_row();
+
+                                ui.label("Position");
+                                ui.horizontal(|ui| {
+                                    ui.label(format!(
+                                        "{:.3}, {:.3},  {:.3}",
+                                        trig.position.x, trig.position.y, trig.position.z
+                                    ));
+                                });
+                                ui.end_row();
+
+                                ui.label("Rotation");
+                                ui.horizontal(|ui| {
+                                    ui.label(format!(
+                                        "{:.3}, {:.3},  {:.3}",
+                                        trig.rotation.x, trig.rotation.y, trig.rotation.z
+                                    ));
+                                });
+                                ui.end_row();
+
+                                ui.label("Scale");
+                                ui.horizontal(|ui| {
+                                    ui.label(format!(
+                                        "{:.2}, {:.2},  {:.2}",
+                                        trig.scale.x, trig.scale.y, trig.scale.z
+                                    ));
+                                });
+                                ui.end_row();
                             });
 
                             if !trig.data.is_empty() {
