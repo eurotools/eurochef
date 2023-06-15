@@ -104,7 +104,9 @@ impl MapFrame {
         // let (ttl_data, ttl_info) = load_png_frame(TRIG_TEX_LOAD_DATA);
 
         let mut available_triginfo_paths = vec![];
-        if let Ok(d) = std::fs::read_dir("./assets") {
+        let exe_path = std::env::current_exe().unwrap();
+        let exe_dir = exe_path.parent().unwrap();
+        if let Ok(d) = exe_dir.join("assets").read_dir() {
             available_triginfo_paths = d
                 .filter(|d| {
                     d.as_ref().unwrap().file_type().unwrap().is_file()
@@ -128,7 +130,8 @@ impl MapFrame {
         }
 
         let mut trigger_icons = FxHashMap::default();
-        if let Ok(d) = std::fs::read_dir("./assets/icons/triggers") {
+        println!("{:?}", exe_dir.join("./assets/icons/triggers"));
+        if let Ok(d) = exe_dir.join("./assets/icons/triggers").read_dir() {
             for p in d
                 .filter(|d| d.as_ref().unwrap().file_type().unwrap().is_file())
                 .map(|d| {
@@ -141,7 +144,8 @@ impl MapFrame {
                 })
                 .filter(|d| d.to_lowercase().ends_with(".png"))
             {
-                let mut file = File::open(format!("./assets/icons/triggers/{p}")).unwrap();
+                let mut file =
+                    File::open(exe_dir.join("./assets/icons/triggers").join(&p)).unwrap();
                 let mut decoder = png::Decoder::new(&mut file);
                 decoder.set_transformations(png::Transformations::normalize_to_color8());
                 let mut reader = decoder.read_info().unwrap();
@@ -348,10 +352,11 @@ impl MapFrame {
                 if self.selected_triginfo_path.is_empty() {
                     self.trigger_info = Default::default();
                 } else {
-                    let v = std::fs::read_to_string(&format!(
-                        "./assets/{}",
-                        self.selected_triginfo_path
-                    ))
+                    let exe_path = std::env::current_exe().unwrap();
+                    let exe_dir = exe_path.parent().unwrap();
+                    let v = std::fs::read_to_string(
+                        exe_dir.join(&format!("./assets/{}", self.selected_triginfo_path)),
+                    )
                     .unwrap();
                     self.trigger_info = serde_yaml::from_str(&v)
                         .context("Failed to load trigger definition file")?;
