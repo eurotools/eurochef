@@ -44,6 +44,9 @@ jobs:
         if: matrix.platform == 'ubuntu-latest'
         run: cargo test --verbose --release
 
+      - name: Copy dir
+        run: cp -r assets ./target/release/assets
+
       - name: Publish artifact (Windows)
         if: matrix.platform == 'windows-latest'
         uses: actions/upload-artifact@v3
@@ -51,7 +54,7 @@ jobs:
           name: eurochef-win-${{ env.GITHUB_SHA_SHORT }}
           path: |
             ./target/release/*.exe
-            assets
+            ./target/release/assets
   package-addon:
     name: Package Blender addon
     runs-on: ubuntu-latest
