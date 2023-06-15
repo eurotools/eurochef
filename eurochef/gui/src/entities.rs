@@ -491,7 +491,7 @@ impl EntityListPanel {
                 let mut uniforms = RenderUniforms::default();
                 uniforms.update(
                     true,
-                    &mut ArcBallCamera::new(Vec3::ZERO, Vec2::new(140., 30.), zoom, false),
+                    &mut ArcBallCamera::new(Vec3::ZERO, Vec2::new(30., 140.), zoom, false),
                     1.0,
                     0.0,
                 );

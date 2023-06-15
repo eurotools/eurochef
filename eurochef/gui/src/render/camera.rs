@@ -67,7 +67,7 @@ impl Default for ArcBallCamera {
     fn default() -> Self {
         ArcBallCamera {
             pivot: Vec3::ZERO,
-            orientation: Vec2::new(140., 30.),
+            orientation: Vec2::new(30., 140.),
             zoom: 5.0,
             log_zoom: true,
             camera_inv: Mat4::IDENTITY,
@@ -140,8 +140,8 @@ impl Camera3D for ArcBallCamera {
 
     fn calculate_matrix(&mut self) -> Mat4 {
         let rotation = Mat4::from_quat(
-            glam::Quat::from_rotation_x(self.orientation.x.to_radians())
-                * glam::Quat::from_rotation_y(-self.orientation.y.to_radians()),
+            glam::Quat::from_rotation_x((self.orientation.x).to_radians())
+                * glam::Quat::from_rotation_y((-self.orientation.y).to_radians()),
         );
 
         let translation = Mat4::from_translation(self.pivot);
