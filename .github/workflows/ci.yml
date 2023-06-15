@@ -49,7 +49,9 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: eurochef-win-${{ env.GITHUB_SHA_SHORT }}
-          path: ./target/release/*.exe
+          path: |
+            ./target/release/*.exe
+            assets
   package-addon:
     name: Package Blender addon
     runs-on: ubuntu-latest
