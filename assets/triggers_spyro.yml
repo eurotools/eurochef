@@ -1,1029 +1,1030 @@
-0x41000001:
-  name: HT_TriggerType_Undefined
-0x41000002:
-  name: HT_TriggerType_Pickup
-0x41000003:
-  name: HT_TriggerType_StartPoint
-  icon: PL_StartPoint
-0x41000004:
-  name: HT_TriggerType_Grunt
-0x41000005:
-  name: HT_TriggerType_cog
-0x41000006:
-  name: HT_TriggerType_v8
-0x41000007:
-  name: HT_TriggerType_fodder
-0x41000008:
-  name: HT_TriggerType_plaform
-0x41000009:
-  name: HT_TriggerType_weightgear
-0x4100000a:
-  name: HT_TriggerType_pathplatform
-0x4100000b:
-  name: HT_TriggerType_Player
-0x4100000c:
-  name: HT_TriggerType_weightform
-0x4100000d:
-  name: HT_TriggerType_launchform
-0x4100000e:
-  name: HT_TriggerType_Sparx
-0x4100000f:
-  name: HT_TriggerType_Breath
-0x41000010:
-  name: HT_TriggerType_Switch
-0x41000011:
-  name: HT_TriggerType_Door
-0x41000012:
-  name: HT_TriggerType_MoneyBags
-0x41000013:
-  name: HT_TriggerType_Gnorc_Sentry
-0x41000016:
-  name: HT_TriggerType_GemStealer
-0x41000017:
-  name: HT_TriggerType_Professor
-0x41000018:
-  name: HT_TriggerType_HunterNPC
-0x41000019:
-  name: HT_TriggerType_Gnorc_Gang
-0x4100001a:
-  name: HT_TriggerType_PoleGrab
-0x4100001c:
-  name: HT_TriggerType_boiler
-0x4100001d:
-  name: HT_TriggerType_WindUpPlatfrom
-0x4100001e:
-  name: HT_TriggerType_WinderCrank
-0x4100001f:
-  name: HT_TriggerType_LightXtal
-0x41000020:
-  name: HT_TriggerType_DarkXtal
-0x41000021:
-  name: HT_TriggerType_SteamBuggy
-0x41000022:
-  name: HT_TriggerType_SteamBuggy_Floor
-0x41000023:
-  name: HT_TriggerType_Script
-0x41000024:
-  name: HT_TriggerType_MorphEnv
-0x41000025:
-  name: HT_TriggerType_Chest_Treasure
-0x41000026:
-  name: HT_TriggerType_Chest_Metal
-0x41000027:
-  name: HT_TriggerType_Chest_Strong
-0x41000028:
-  name: HT_TriggerType_Chest_Locked
-0x41000029:
-  name: HT_TriggerType_Chest_Explosive
-0x4100002a:
-  name: HT_TriggerType_Chest_HornDive
-0x4100002b:
-  name: HT_TriggerType_Chest
-0x4100002f:
-  name: HT_TriggerType_Mechanic
-0x41000030:
-  name: HT_TriggerType_GunTurret
-0x41000031:
-  name: HT_TriggerType_MorphEnvControl
-0x41000032:
-  name: HT_TriggerType_Projectile
-0x41000033:
-  name: HT_TriggerType_EggThief
-0x41000034:
-  name: HT_TriggerType_NPC_Talker
-0x41000035:
-  name: HT_TriggerType_FlameBomb
-0x41000036:
-  name: HT_TriggerType_DragonEgg
-0x41000037:
-  name: HT_TriggerType_Test_AB
-0x41000038:
-  name: HT_TriggerType_CollisionPlane
-0x41000039:
-  name: HT_TriggerType_GenericGate
-0x4100003a:
-  name: HT_TriggerType_ShopPad
-0x4100003b:
-  name: HT_TriggerType_Vase
-0x4100003c:
-  name: HT_TriggerType_CrackWall
-0x4100003d:
-  name: HT_TriggerType_IceBomb
-0x4100003e:
-  name: HT_TriggerType_Breath_Ice
-0x4100003f:
-  name: HT_TriggerType_Generator
-0x41000040:
-  name: HT_TriggerType_Jupiter
-0x41000041:
-  name: HT_TriggerType_Player_Spyro
-0x41000042:
-  name: HT_TriggerType_Player_Hunter
-0x41000043:
-  name: HT_TriggerType_Buzzard
-0x41000044:
-  name: HT_TriggerType_HunterArrow
-0x41000045:
-  name: HT_TriggerType_Bird_Circling
-0x41000046:
-  name: HT_TriggerType_Bird_Tracking
-0x41000047:
-  name: HT_TriggerType_Bird_Diving
-0x41000048:
-  name: HT_TriggerType_Player_Sparx
-0x41000049:
-  name: HT_TriggerType_Seeker
-0x4100004a:
-  name: HT_TriggerType_Cannon
-0x4100004b:
-  name: HT_TriggerType_ScriptPlatform
-0x4100004c:
-  name: HT_TriggerType_CannonShell
-0x4100004d:
-  name: HT_TriggerType_WaterSeesawPlatform
-0x4100004e:
-  name: HT_TriggerType_WaterSeesawBucket
-0x4100004f:
-  name: HT_TriggerType_WaterSeesaw
-0x41000050:
-  name: HT_TriggerType_Mountain_Goat
-0x41000051:
-  name: HT_TriggerType_DestroyMe
-0x41000052:
-  name: HT_TriggerType_CrocoVile
-0x41000053:
-  name: HT_TriggerType_Thermal
-0x41000054:
-  name: HT_TriggerType_BallGadget
-0x41000055:
-  name: HT_TriggerType_PlayBall
-0x41000056:
-  name: HT_TriggerType_Pygmy
-0x41000057:
-  name: HT_TriggerType_ELFPortal
-0x41000058:
-  name: HT_TriggerType_Site
-0x41000059:
-  name: HT_TriggerType_ProjWater
-0x4100005a:
-  name: HT_TriggerType_CrossPlane
-0x4100005b:
-  name: HT_TriggerType_SwitchActivatedPlatform
-0x4100005c:
-  name: HT_TriggerType_WaterWheel
-0x4100005d:
-  name: HT_TriggerType_PopupDoodah
-0x4100005e:
-  name: HT_TriggerType_LillyPad
-0x4100005f:
-  name: HT_TriggerType_FallingIciclePlatform
-0x41000060:
-  name: HT_TriggerType_WaterWheelPoleGrabDriven
-0x41000061:
-  name: HT_TriggerType_WaterWheelPlatformDriven
-0x41000062:
-  name: HT_TriggerType_Piranha
-0x41000063:
-  name: HT_TriggerType_weight_switch
-0x41000064:
-  name: HT_TriggerType_WaterWheelPlatform
-0x41000065:
-  name: HT_TriggerType_ForceField
-0x41000066:
-  name: HT_TriggerType_GadgetPad
-0x41000067:
-  name: HT_TriggerType_WaterWheelWater
-0x41000068:
-  name: HT_TriggerType_Axe
-0x41000069:
-  name: HT_TriggerType_HaywireIcePlatform
-0x4100006a:
-  name: HT_TriggerType_TeeteringIcePlatform
-0x4100006b:
-  name: HT_TriggerType_Turret
-0x4100006c:
-  name: HT_TriggerType_NastyFallingIcicle
-0x4100006d:
-  name: HT_TriggerType_Shark
-0x4100006e:
-  name: HT_TriggerType_BirdBomb
-0x4100006f:
-  name: HT_TriggerType_RisingBeachPlatform
-0x41000070:
-  name: HT_TriggerType_Archer_Arrow
-0x41000071:
-  name: HT_TriggerType_LizHard
-0x41000072:
-  name: HT_TriggerType_LizHard_Tongue
-0x41000073:
-  name: HT_TriggerType_SpikeTrap
-0x41000074:
-  name: HT_TriggerType_PufferFish
-0x41000075:
-  name: HT_TriggerType_Bonerang
-0x41000076:
-  name: HT_TriggerType_WaterDrops
-0x41000077:
-  name: HT_TriggerType_WaterSurface
-0x41000078:
-  name: HT_TriggerType_Monitor
-0x41000079:
-  name: HT_TriggerType_R1C_Dummy_Cannon
-0x4100007a:
-  name: HT_TriggerType_R1C_CannonPillar
-0x4100007b:
-  name: HT_TriggerType_MiniGameEnemyWave
-0x4100007c:
-  name: HT_TriggerType_LizHard_Controller
-0x4100007d:
-  name: HT_TriggerType_Supplies_MG1A
-0x4100007e:
-  name: HT_TriggerType_SwampPathPlatform
-0x4100007f:
-  name: HT_TriggerType_Platform_Controller
-0x41000080:
-  name: HT_TriggerType_SinkPlatform
-0x41000081:
-  name: HT_TriggerType_Sequencer
-0x41000082:
-  name: HT_TriggerType_Critter
-0x41000084:
-  name: HT_TriggerType_R1C_Archer
-0x41000086:
-  name: HT_TriggerType_Player_BallGadget
-0x41000087:
-  name: HT_TriggerType_Player_Blinky
-0x41000089:
-  name: HT_TriggerType_CameraSpecial
-0x4100008a:
-  name: HT_TriggerType_Camera_PathDrag
-0x4100008b:
-  name: HT_TriggerType_Camera_BallGadget
-0x4100008c:
-  name: HT_TriggerType_Camera_Follow
-0x4100008e:
-  name: HT_TriggerType_CrocGate_Sentry
-0x4100008f:
-  name: HT_TriggerType_Blinky
-0x41000090:
-  name: HT_TriggerType_GnastyGnorc
-0x41000091:
-  name: HT_TriggerType_Player_SgtBird
-0x41000092:
-  name: HT_TriggerType_BirdGate
-0x41000093:
-  name: HT_TriggerType_Mammoth_Adult
-0x41000094:
-  name: HT_TriggerType_Mammoth_Baby
-0x41000095:
-  name: HT_TriggerType_Snowball_Projectile
-0x41000096:
-  name: HT_TriggerType_Bomb
-0x41000097:
-  name: HT_TriggerType_Gems
-0x41000099:
-  name: HT_TriggerType_MapHeight
-0x4100009a:
-  name: HT_TriggerType_conveyor
-0x4100009b:
-  name: HT_TriggerType_wallpiston
-0x4100009c:
-  name: HT_TriggerType_Eskimole
-0x4100009d:
-  name: HT_TriggerType_R5B_WallPiston
-0x4100009e:
-  name: HT_TriggerType_SnapperCrab
-0x4100009f:
-  name: HT_TriggerType_WaterDrivenWheel
-0x410000a0:
-  name: HT_TriggerType_ShockWave
-0x410000a1:
-  name: HT_TriggerType_SlidingWallKick
-0x410000a2:
-  name: HT_TriggerType_R5B_SlidingWallKick
-0x410000a3:
-  name: HT_TriggerType_R5B_WWSlidingWallKick
-0x410000a4:
-  name: HT_TriggerType_BlinkyBullet
-0x410000a5:
-  name: HT_TriggerType_Stamper
-0x410000a6:
-  name: HT_TriggerType_R5B_Stamper
-0x410000a7:
-  name: HT_TriggerType_R5B_WWRising_Platform
-0x410000a8:
-  name: HT_TriggerType_BlinkyBomb
-0x410000a9:
-  name: HT_TriggerType_R5B_Stamper2
-0x410000aa:
-  name: HT_TriggerType_Fluff_Zoned
-0x410000ac:
-  name: HT_TriggerType_Fluff_Pathed
-0x410000ad:
-  name: HT_TriggerType_Kickwheel
-0x410000ae:
-  name: HT_TriggerType_PressureGauge
-0x410000b0:
-  name: HT_TriggerType_PoweredPlatform
-0x410000b1:
-  name: HT_TriggerType_R5B_Flamer
-0x410000b2:
-  name: HT_TriggerType_Flamer
-0x410000b3:
-  name: HT_TriggerType_FlamerZone
-0x410000b4:
-  name: HT_TriggerType_R5B_Nut
-0x410000b5:
-  name: HT_TriggerType_R5B_NutSource
-0x410000b7:
-  name: HT_TriggerType_BabyTurtle_MG2_Spy
-0x410000b8:
-  name: HT_TriggerType_TurtleNest_MG2_Spy
-0x410000b9:
-  name: HT_TriggerType_TurtleHunterCrab_MG2_Spy
-0x410000ba:
-  name: HT_TriggerType_PipeCog
-0x410000bb:
-  name: HT_TriggerType_R5A_PipePuzzle
-0x410000bc:
-  name: HT_TriggerType_CannonOnPedestal
-0x410000bd:
-  name: HT_TriggerType_TurtleHunterBird_MG2_Spy
-0x410000be:
-  name: HT_TriggerType_SoundBank
-0x410000bf:
-  name: HT_TriggerType_LiftPlatform
-0x410000c0:
-  name: HT_TriggerType_Generator_MG2_Spy
-0x410000c1:
-  name: HT_TriggerType_SeeSawPlatform
-0x410000c2:
-  name: HT_TriggerType_EndGate
-0x410000c3:
-  name: HT_TriggerType_PoleSpinPole
-0x410000c4:
-  name: HT_TriggerType_SnowballFalling
-0x410000c5:
-  name: HT_TriggerType_SnowballOscillating
-0x410000c6:
-  name: HT_TriggerType_Hornet_MG1_Spx
-0x410000c8:
-  name: HT_TriggerType_PoleSpinController
-0x410000c9:
-  name: HT_TriggerType_FlippingPlatform
-0x410000ca:
-  name: HT_TriggerType_LavaBalls
-0x410000cb:
-  name: HT_TriggerType_StaticEnemy_MG1_Spx
-0x410000cc:
-  name: HT_TriggerType_Rock
-0x410000cd:
-  name: HT_TriggerType_Tracking_Arrow
-0x410000d0:
-  name: HT_TriggerType_ElecBolt
-0x410000d1:
-  name: HT_TriggerType_Mammoth_MG3_Sgt
-0x410000d2:
-  name: HT_TriggerType_Jupiter_Missile
-0x410000d3:
-  name: HT_TriggerType_JellyFish
-0x410000d4:
-  name: HT_TriggerType_Switch_Timed
-0x410000d5:
-  name: HT_TriggerType_Switch_Timed_Controller
-0x410000d6:
-  name: HT_TriggerType_ExpCrate
-0x410000d7:
-  name: HT_TriggerType_RMonster
-0x410000d8:
-  name: HT_TriggerType_EskimoleCrouched
-0x410000d9:
-  name: HT_TriggerType_Obstacle_MG1_Spx
-0x410000da:
-  name: HT_TriggerType_SparxFireball
-0x410000db:
-  name: HT_TriggerType_SparxSeeker
-0x410000dc:
-  name: HT_TriggerType_Bowman
-0x410000dd:
-  name: HT_TriggerType_Water
-0x410000de:
-  name: HT_TriggerType_LavaFlamers
-0x410000df:
-  name: HT_TriggerType_BallGadgetPathGate
-0x410000e0:
-  name: HT_TriggerType_SparxPickup
-0x410000e1:
-  name: HT_TriggerType_Shepherd
-0x410000e2:
-  name: HT_TriggerType_MineRobot
-0x410000e3:
-  name: HT_TriggerType_SparxGate
-0x410000e4:
-  name: HT_TriggerType_SparxBullet
-0x410000e5:
-  name: HT_TriggerType_MerGnorc
-0x410000e6:
-  name: HT_TriggerType_Clam
-0x410000e7:
-  name: HT_TriggerType_MineCart
-0x410000e8:
-  name: HT_TriggerType_CutScene
-0x410000e9:
-  name: HT_TriggerType_SpinningPlatform
-0x410000ea:
-  name: HT_TriggerType_BoneSpider
-0x410000eb:
-  name: HT_TriggerType_Wizard
-0x410000ec:
-  name: HT_TriggerType_Player_Ember
-0x410000ed:
-  name: HT_TriggerType_Player_Flame
-0x410000ee:
-  name: HT_TriggerType_TurretShell
-0x410000ef:
-  name: HT_TriggerType_SmashBoulder
-0x410000f0:
-  name: HT_TriggerType_Turnstile
-0x410000f1:
-  name: HT_TriggerType_Fan
-0x410000f2:
-  name: HT_TriggerType_Missile
-0x410000f3:
-  name: HT_TriggerType_GloomyCrusher
-0x410000f4:
-  name: HT_TriggerType_Robowman
-0x410000f5:
-  name: HT_TriggerType_Yeti
-0x410000f6:
-  name: HT_TriggerType_WaterCurrent
-0x410000f7:
-  name: HT_TriggerType_FireImps
-0x410000f8:
-  name: HT_TriggerType_WizardImpsComms
-0x410000f9:
-  name: HT_TriggerType_Rollbot
-0x410000fa:
-  name: HT_TriggerType_BallGadgetSwitch
-0x410000fb:
-  name: HT_TriggerType_Smashbot
-0x410000fc:
-  name: HT_TriggerType_DigWall
-0x410000fd:
-  name: HT_TriggerType_DigFloor
-0x410000fe:
-  name: HT_TriggerType_MerGnorcSentry
-0x410000ff:
-  name: HT_TriggerType_FireImpHover
-0x41000100:
-  name: HT_TriggerType_HornDiveFloor
-0x41000101:
-  name: HT_TriggerType_Skeleton
-0x41000102:
-  name: HT_TriggerType_Eskimole_MR3_Spy
-0x41000103:
-  name: HT_TriggerType_WizardSkeletonComms
-0x41000105:
-  name: HT_TriggerType_Fireball
-0x41000106:
-  name: HT_TriggerType_Fireball_ball
-0x41000107:
-  name: HT_TriggerType_Dynamo
-0x41000108:
-  name: HT_TriggerType_FireBird
-0x41000109:
-  name: HT_TriggerType_ProjectileLauncher
-0x4100010a:
-  name: HT_TriggerType_LaunchedProjectile
-0x4100010b:
-  name: HT_TriggerType_SparxHornet
-0x4100010c:
-  name: HT_TriggerType_Hazard
-0x4100010d:
-  name: HT_TriggerType_Gnorc_Sgt
-0x4100010e:
-  name: HT_TriggerType_BalloonARang
-0x4100010f:
-  name: HT_TriggerType_VanishingPlatform
-0x41000110:
-  name: HT_TriggerType_TreeDweller
-0x41000111:
-  name: HT_TriggerType_BalloonARangWeapon
-0x41000112:
-  name: HT_TriggerType_BadVine
-0x41000113:
-  name: HT_TriggerType_ShepherdGoatComms
-0x41000114:
-  name: HT_TriggerType_TetheredPlatform
-0x41000115:
-  name: HT_TriggerType_DarkGemShards
-0x41000116:
-  name: HT_TriggerType_PopUp
-0x41000118:
-  name: HT_TriggerType_Chest_GroundTarget
-0x41000119:
-  name: HT_TriggerType_Planets
-0x4100011a:
-  name: HT_TriggerType_BirdBombBag
-0x4100011b:
-  name: HT_TriggerType_BirdBombCont
-0x4100011c:
-  name: HT_TriggerType_ElectricWave
-0x4100011d:
-  name: HT_TriggerType_FoldingPlatform
-0x4100011e:
-  name: HT_TriggerType_WallKick_Switcher
-0x4100011f:
-  name: HT_TriggerType_R5B_StamperCtrl
-0x41000120:
-  name: HT_TriggerType_R4E_AssemblyGnorc
-0x41000121:
-  name: HT_TriggerType_R4E_AssemblyController
-0x41000122:
-  name: HT_TriggerType_LaserCannon
-0x41000123:
-  name: HT_TriggerType_R4_Laser
-0x41000124:
-  name: HT_TriggerType_LaserBolt
-0x41000125:
-  name: HT_TriggerType_EffectsTest
-0x41000126:
-  name: HT_TriggerType_BirdMan
-0x41000127:
-  name: HT_TriggerType_R4_FixedLaser
-0x41000128:
-  name: HT_TriggerType_FixedLaser
-0x41000129:
-  name: HT_TriggerType_SweepingLaser
-0x4100012a:
-  name: HT_TriggerType_R4_SwitchedLaser
-0x4100012b:
-  name: HT_TriggerType_SteamPiston
-0x4100012c:
-  name: HT_TriggerType_PressurePlatform
-0x4100012d:
-  name: HT_TriggerType_BirdManShockWave
-0x4100012e:
-  name: HT_TriggerType_BossRed
-0x4100012f:
-  name: HT_TriggerType_MrFreeze
-0x41000131:
-  name: HT_TriggerType_Boiler3C
-0x41000132:
-  name: HT_TriggerType_R4DPoleController
-0x41000133:
-  name: HT_TriggerType_R4D_SlidingWallKick
-0x41000134:
-  name: HT_TriggerType_TrapDoorSpider
-0x41000135:
-  name: HT_TriggerType_R4D_LaserTurret
-0x41000136:
-  name: HT_TriggerType_R4D_LaserSentinal
-0x41000137:
-  name: HT_TriggerType_SlidingCrate
-0x41000138:
-  name: HT_TriggerType_Generic
-0x41000139:
-  name: HT_TriggerType_GemsFlyToPoint
-0x4100013a:
-  name: HT_TriggerType_ElectricBeam
-0x4100013d:
-  name: HT_TriggerType_FireWorks
-0x4100013e:
-  name: HT_TriggerType_SmashbotPatrol
-0x4100013f:
-  name: HT_TriggerType_Mine
-0x41000140:
-  name: HT_TriggerType_KillHornet
-0x41000141:
-  name: HT_TriggerType_Yeti_MG3_Spy
-0x41000142:
-  name: HT_TriggerType_WaterPole
-0x41000143:
-  name: HT_TriggerType_BlinkChest
-0x41000144:
-  name: HT_TriggerType_DangerZone
-0x41000145:
-  name: HT_TriggerType_Switch_Controller
-0x41000146:
-  name: HT_TriggerType_PoisonBlob
-0x41000147:
-  name: HT_TriggerType_SteamBlast
-0x4100014a:
-  name: HT_TriggerType_LaserMirror
-0x4100014b:
-  name: HT_TriggerType_OrryLaser
-0x4100014c:
-  name: HT_TriggerType_HandlerIndex
-0x4100014d:
-  name: HT_TriggerType_JawSnapper
-0x4100014e:
-  name: HT_TriggerType_BoulderParent
-0x4100014f:
-  name: HT_TriggerType_BoulderChild
-0x41000151:
-  name: HT_TriggerType_NPC_Slave
-0x41000152:
-  name: HT_TriggerType_PickupGenerator
-0x41000153:
-  name: HT_TriggerType_Projector
-0x41000154:
-  name: HT_TriggerType_Ineptune
-0x41000155:
-  name: HT_TriggerType_MechaRed
-0x41000157:
-  name: HT_TriggerType_R5B_WWplatController
-0x41000158:
-  name: HT_TriggerType_PlatformShrinking
-0x41000159:
-  name: HT_TriggerType_DarkGemVine
-0x4100015a:
-  name: HT_TriggerType_IneptunePlatform
-0x4100015b:
-  name: HT_TriggerType_ShockWaveTower
-0x4100015c:
-  name: HT_TriggerType_Splitter
-0x4100015d:
-  name: HT_TriggerType_ShockWaveSphere
-0x4100015e:
-  name: HT_TriggerType_ShockWaveRing
-0x4100015f:
-  name: HT_TriggerType_CirclingBirdsCont
-0x41000160:
-  name: HT_TriggerType_CirclingBird
-0x41000161:
-  name: HT_TriggerType_SwampBatCont
-0x41000162:
-  name: HT_TriggerType_SnowEffect
-0x41000163:
-  name: HT_TriggerType_LaserController
-0x41000164:
-  name: HT_TriggerType_MutantWorm
-0x41000165:
-  name: HT_TriggerType_RainEffect
-0x41000166:
-  name: HT_TriggerType_LaserRing
-0x41000167:
-  name: HT_TriggerType_PhilsElecNodePuzzleCtrlr
-0x41000168:
-  name: HT_TriggerType_TitlesScript
-0x41000169:
-  name: HT_TriggerType_WaterBomb
-0x4100016a:
-  name: HT_TriggerType_LaserSeeker
-0x4100016b:
-  name: HT_TriggerType_BoxOfRockets
-0x4100016c:
-  name: HT_TriggerType_TeleportPad
-0x4100016d:
-  name: HT_TriggerType_YetiSgt
-0x4100016e:
-  name: HT_TriggerType_SnowBall
-0x4100016f:
-  name: HT_TriggerType_PiranhaPack_Controller
-0x41000170:
-  name: HT_TriggerType_PygmyLeader
-0x41000171:
-  name: HT_TriggerType_SnapperCrabLeader
-0x41000172:
-  name: HT_TriggerType_EyeLaser
-0x41000173:
-  name: HT_TriggerType_FixedTrackingLaserGun
-0x41000174:
-  name: HT_TriggerType_MapChangePopup
-0x41000175:
-  name: HT_TriggerType_BouncingMine
-0x41000176:
-  name: HT_TriggerType_TalkIndicator
-0x41000177:
-  name: HT_TriggerType_BouncingBarrel
-0x41000178:
-  name: HT_TriggerType_HomingMissile
-0x41000179:
-  name: HT_TriggerType_MechRedShockWave
-0x4100017a:
-  name: HT_TriggerType_Treena
-0x4100017b:
-  name: HT_TriggerType_SwitchIndicator
-0x4100017c:
-  name: HT_TriggerType_R4ZMultiPlatformDoor
-0x4100017d:
-  name: HT_TriggerType_R4ZMultiPlatform
-0x4100017e:
-  name: HT_TriggerType_HintCamera
-0x4100017f:
-  name: HT_TriggerType_BallGadgetTimedController
-0x41000180:
-  name: HT_TriggerType_BallHazardOscillating
-0x41000181:
-  name: HT_TriggerType_BossRobowman
-0x41000182:
-  name: HT_TriggerType_Tentacle
-0x41000183:
-  name: HT_TriggerType_FleshRed
-0x41000184:
-  name: HT_TriggerType_Flags
-0x41000185:
-  name: HT_TriggerType_R4ZFireWorks
-0x41000186:
-  name: HT_TriggerType_CameraShake
-0x41000188:
-  name: HT_TriggerType_TestJS
-0x41000189:
-  name: HT_TriggerType_Worm
-0x4100018a:
-  name: HT_TriggerType_MapBoiler
-0x4100018b:
-  name: HT_TriggerType_FlameBlast
-0x4100018c:
-  name: HT_TriggerType_DestroyMe_Archways
-0x4100018d:
-  name: HT_TriggerType_Chest_BLK_Weak
-0x4100018e:
-  name: HT_TriggerType_Chest_BLK_Strong
-0x4100018f:
-  name: HT_TriggerType_CrocoClub
-0x41000190:
-  name: HT_TriggerType_MapInfo
-0x41000191:
-  name: HT_TriggerType_Lift2A_2C
-0x41000192:
-  name: HT_TriggerType_Cloud
-0x41000193:
-  name: HT_TriggerType_MapPlacementCtrl
-0x41000194:
-  name: HT_TriggerType_DarkeGemCover
-0x41000195:
-  name: HT_TriggerType_TimedDoorSwitch
-0x41000196:
-  name: HT_TriggerType_SparxBulletRapid
-0x41000197:
-  name: HT_TriggerType_BalloonARang_Sgt
-0x41000199:
-  name: HT_TriggerType_GemStealer_Sgt
-0x4100019b:
-  name: HT_TriggerType_R4E_AssemblyCenter
-0x4100019c:
-  name: HT_TriggerType_IneptuneLaser
-0x4100019d:
-  name: HT_TriggerType_MechaRedShockWaveWall
-0x4100019e:
-  name: HT_TriggerType_RoboPatrol
-0x4100019f:
-  name: HT_TriggerType_DummyBarrel
-0x410001a0:
-  name: HT_TriggerType_R4Exit_Switch
-0x410001a1:
-  name: HT_TriggerType_LiftPlatform2C
-0x410001a2:
-  name: HT_TriggerType_Ouch
-0x410001a3:
-  name: HT_TriggerType_SwitchActivatedPlatform2A
-0x410001a4:
-  name: HT_TriggerType_PortalController
-0x410001a5:
-  name: HT_TriggerType_PortalSwitch
-0x42000001:
-  name: HT_TriggerSubType_Undefined
-0x42000002:
-  name: HT_TriggerSubType_1
-0x42000003:
-  name: HT_TriggerSubType_2
-0x42000004:
-  name: HT_TriggerSubType_3
-0x42000005:
-  name: HT_TriggerSubType_4
-0x42000006:
-  name: HT_TriggerSubType_5
-0x42000007:
-  name: HT_TriggerSubType_6
-0x42000008:
-  name: HT_TriggerSubType_7
-0x42000009:
-  name: HT_TriggerSubType_8
-0x4200000a:
-  name: HT_TriggerSubType_Primary
-0x4200000b:
-  name: HT_TriggerSubType_Gem
-0x4200000c:
-  name: HT_TriggerSubType_Chicken
-0x4200000d:
-  name: HT_TriggerSubType_Pig
-0x4200000e:
-  name: HT_TriggerSubType_Rabbit
-0x4200000f:
-  name: HT_TriggerSubType_GemController
-0x42000010:
-  name: HT_TriggerSubType_GemChain
-0x42000011:
-  name: HT_TriggerSubType_Sheep
-0x42000012:
-  name: HT_TriggerSubType_Winder
-0x42000013:
-  name: HT_TriggerSubType_R1A_puzzle
-0x42000014:
-  name: HT_TriggerSubType_Charge
-0x42000015:
-  name: HT_TriggerSubType_Horndive
-0x42000016:
-  name: HT_TriggerSubType_CannonBall
-0x42000017:
-  name: HT_TriggerSubType_Patrol
-0x42000018:
-  name: HT_TriggerSubType_BirdBomb
-0x42000019:
-  name: HT_TriggerSubType_Spawned
-0x4200001a:
-  name: HT_TriggerSubType_LoadMap
-0x4200001b:
-  name: HT_TriggerSubType_CloseMap
-0x4200001c:
-  name: HT_TriggerSubType_Goat_R1C
-0x4200001d:
-  name: HT_TriggerSubType_Charge_Platform
-0x4200001e:
-  name: HT_TriggerSubType_Horndive_Platform
-0x42000020:
-  name: HT_TriggerSubType_Realm_1ca
-0x42000021:
-  name: HT_TriggerSubType_RapidsPlatform
-0x42000022:
-  name: HT_TriggerSubType_RapidsPlatformC
-0x42000023:
-  name: HT_TriggerSubType_RapidsPlatformCont
-0x42000024:
-  name: HT_TriggerSubType_Tuna
-0x42000026:
-  name: HT_TriggerSubType_Sleeping
-0x42000029:
-  name: HT_TriggerSubType_Bird_Tracking_MG1A
-0x4200002a:
-  name: HT_TriggerSubType_LizHard_MG1A
-0x4200002b:
-  name: HT_TriggerSubType_SwapMap
-0x4200002c:
-  name: HT_TriggerSubType_SwampRat
-0x4200002d:
-  name: HT_TriggerSubType_Critter_MG1A
-0x4200002e:
-  name: HT_TriggerSubType_BirdBomb_MG1A
-0x4200002f:
-  name: HT_TriggerSubType_SwampBat
-0x42000030:
-  name: HT_TriggerSubType_Vulture
-0x42000031:
-  name: HT_TriggerSubType_SnowBall
-0x42000032:
-  name: HT_TriggerSubType_Bombs
-0x42000033:
-  name: HT_TriggerSubType_Fuel
-0x42000034:
-  name: HT_TriggerSubType_Missiles
-0x42000035:
-  name: HT_TriggerSubType_Time
-0x42000036:
-  name: HT_TriggerSubType_PoleGrabPath
-0x42000037:
-  name: HT_TriggerSubType_Slider
-0x42000038:
-  name: HT_TriggerSubType_HermitCB
-0x42000039:
-  name: HT_TriggerSubType_Projectile
-0x4200003a:
-  name: HT_TriggerSubType_Spear
-0x4200003b:
-  name: HT_TriggerSubType_Valve
-0x4200003e:
-  name: HT_TriggerSubType_OnPedestal
-0x4200003f:
-  name: HT_TriggerSubType_PygmySpear
-0x42000040:
-  name: HT_TriggerSubType_MG1_Spx
-0x42000041:
-  name: HT_TriggerSubType_Geyser_Switch
-0x42000042:
-  name: HT_TriggerSubType_Padlock
-0x42000045:
-  name: HT_TriggerSubType_FireBreath
-0x42000046:
-  name: HT_TriggerSubType_IceBreath
-0x42000047:
-  name: HT_TriggerSubType_WaterBreath
-0x42000048:
-  name: HT_TriggerSubType_ElectricityBreath
-0x42000049:
-  name: HT_TriggerSubType_Bowman
-0x4200004b:
-  name: HT_TriggerSubType_WeaponPowerup
-0x4200004c:
-  name: HT_TriggerSubType_ClamShot
-0x4200004d:
-  name: HT_TriggerSubType_DragonEgg1
-0x4200004e:
-  name: HT_TriggerSubType_DragonEgg2
-0x4200004f:
-  name: HT_TriggerSubType_DragonEgg3
-0x42000050:
-  name: HT_TriggerSubType_DragonEgg4
-0x42000051:
-  name: HT_TriggerSubType_DragonEgg5
-0x42000052:
-  name: HT_TriggerSubType_DragonEgg6
-0x42000053:
-  name: HT_TriggerSubType_DragonEgg7
-0x42000054:
-  name: HT_TriggerSubType_DragonEgg8
-0x42000055:
-  name: HT_TriggerSubType_IceBoulder
-0x42000056:
-  name: HT_TriggerSubType_Arrow
-0x42000057:
-  name: HT_TriggerSubType_SnowballYeti
-0x42000058:
-  name: HT_TriggerSubType_ArcherYeti
-0x42000059:
-  name: HT_TriggerSubType_BarrelYeti
-0x4200005a:
-  name: HT_TriggerSubType_UnarmedYeti
-0x4200005b:
-  name: HT_TriggerSubType_Scripted
-0x4200005c:
-  name: HT_TriggerSubType_Coconut
-0x4200005d:
-  name: HT_TriggerSubType_Bat
-0x4200005e:
-  name: HT_TriggerSubType_Health
-0x4200005f:
-  name: HT_TriggerSubType_Multi
-0x42000060:
-  name: HT_TriggerSubType_Laser
-0x42000061:
-  name: HT_TriggerSubType_Missile
-0x42000062:
-  name: HT_TriggerSubType_MG3_Spy
-0x42000063:
-  name: HT_TriggerSubType_MG4_Spy
-0x42000064:
-  name: HT_TriggerSubType_Path
-0x42000065:
-  name: HT_TriggerSubType_WaterIce
-0x42000066:
-  name: HT_TriggerSubType_HomingTornado
-0x42000067:
-  name: HT_TriggerSubType_LightGem
-0x42000068:
-  name: HT_TriggerSubType_SwampBatGenerated
-0x42000069:
-  name: HT_TriggerSubType_Electric
-0x4200006a:
-  name: HT_TriggerSubType_MG2_Blk
-0x4200006b:
-  name: HT_TriggerSubType_SmartBomb
-0x4200006c:
-  name: HT_TriggerSubType_SpeedBoost
-0x4200006d:
-  name: HT_TriggerSubType_BlinkBomb
-0x4200006e:
-  name: HT_TriggerSubType_EnemyBase
-0x42000070:
-  name: HT_TriggerSubType_SparxHard
-0x42000071:
-  name: HT_TriggerSubType_Tongue
-0x42000072:
-  name: HT_TriggerSubType_Fire
-0x42000073:
-  name: HT_TriggerSubType_Spin
-0x42000074:
-  name: HT_TriggerSubType_Winged
-0x42000075:
-  name: HT_TriggerSubType_Critter
-0x42000077:
-  name: HT_TriggerSubType_BossFireBall
-0x42000078:
-  name: HT_TriggerSubType_PhilsElecNode
-0x42000079:
-  name: HT_TriggerSubType_LaserHitBoss
-0x4200007a:
-  name: HT_TriggerSubType_Robot
-0x4200007b:
-  name: HT_TriggerSubType_RenderSpecial
-0x4200007c:
-  name: HT_TriggerSubType_LockPicker
-0x4200007d:
-  name: HT_TriggerSubType_FullHealthPickup
-0x4200007e:
-  name: HT_TriggerSubType_Driven
-0x4200007f:
-  name: HT_TriggerSubType_MapInfoWater
-0x42000080:
-  name: HT_TriggerSubType_Fixed
-0x42000081:
-  name: HT_TriggerSubType_R4E
-0x42000082:
-  name: HT_TriggerSubType_FlameArrowPU
-0x42000083:
-  name: HT_TriggerSubType_CloseMapLift
-0x42000084:
-  name: HT_TriggerSubType_LoadMapLift
-0x42000085:
-  name: HT_TriggerSubType_HASHCODE_END
+triggers:
+  0x41000001:
+    name: HT_TriggerType_Undefined
+  0x41000002:
+    name: HT_TriggerType_Pickup
+  0x41000003:
+    name: HT_TriggerType_StartPoint
+    icon: PL_StartPoint
+  0x41000004:
+    name: HT_TriggerType_Grunt
+  0x41000005:
+    name: HT_TriggerType_cog
+  0x41000006:
+    name: HT_TriggerType_v8
+  0x41000007:
+    name: HT_TriggerType_fodder
+  0x41000008:
+    name: HT_TriggerType_plaform
+  0x41000009:
+    name: HT_TriggerType_weightgear
+  0x4100000a:
+    name: HT_TriggerType_pathplatform
+  0x4100000b:
+    name: HT_TriggerType_Player
+  0x4100000c:
+    name: HT_TriggerType_weightform
+  0x4100000d:
+    name: HT_TriggerType_launchform
+  0x4100000e:
+    name: HT_TriggerType_Sparx
+  0x4100000f:
+    name: HT_TriggerType_Breath
+  0x41000010:
+    name: HT_TriggerType_Switch
+  0x41000011:
+    name: HT_TriggerType_Door
+  0x41000012:
+    name: HT_TriggerType_MoneyBags
+  0x41000013:
+    name: HT_TriggerType_Gnorc_Sentry
+  0x41000016:
+    name: HT_TriggerType_GemStealer
+  0x41000017:
+    name: HT_TriggerType_Professor
+  0x41000018:
+    name: HT_TriggerType_HunterNPC
+  0x41000019:
+    name: HT_TriggerType_Gnorc_Gang
+  0x4100001a:
+    name: HT_TriggerType_PoleGrab
+  0x4100001c:
+    name: HT_TriggerType_boiler
+  0x4100001d:
+    name: HT_TriggerType_WindUpPlatfrom
+  0x4100001e:
+    name: HT_TriggerType_WinderCrank
+  0x4100001f:
+    name: HT_TriggerType_LightXtal
+  0x41000020:
+    name: HT_TriggerType_DarkXtal
+  0x41000021:
+    name: HT_TriggerType_SteamBuggy
+  0x41000022:
+    name: HT_TriggerType_SteamBuggy_Floor
+  0x41000023:
+    name: HT_TriggerType_Script
+  0x41000024:
+    name: HT_TriggerType_MorphEnv
+  0x41000025:
+    name: HT_TriggerType_Chest_Treasure
+  0x41000026:
+    name: HT_TriggerType_Chest_Metal
+  0x41000027:
+    name: HT_TriggerType_Chest_Strong
+  0x41000028:
+    name: HT_TriggerType_Chest_Locked
+  0x41000029:
+    name: HT_TriggerType_Chest_Explosive
+  0x4100002a:
+    name: HT_TriggerType_Chest_HornDive
+  0x4100002b:
+    name: HT_TriggerType_Chest
+  0x4100002f:
+    name: HT_TriggerType_Mechanic
+  0x41000030:
+    name: HT_TriggerType_GunTurret
+  0x41000031:
+    name: HT_TriggerType_MorphEnvControl
+  0x41000032:
+    name: HT_TriggerType_Projectile
+  0x41000033:
+    name: HT_TriggerType_EggThief
+  0x41000034:
+    name: HT_TriggerType_NPC_Talker
+  0x41000035:
+    name: HT_TriggerType_FlameBomb
+  0x41000036:
+    name: HT_TriggerType_DragonEgg
+  0x41000037:
+    name: HT_TriggerType_Test_AB
+  0x41000038:
+    name: HT_TriggerType_CollisionPlane
+  0x41000039:
+    name: HT_TriggerType_GenericGate
+  0x4100003a:
+    name: HT_TriggerType_ShopPad
+  0x4100003b:
+    name: HT_TriggerType_Vase
+  0x4100003c:
+    name: HT_TriggerType_CrackWall
+  0x4100003d:
+    name: HT_TriggerType_IceBomb
+  0x4100003e:
+    name: HT_TriggerType_Breath_Ice
+  0x4100003f:
+    name: HT_TriggerType_Generator
+  0x41000040:
+    name: HT_TriggerType_Jupiter
+  0x41000041:
+    name: HT_TriggerType_Player_Spyro
+  0x41000042:
+    name: HT_TriggerType_Player_Hunter
+  0x41000043:
+    name: HT_TriggerType_Buzzard
+  0x41000044:
+    name: HT_TriggerType_HunterArrow
+  0x41000045:
+    name: HT_TriggerType_Bird_Circling
+  0x41000046:
+    name: HT_TriggerType_Bird_Tracking
+  0x41000047:
+    name: HT_TriggerType_Bird_Diving
+  0x41000048:
+    name: HT_TriggerType_Player_Sparx
+  0x41000049:
+    name: HT_TriggerType_Seeker
+  0x4100004a:
+    name: HT_TriggerType_Cannon
+  0x4100004b:
+    name: HT_TriggerType_ScriptPlatform
+  0x4100004c:
+    name: HT_TriggerType_CannonShell
+  0x4100004d:
+    name: HT_TriggerType_WaterSeesawPlatform
+  0x4100004e:
+    name: HT_TriggerType_WaterSeesawBucket
+  0x4100004f:
+    name: HT_TriggerType_WaterSeesaw
+  0x41000050:
+    name: HT_TriggerType_Mountain_Goat
+  0x41000051:
+    name: HT_TriggerType_DestroyMe
+  0x41000052:
+    name: HT_TriggerType_CrocoVile
+  0x41000053:
+    name: HT_TriggerType_Thermal
+  0x41000054:
+    name: HT_TriggerType_BallGadget
+  0x41000055:
+    name: HT_TriggerType_PlayBall
+  0x41000056:
+    name: HT_TriggerType_Pygmy
+  0x41000057:
+    name: HT_TriggerType_ELFPortal
+  0x41000058:
+    name: HT_TriggerType_Site
+  0x41000059:
+    name: HT_TriggerType_ProjWater
+  0x4100005a:
+    name: HT_TriggerType_CrossPlane
+  0x4100005b:
+    name: HT_TriggerType_SwitchActivatedPlatform
+  0x4100005c:
+    name: HT_TriggerType_WaterWheel
+  0x4100005d:
+    name: HT_TriggerType_PopupDoodah
+  0x4100005e:
+    name: HT_TriggerType_LillyPad
+  0x4100005f:
+    name: HT_TriggerType_FallingIciclePlatform
+  0x41000060:
+    name: HT_TriggerType_WaterWheelPoleGrabDriven
+  0x41000061:
+    name: HT_TriggerType_WaterWheelPlatformDriven
+  0x41000062:
+    name: HT_TriggerType_Piranha
+  0x41000063:
+    name: HT_TriggerType_weight_switch
+  0x41000064:
+    name: HT_TriggerType_WaterWheelPlatform
+  0x41000065:
+    name: HT_TriggerType_ForceField
+  0x41000066:
+    name: HT_TriggerType_GadgetPad
+  0x41000067:
+    name: HT_TriggerType_WaterWheelWater
+  0x41000068:
+    name: HT_TriggerType_Axe
+  0x41000069:
+    name: HT_TriggerType_HaywireIcePlatform
+  0x4100006a:
+    name: HT_TriggerType_TeeteringIcePlatform
+  0x4100006b:
+    name: HT_TriggerType_Turret
+  0x4100006c:
+    name: HT_TriggerType_NastyFallingIcicle
+  0x4100006d:
+    name: HT_TriggerType_Shark
+  0x4100006e:
+    name: HT_TriggerType_BirdBomb
+  0x4100006f:
+    name: HT_TriggerType_RisingBeachPlatform
+  0x41000070:
+    name: HT_TriggerType_Archer_Arrow
+  0x41000071:
+    name: HT_TriggerType_LizHard
+  0x41000072:
+    name: HT_TriggerType_LizHard_Tongue
+  0x41000073:
+    name: HT_TriggerType_SpikeTrap
+  0x41000074:
+    name: HT_TriggerType_PufferFish
+  0x41000075:
+    name: HT_TriggerType_Bonerang
+  0x41000076:
+    name: HT_TriggerType_WaterDrops
+  0x41000077:
+    name: HT_TriggerType_WaterSurface
+  0x41000078:
+    name: HT_TriggerType_Monitor
+  0x41000079:
+    name: HT_TriggerType_R1C_Dummy_Cannon
+  0x4100007a:
+    name: HT_TriggerType_R1C_CannonPillar
+  0x4100007b:
+    name: HT_TriggerType_MiniGameEnemyWave
+  0x4100007c:
+    name: HT_TriggerType_LizHard_Controller
+  0x4100007d:
+    name: HT_TriggerType_Supplies_MG1A
+  0x4100007e:
+    name: HT_TriggerType_SwampPathPlatform
+  0x4100007f:
+    name: HT_TriggerType_Platform_Controller
+  0x41000080:
+    name: HT_TriggerType_SinkPlatform
+  0x41000081:
+    name: HT_TriggerType_Sequencer
+  0x41000082:
+    name: HT_TriggerType_Critter
+  0x41000084:
+    name: HT_TriggerType_R1C_Archer
+  0x41000086:
+    name: HT_TriggerType_Player_BallGadget
+  0x41000087:
+    name: HT_TriggerType_Player_Blinky
+  0x41000089:
+    name: HT_TriggerType_CameraSpecial
+  0x4100008a:
+    name: HT_TriggerType_Camera_PathDrag
+  0x4100008b:
+    name: HT_TriggerType_Camera_BallGadget
+  0x4100008c:
+    name: HT_TriggerType_Camera_Follow
+  0x4100008e:
+    name: HT_TriggerType_CrocGate_Sentry
+  0x4100008f:
+    name: HT_TriggerType_Blinky
+  0x41000090:
+    name: HT_TriggerType_GnastyGnorc
+  0x41000091:
+    name: HT_TriggerType_Player_SgtBird
+  0x41000092:
+    name: HT_TriggerType_BirdGate
+  0x41000093:
+    name: HT_TriggerType_Mammoth_Adult
+  0x41000094:
+    name: HT_TriggerType_Mammoth_Baby
+  0x41000095:
+    name: HT_TriggerType_Snowball_Projectile
+  0x41000096:
+    name: HT_TriggerType_Bomb
+  0x41000097:
+    name: HT_TriggerType_Gems
+  0x41000099:
+    name: HT_TriggerType_MapHeight
+  0x4100009a:
+    name: HT_TriggerType_conveyor
+  0x4100009b:
+    name: HT_TriggerType_wallpiston
+  0x4100009c:
+    name: HT_TriggerType_Eskimole
+  0x4100009d:
+    name: HT_TriggerType_R5B_WallPiston
+  0x4100009e:
+    name: HT_TriggerType_SnapperCrab
+  0x4100009f:
+    name: HT_TriggerType_WaterDrivenWheel
+  0x410000a0:
+    name: HT_TriggerType_ShockWave
+  0x410000a1:
+    name: HT_TriggerType_SlidingWallKick
+  0x410000a2:
+    name: HT_TriggerType_R5B_SlidingWallKick
+  0x410000a3:
+    name: HT_TriggerType_R5B_WWSlidingWallKick
+  0x410000a4:
+    name: HT_TriggerType_BlinkyBullet
+  0x410000a5:
+    name: HT_TriggerType_Stamper
+  0x410000a6:
+    name: HT_TriggerType_R5B_Stamper
+  0x410000a7:
+    name: HT_TriggerType_R5B_WWRising_Platform
+  0x410000a8:
+    name: HT_TriggerType_BlinkyBomb
+  0x410000a9:
+    name: HT_TriggerType_R5B_Stamper2
+  0x410000aa:
+    name: HT_TriggerType_Fluff_Zoned
+  0x410000ac:
+    name: HT_TriggerType_Fluff_Pathed
+  0x410000ad:
+    name: HT_TriggerType_Kickwheel
+  0x410000ae:
+    name: HT_TriggerType_PressureGauge
+  0x410000b0:
+    name: HT_TriggerType_PoweredPlatform
+  0x410000b1:
+    name: HT_TriggerType_R5B_Flamer
+  0x410000b2:
+    name: HT_TriggerType_Flamer
+  0x410000b3:
+    name: HT_TriggerType_FlamerZone
+  0x410000b4:
+    name: HT_TriggerType_R5B_Nut
+  0x410000b5:
+    name: HT_TriggerType_R5B_NutSource
+  0x410000b7:
+    name: HT_TriggerType_BabyTurtle_MG2_Spy
+  0x410000b8:
+    name: HT_TriggerType_TurtleNest_MG2_Spy
+  0x410000b9:
+    name: HT_TriggerType_TurtleHunterCrab_MG2_Spy
+  0x410000ba:
+    name: HT_TriggerType_PipeCog
+  0x410000bb:
+    name: HT_TriggerType_R5A_PipePuzzle
+  0x410000bc:
+    name: HT_TriggerType_CannonOnPedestal
+  0x410000bd:
+    name: HT_TriggerType_TurtleHunterBird_MG2_Spy
+  0x410000be:
+    name: HT_TriggerType_SoundBank
+  0x410000bf:
+    name: HT_TriggerType_LiftPlatform
+  0x410000c0:
+    name: HT_TriggerType_Generator_MG2_Spy
+  0x410000c1:
+    name: HT_TriggerType_SeeSawPlatform
+  0x410000c2:
+    name: HT_TriggerType_EndGate
+  0x410000c3:
+    name: HT_TriggerType_PoleSpinPole
+  0x410000c4:
+    name: HT_TriggerType_SnowballFalling
+  0x410000c5:
+    name: HT_TriggerType_SnowballOscillating
+  0x410000c6:
+    name: HT_TriggerType_Hornet_MG1_Spx
+  0x410000c8:
+    name: HT_TriggerType_PoleSpinController
+  0x410000c9:
+    name: HT_TriggerType_FlippingPlatform
+  0x410000ca:
+    name: HT_TriggerType_LavaBalls
+  0x410000cb:
+    name: HT_TriggerType_StaticEnemy_MG1_Spx
+  0x410000cc:
+    name: HT_TriggerType_Rock
+  0x410000cd:
+    name: HT_TriggerType_Tracking_Arrow
+  0x410000d0:
+    name: HT_TriggerType_ElecBolt
+  0x410000d1:
+    name: HT_TriggerType_Mammoth_MG3_Sgt
+  0x410000d2:
+    name: HT_TriggerType_Jupiter_Missile
+  0x410000d3:
+    name: HT_TriggerType_JellyFish
+  0x410000d4:
+    name: HT_TriggerType_Switch_Timed
+  0x410000d5:
+    name: HT_TriggerType_Switch_Timed_Controller
+  0x410000d6:
+    name: HT_TriggerType_ExpCrate
+  0x410000d7:
+    name: HT_TriggerType_RMonster
+  0x410000d8:
+    name: HT_TriggerType_EskimoleCrouched
+  0x410000d9:
+    name: HT_TriggerType_Obstacle_MG1_Spx
+  0x410000da:
+    name: HT_TriggerType_SparxFireball
+  0x410000db:
+    name: HT_TriggerType_SparxSeeker
+  0x410000dc:
+    name: HT_TriggerType_Bowman
+  0x410000dd:
+    name: HT_TriggerType_Water
+  0x410000de:
+    name: HT_TriggerType_LavaFlamers
+  0x410000df:
+    name: HT_TriggerType_BallGadgetPathGate
+  0x410000e0:
+    name: HT_TriggerType_SparxPickup
+  0x410000e1:
+    name: HT_TriggerType_Shepherd
+  0x410000e2:
+    name: HT_TriggerType_MineRobot
+  0x410000e3:
+    name: HT_TriggerType_SparxGate
+  0x410000e4:
+    name: HT_TriggerType_SparxBullet
+  0x410000e5:
+    name: HT_TriggerType_MerGnorc
+  0x410000e6:
+    name: HT_TriggerType_Clam
+  0x410000e7:
+    name: HT_TriggerType_MineCart
+  0x410000e8:
+    name: HT_TriggerType_CutScene
+  0x410000e9:
+    name: HT_TriggerType_SpinningPlatform
+  0x410000ea:
+    name: HT_TriggerType_BoneSpider
+  0x410000eb:
+    name: HT_TriggerType_Wizard
+  0x410000ec:
+    name: HT_TriggerType_Player_Ember
+  0x410000ed:
+    name: HT_TriggerType_Player_Flame
+  0x410000ee:
+    name: HT_TriggerType_TurretShell
+  0x410000ef:
+    name: HT_TriggerType_SmashBoulder
+  0x410000f0:
+    name: HT_TriggerType_Turnstile
+  0x410000f1:
+    name: HT_TriggerType_Fan
+  0x410000f2:
+    name: HT_TriggerType_Missile
+  0x410000f3:
+    name: HT_TriggerType_GloomyCrusher
+  0x410000f4:
+    name: HT_TriggerType_Robowman
+  0x410000f5:
+    name: HT_TriggerType_Yeti
+  0x410000f6:
+    name: HT_TriggerType_WaterCurrent
+  0x410000f7:
+    name: HT_TriggerType_FireImps
+  0x410000f8:
+    name: HT_TriggerType_WizardImpsComms
+  0x410000f9:
+    name: HT_TriggerType_Rollbot
+  0x410000fa:
+    name: HT_TriggerType_BallGadgetSwitch
+  0x410000fb:
+    name: HT_TriggerType_Smashbot
+  0x410000fc:
+    name: HT_TriggerType_DigWall
+  0x410000fd:
+    name: HT_TriggerType_DigFloor
+  0x410000fe:
+    name: HT_TriggerType_MerGnorcSentry
+  0x410000ff:
+    name: HT_TriggerType_FireImpHover
+  0x41000100:
+    name: HT_TriggerType_HornDiveFloor
+  0x41000101:
+    name: HT_TriggerType_Skeleton
+  0x41000102:
+    name: HT_TriggerType_Eskimole_MR3_Spy
+  0x41000103:
+    name: HT_TriggerType_WizardSkeletonComms
+  0x41000105:
+    name: HT_TriggerType_Fireball
+  0x41000106:
+    name: HT_TriggerType_Fireball_ball
+  0x41000107:
+    name: HT_TriggerType_Dynamo
+  0x41000108:
+    name: HT_TriggerType_FireBird
+  0x41000109:
+    name: HT_TriggerType_ProjectileLauncher
+  0x4100010a:
+    name: HT_TriggerType_LaunchedProjectile
+  0x4100010b:
+    name: HT_TriggerType_SparxHornet
+  0x4100010c:
+    name: HT_TriggerType_Hazard
+  0x4100010d:
+    name: HT_TriggerType_Gnorc_Sgt
+  0x4100010e:
+    name: HT_TriggerType_BalloonARang
+  0x4100010f:
+    name: HT_TriggerType_VanishingPlatform
+  0x41000110:
+    name: HT_TriggerType_TreeDweller
+  0x41000111:
+    name: HT_TriggerType_BalloonARangWeapon
+  0x41000112:
+    name: HT_TriggerType_BadVine
+  0x41000113:
+    name: HT_TriggerType_ShepherdGoatComms
+  0x41000114:
+    name: HT_TriggerType_TetheredPlatform
+  0x41000115:
+    name: HT_TriggerType_DarkGemShards
+  0x41000116:
+    name: HT_TriggerType_PopUp
+  0x41000118:
+    name: HT_TriggerType_Chest_GroundTarget
+  0x41000119:
+    name: HT_TriggerType_Planets
+  0x4100011a:
+    name: HT_TriggerType_BirdBombBag
+  0x4100011b:
+    name: HT_TriggerType_BirdBombCont
+  0x4100011c:
+    name: HT_TriggerType_ElectricWave
+  0x4100011d:
+    name: HT_TriggerType_FoldingPlatform
+  0x4100011e:
+    name: HT_TriggerType_WallKick_Switcher
+  0x4100011f:
+    name: HT_TriggerType_R5B_StamperCtrl
+  0x41000120:
+    name: HT_TriggerType_R4E_AssemblyGnorc
+  0x41000121:
+    name: HT_TriggerType_R4E_AssemblyController
+  0x41000122:
+    name: HT_TriggerType_LaserCannon
+  0x41000123:
+    name: HT_TriggerType_R4_Laser
+  0x41000124:
+    name: HT_TriggerType_LaserBolt
+  0x41000125:
+    name: HT_TriggerType_EffectsTest
+  0x41000126:
+    name: HT_TriggerType_BirdMan
+  0x41000127:
+    name: HT_TriggerType_R4_FixedLaser
+  0x41000128:
+    name: HT_TriggerType_FixedLaser
+  0x41000129:
+    name: HT_TriggerType_SweepingLaser
+  0x4100012a:
+    name: HT_TriggerType_R4_SwitchedLaser
+  0x4100012b:
+    name: HT_TriggerType_SteamPiston
+  0x4100012c:
+    name: HT_TriggerType_PressurePlatform
+  0x4100012d:
+    name: HT_TriggerType_BirdManShockWave
+  0x4100012e:
+    name: HT_TriggerType_BossRed
+  0x4100012f:
+    name: HT_TriggerType_MrFreeze
+  0x41000131:
+    name: HT_TriggerType_Boiler3C
+  0x41000132:
+    name: HT_TriggerType_R4DPoleController
+  0x41000133:
+    name: HT_TriggerType_R4D_SlidingWallKick
+  0x41000134:
+    name: HT_TriggerType_TrapDoorSpider
+  0x41000135:
+    name: HT_TriggerType_R4D_LaserTurret
+  0x41000136:
+    name: HT_TriggerType_R4D_LaserSentinal
+  0x41000137:
+    name: HT_TriggerType_SlidingCrate
+  0x41000138:
+    name: HT_TriggerType_Generic
+  0x41000139:
+    name: HT_TriggerType_GemsFlyToPoint
+  0x4100013a:
+    name: HT_TriggerType_ElectricBeam
+  0x4100013d:
+    name: HT_TriggerType_FireWorks
+  0x4100013e:
+    name: HT_TriggerType_SmashbotPatrol
+  0x4100013f:
+    name: HT_TriggerType_Mine
+  0x41000140:
+    name: HT_TriggerType_KillHornet
+  0x41000141:
+    name: HT_TriggerType_Yeti_MG3_Spy
+  0x41000142:
+    name: HT_TriggerType_WaterPole
+  0x41000143:
+    name: HT_TriggerType_BlinkChest
+  0x41000144:
+    name: HT_TriggerType_DangerZone
+  0x41000145:
+    name: HT_TriggerType_Switch_Controller
+  0x41000146:
+    name: HT_TriggerType_PoisonBlob
+  0x41000147:
+    name: HT_TriggerType_SteamBlast
+  0x4100014a:
+    name: HT_TriggerType_LaserMirror
+  0x4100014b:
+    name: HT_TriggerType_OrryLaser
+  0x4100014c:
+    name: HT_TriggerType_HandlerIndex
+  0x4100014d:
+    name: HT_TriggerType_JawSnapper
+  0x4100014e:
+    name: HT_TriggerType_BoulderParent
+  0x4100014f:
+    name: HT_TriggerType_BoulderChild
+  0x41000151:
+    name: HT_TriggerType_NPC_Slave
+  0x41000152:
+    name: HT_TriggerType_PickupGenerator
+  0x41000153:
+    name: HT_TriggerType_Projector
+  0x41000154:
+    name: HT_TriggerType_Ineptune
+  0x41000155:
+    name: HT_TriggerType_MechaRed
+  0x41000157:
+    name: HT_TriggerType_R5B_WWplatController
+  0x41000158:
+    name: HT_TriggerType_PlatformShrinking
+  0x41000159:
+    name: HT_TriggerType_DarkGemVine
+  0x4100015a:
+    name: HT_TriggerType_IneptunePlatform
+  0x4100015b:
+    name: HT_TriggerType_ShockWaveTower
+  0x4100015c:
+    name: HT_TriggerType_Splitter
+  0x4100015d:
+    name: HT_TriggerType_ShockWaveSphere
+  0x4100015e:
+    name: HT_TriggerType_ShockWaveRing
+  0x4100015f:
+    name: HT_TriggerType_CirclingBirdsCont
+  0x41000160:
+    name: HT_TriggerType_CirclingBird
+  0x41000161:
+    name: HT_TriggerType_SwampBatCont
+  0x41000162:
+    name: HT_TriggerType_SnowEffect
+  0x41000163:
+    name: HT_TriggerType_LaserController
+  0x41000164:
+    name: HT_TriggerType_MutantWorm
+  0x41000165:
+    name: HT_TriggerType_RainEffect
+  0x41000166:
+    name: HT_TriggerType_LaserRing
+  0x41000167:
+    name: HT_TriggerType_PhilsElecNodePuzzleCtrlr
+  0x41000168:
+    name: HT_TriggerType_TitlesScript
+  0x41000169:
+    name: HT_TriggerType_WaterBomb
+  0x4100016a:
+    name: HT_TriggerType_LaserSeeker
+  0x4100016b:
+    name: HT_TriggerType_BoxOfRockets
+  0x4100016c:
+    name: HT_TriggerType_TeleportPad
+  0x4100016d:
+    name: HT_TriggerType_YetiSgt
+  0x4100016e:
+    name: HT_TriggerType_SnowBall
+  0x4100016f:
+    name: HT_TriggerType_PiranhaPack_Controller
+  0x41000170:
+    name: HT_TriggerType_PygmyLeader
+  0x41000171:
+    name: HT_TriggerType_SnapperCrabLeader
+  0x41000172:
+    name: HT_TriggerType_EyeLaser
+  0x41000173:
+    name: HT_TriggerType_FixedTrackingLaserGun
+  0x41000174:
+    name: HT_TriggerType_MapChangePopup
+  0x41000175:
+    name: HT_TriggerType_BouncingMine
+  0x41000176:
+    name: HT_TriggerType_TalkIndicator
+  0x41000177:
+    name: HT_TriggerType_BouncingBarrel
+  0x41000178:
+    name: HT_TriggerType_HomingMissile
+  0x41000179:
+    name: HT_TriggerType_MechRedShockWave
+  0x4100017a:
+    name: HT_TriggerType_Treena
+  0x4100017b:
+    name: HT_TriggerType_SwitchIndicator
+  0x4100017c:
+    name: HT_TriggerType_R4ZMultiPlatformDoor
+  0x4100017d:
+    name: HT_TriggerType_R4ZMultiPlatform
+  0x4100017e:
+    name: HT_TriggerType_HintCamera
+  0x4100017f:
+    name: HT_TriggerType_BallGadgetTimedController
+  0x41000180:
+    name: HT_TriggerType_BallHazardOscillating
+  0x41000181:
+    name: HT_TriggerType_BossRobowman
+  0x41000182:
+    name: HT_TriggerType_Tentacle
+  0x41000183:
+    name: HT_TriggerType_FleshRed
+  0x41000184:
+    name: HT_TriggerType_Flags
+  0x41000185:
+    name: HT_TriggerType_R4ZFireWorks
+  0x41000186:
+    name: HT_TriggerType_CameraShake
+  0x41000188:
+    name: HT_TriggerType_TestJS
+  0x41000189:
+    name: HT_TriggerType_Worm
+  0x4100018a:
+    name: HT_TriggerType_MapBoiler
+  0x4100018b:
+    name: HT_TriggerType_FlameBlast
+  0x4100018c:
+    name: HT_TriggerType_DestroyMe_Archways
+  0x4100018d:
+    name: HT_TriggerType_Chest_BLK_Weak
+  0x4100018e:
+    name: HT_TriggerType_Chest_BLK_Strong
+  0x4100018f:
+    name: HT_TriggerType_CrocoClub
+  0x41000190:
+    name: HT_TriggerType_MapInfo
+  0x41000191:
+    name: HT_TriggerType_Lift2A_2C
+  0x41000192:
+    name: HT_TriggerType_Cloud
+  0x41000193:
+    name: HT_TriggerType_MapPlacementCtrl
+  0x41000194:
+    name: HT_TriggerType_DarkeGemCover
+  0x41000195:
+    name: HT_TriggerType_TimedDoorSwitch
+  0x41000196:
+    name: HT_TriggerType_SparxBulletRapid
+  0x41000197:
+    name: HT_TriggerType_BalloonARang_Sgt
+  0x41000199:
+    name: HT_TriggerType_GemStealer_Sgt
+  0x4100019b:
+    name: HT_TriggerType_R4E_AssemblyCenter
+  0x4100019c:
+    name: HT_TriggerType_IneptuneLaser
+  0x4100019d:
+    name: HT_TriggerType_MechaRedShockWaveWall
+  0x4100019e:
+    name: HT_TriggerType_RoboPatrol
+  0x4100019f:
+    name: HT_TriggerType_DummyBarrel
+  0x410001a0:
+    name: HT_TriggerType_R4Exit_Switch
+  0x410001a1:
+    name: HT_TriggerType_LiftPlatform2C
+  0x410001a2:
+    name: HT_TriggerType_Ouch
+  0x410001a3:
+    name: HT_TriggerType_SwitchActivatedPlatform2A
+  0x410001a4:
+    name: HT_TriggerType_PortalController
+  0x410001a5:
+    name: HT_TriggerType_PortalSwitch
+  0x42000001:
+    name: HT_TriggerSubType_Undefined
+  0x42000002:
+    name: HT_TriggerSubType_1
+  0x42000003:
+    name: HT_TriggerSubType_2
+  0x42000004:
+    name: HT_TriggerSubType_3
+  0x42000005:
+    name: HT_TriggerSubType_4
+  0x42000006:
+    name: HT_TriggerSubType_5
+  0x42000007:
+    name: HT_TriggerSubType_6
+  0x42000008:
+    name: HT_TriggerSubType_7
+  0x42000009:
+    name: HT_TriggerSubType_8
+  0x4200000a:
+    name: HT_TriggerSubType_Primary
+  0x4200000b:
+    name: HT_TriggerSubType_Gem
+  0x4200000c:
+    name: HT_TriggerSubType_Chicken
+  0x4200000d:
+    name: HT_TriggerSubType_Pig
+  0x4200000e:
+    name: HT_TriggerSubType_Rabbit
+  0x4200000f:
+    name: HT_TriggerSubType_GemController
+  0x42000010:
+    name: HT_TriggerSubType_GemChain
+  0x42000011:
+    name: HT_TriggerSubType_Sheep
+  0x42000012:
+    name: HT_TriggerSubType_Winder
+  0x42000013:
+    name: HT_TriggerSubType_R1A_puzzle
+  0x42000014:
+    name: HT_TriggerSubType_Charge
+  0x42000015:
+    name: HT_TriggerSubType_Horndive
+  0x42000016:
+    name: HT_TriggerSubType_CannonBall
+  0x42000017:
+    name: HT_TriggerSubType_Patrol
+  0x42000018:
+    name: HT_TriggerSubType_BirdBomb
+  0x42000019:
+    name: HT_TriggerSubType_Spawned
+  0x4200001a:
+    name: HT_TriggerSubType_LoadMap
+  0x4200001b:
+    name: HT_TriggerSubType_CloseMap
+  0x4200001c:
+    name: HT_TriggerSubType_Goat_R1C
+  0x4200001d:
+    name: HT_TriggerSubType_Charge_Platform
+  0x4200001e:
+    name: HT_TriggerSubType_Horndive_Platform
+  0x42000020:
+    name: HT_TriggerSubType_Realm_1ca
+  0x42000021:
+    name: HT_TriggerSubType_RapidsPlatform
+  0x42000022:
+    name: HT_TriggerSubType_RapidsPlatformC
+  0x42000023:
+    name: HT_TriggerSubType_RapidsPlatformCont
+  0x42000024:
+    name: HT_TriggerSubType_Tuna
+  0x42000026:
+    name: HT_TriggerSubType_Sleeping
+  0x42000029:
+    name: HT_TriggerSubType_Bird_Tracking_MG1A
+  0x4200002a:
+    name: HT_TriggerSubType_LizHard_MG1A
+  0x4200002b:
+    name: HT_TriggerSubType_SwapMap
+  0x4200002c:
+    name: HT_TriggerSubType_SwampRat
+  0x4200002d:
+    name: HT_TriggerSubType_Critter_MG1A
+  0x4200002e:
+    name: HT_TriggerSubType_BirdBomb_MG1A
+  0x4200002f:
+    name: HT_TriggerSubType_SwampBat
+  0x42000030:
+    name: HT_TriggerSubType_Vulture
+  0x42000031:
+    name: HT_TriggerSubType_SnowBall
+  0x42000032:
+    name: HT_TriggerSubType_Bombs
+  0x42000033:
+    name: HT_TriggerSubType_Fuel
+  0x42000034:
+    name: HT_TriggerSubType_Missiles
+  0x42000035:
+    name: HT_TriggerSubType_Time
+  0x42000036:
+    name: HT_TriggerSubType_PoleGrabPath
+  0x42000037:
+    name: HT_TriggerSubType_Slider
+  0x42000038:
+    name: HT_TriggerSubType_HermitCB
+  0x42000039:
+    name: HT_TriggerSubType_Projectile
+  0x4200003a:
+    name: HT_TriggerSubType_Spear
+  0x4200003b:
+    name: HT_TriggerSubType_Valve
+  0x4200003e:
+    name: HT_TriggerSubType_OnPedestal
+  0x4200003f:
+    name: HT_TriggerSubType_PygmySpear
+  0x42000040:
+    name: HT_TriggerSubType_MG1_Spx
+  0x42000041:
+    name: HT_TriggerSubType_Geyser_Switch
+  0x42000042:
+    name: HT_TriggerSubType_Padlock
+  0x42000045:
+    name: HT_TriggerSubType_FireBreath
+  0x42000046:
+    name: HT_TriggerSubType_IceBreath
+  0x42000047:
+    name: HT_TriggerSubType_WaterBreath
+  0x42000048:
+    name: HT_TriggerSubType_ElectricityBreath
+  0x42000049:
+    name: HT_TriggerSubType_Bowman
+  0x4200004b:
+    name: HT_TriggerSubType_WeaponPowerup
+  0x4200004c:
+    name: HT_TriggerSubType_ClamShot
+  0x4200004d:
+    name: HT_TriggerSubType_DragonEgg1
+  0x4200004e:
+    name: HT_TriggerSubType_DragonEgg2
+  0x4200004f:
+    name: HT_TriggerSubType_DragonEgg3
+  0x42000050:
+    name: HT_TriggerSubType_DragonEgg4
+  0x42000051:
+    name: HT_TriggerSubType_DragonEgg5
+  0x42000052:
+    name: HT_TriggerSubType_DragonEgg6
+  0x42000053:
+    name: HT_TriggerSubType_DragonEgg7
+  0x42000054:
+    name: HT_TriggerSubType_DragonEgg8
+  0x42000055:
+    name: HT_TriggerSubType_IceBoulder
+  0x42000056:
+    name: HT_TriggerSubType_Arrow
+  0x42000057:
+    name: HT_TriggerSubType_SnowballYeti
+  0x42000058:
+    name: HT_TriggerSubType_ArcherYeti
+  0x42000059:
+    name: HT_TriggerSubType_BarrelYeti
+  0x4200005a:
+    name: HT_TriggerSubType_UnarmedYeti
+  0x4200005b:
+    name: HT_TriggerSubType_Scripted
+  0x4200005c:
+    name: HT_TriggerSubType_Coconut
+  0x4200005d:
+    name: HT_TriggerSubType_Bat
+  0x4200005e:
+    name: HT_TriggerSubType_Health
+  0x4200005f:
+    name: HT_TriggerSubType_Multi
+  0x42000060:
+    name: HT_TriggerSubType_Laser
+  0x42000061:
+    name: HT_TriggerSubType_Missile
+  0x42000062:
+    name: HT_TriggerSubType_MG3_Spy
+  0x42000063:
+    name: HT_TriggerSubType_MG4_Spy
+  0x42000064:
+    name: HT_TriggerSubType_Path
+  0x42000065:
+    name: HT_TriggerSubType_WaterIce
+  0x42000066:
+    name: HT_TriggerSubType_HomingTornado
+  0x42000067:
+    name: HT_TriggerSubType_LightGem
+  0x42000068:
+    name: HT_TriggerSubType_SwampBatGenerated
+  0x42000069:
+    name: HT_TriggerSubType_Electric
+  0x4200006a:
+    name: HT_TriggerSubType_MG2_Blk
+  0x4200006b:
+    name: HT_TriggerSubType_SmartBomb
+  0x4200006c:
+    name: HT_TriggerSubType_SpeedBoost
+  0x4200006d:
+    name: HT_TriggerSubType_BlinkBomb
+  0x4200006e:
+    name: HT_TriggerSubType_EnemyBase
+  0x42000070:
+    name: HT_TriggerSubType_SparxHard
+  0x42000071:
+    name: HT_TriggerSubType_Tongue
+  0x42000072:
+    name: HT_TriggerSubType_Fire
+  0x42000073:
+    name: HT_TriggerSubType_Spin
+  0x42000074:
+    name: HT_TriggerSubType_Winged
+  0x42000075:
+    name: HT_TriggerSubType_Critter
+  0x42000077:
+    name: HT_TriggerSubType_BossFireBall
+  0x42000078:
+    name: HT_TriggerSubType_PhilsElecNode
+  0x42000079:
+    name: HT_TriggerSubType_LaserHitBoss
+  0x4200007a:
+    name: HT_TriggerSubType_Robot
+  0x4200007b:
+    name: HT_TriggerSubType_RenderSpecial
+  0x4200007c:
+    name: HT_TriggerSubType_LockPicker
+  0x4200007d:
+    name: HT_TriggerSubType_FullHealthPickup
+  0x4200007e:
+    name: HT_TriggerSubType_Driven
+  0x4200007f:
+    name: HT_TriggerSubType_MapInfoWater
+  0x42000080:
+    name: HT_TriggerSubType_Fixed
+  0x42000081:
+    name: HT_TriggerSubType_R4E
+  0x42000082:
+    name: HT_TriggerSubType_FlameArrowPU
+  0x42000083:
+    name: HT_TriggerSubType_CloseMapLift
+  0x42000084:
+    name: HT_TriggerSubType_LoadMapLift
+  0x42000085:
+    name: HT_TriggerSubType_HASHCODE_END

@@ -1,8 +1,6 @@
 use std::{
-    collections::BTreeMap,
     fs::File,
     io::Cursor,
-    mem::transmute,
     sync::{Arc, Mutex},
 };
 
@@ -45,7 +43,6 @@ pub struct MapFrame {
     billboard_renderer: Arc<BillboardRenderer>,
     collision_renderer: Arc<CollisionCubeRenderer>,
     default_trigger_icon: glow::Texture,
-    trigger_texture: glow::Texture,
     link_renderer: Arc<LinkLineRenderer>,
     selected_trigger: Option<usize>,
     selected_link: Option<i32>,
@@ -59,14 +56,13 @@ pub struct MapFrame {
 
     vertex_lighting: bool,
     show_triggers: bool,
-    // ray_debug: Option<RayDebug>,
     pickbuffer: PickBuffer,
 
     selected_map: usize,
     trigger_scale: f32,
     trigger_focus_tween: Option<Tweeny3D>,
 
-    trigger_info: Arc<BTreeMap<u32, TriggerInformation>>,
+    trigger_info: Arc<TriggerInformation>,
     selected_triginfo_path: String,
     available_triginfo_paths: Vec<String>,
 
@@ -75,8 +71,6 @@ pub struct MapFrame {
 }
 
 const DEFAULT_ICON_DATA: &[u8] = include_bytes!("../../../assets/icons/triggers/default.png");
-const TRIG_TEX_TRIGGER_DATA: &[u8] = include_bytes!("../assets/trigger.png");
-const TRIG_TEX_LOAD_DATA: &[u8] = include_bytes!("../assets/load.png");
 
 fn load_png_frame(data: &[u8]) -> (Vec<u8>, png::OutputInfo) {
     let mut cursor = Cursor::new(data);
@@ -100,8 +94,6 @@ impl MapFrame {
         assert!(textures.len() != 0);
 
         let (default_icon_data, default_icon_info) = load_png_frame(DEFAULT_ICON_DATA);
-        let (ttt_data, ttt_info) = load_png_frame(TRIG_TEX_TRIGGER_DATA);
-        // let (ttl_data, ttl_info) = load_png_frame(TRIG_TEX_LOAD_DATA);
 
         let mut available_triginfo_paths = vec![];
         let exe_path = std::env::current_exe().unwrap();
@@ -184,16 +176,6 @@ impl MapFrame {
                     default_icon_info.width as i32,
                     default_icon_info.height as i32,
                     &default_icon_data,
-                    glow::RGBA,
-                    0,
-                )
-            },
-            trigger_texture: unsafe {
-                gl_helper::load_texture(
-                    &gl,
-                    ttt_info.width as i32,
-                    ttt_info.height as i32,
-                    &ttt_data,
                     glow::RGBA,
                     0,
                 )
@@ -650,6 +632,7 @@ impl MapFrame {
 
                 for t in map.triggers.iter() {
                     let trigger_texture_path = trigger_info
+                        .triggers
                         .get(&t.ttype)
                         .and_then(|m| m.icon.as_ref().map(|v| v.to_lowercase()));
 
@@ -749,7 +732,7 @@ impl MapFrame {
 
                 macro_rules! ttype_or_hex {
                     ($v:expr) => {
-                        if let Some(ti) = self.trigger_info.get(&$v) {
+                        if let Some(ti) = self.trigger_info.triggers.get(&$v) {
                             format!("{} (0x{:x})", ti.name, $v)
                         } else {
                             format!("0x{:x}", $v)
@@ -822,44 +805,22 @@ impl MapFrame {
                                 quick_grid!(ui, "t_values", |ui| {
                                     for (i, v) in trig.data.iter().enumerate() {
                                         if let Some(v) = v {
-                                            let name: String = if let Some(Some(ti)) = self
+                                            let (name, dtype) = if let Some(Some(ti)) = self
                                                 .trigger_info
+                                                .triggers
                                                 .get(&trig.ttype)
-                                                .map(|v| v.values.get(&i))
+                                                .map(|v| v.values.get(&(i as u32)))
                                             {
-                                                ti.name.clone()
+                                                (ti.name.clone(), ti.dtype)
                                             } else {
-                                                None
-                                            }
-                                            .unwrap_or(format!("#{i} "));
-
-                                            let dtype: TrigDataType = self
-                                                .trigger_info
-                                                .get(&trig.ttype)
-                                                .map(|v| v.values.get(&i).map(|v| v.dtype))
-                                                .unwrap_or_default()
-                                                .unwrap_or_default();
-
-                                            let typestring = match dtype {
-                                                TrigDataType::Unknown => {
-                                                    if let Some(hc) = self.hashcodes.get(v) {
-                                                        format!("{hc} (0x{v:x})")
-                                                    } else {
-                                                        format!("{} (0x{v:x})", human_num(*v))
-                                                    }
-                                                }
-                                                TrigDataType::U32 => format!("{0}", v),
-                                                TrigDataType::F32 => unsafe {
-                                                    format!("{:.5}", transmute::<u32, f32>(*v))
-                                                },
-                                                // TODO(cohae): hashcode lookup
-                                                TrigDataType::Hashcode => self
-                                                    .hashcodes
-                                                    .get(v)
-                                                    .unwrap_or(&format!("HT_Invalid_{v:08x}"))
-                                                    .clone(),
+                                                (None, TrigDataType::default())
                                             };
-                                            readonly_input!(ui, name, typestring);
+
+                                            readonly_input!(
+                                                ui,
+                                                name.unwrap_or(format!("#{i} ")),
+                                                dtype.to_string(&self.hashcodes, *v)
+                                            );
                                             ui.end_row();
                                         }
                                     }
@@ -876,7 +837,19 @@ impl MapFrame {
                                         .enumerate()
                                         .filter(|(_, v)| **v != u32::MAX)
                                     {
-                                        readonly_input!(ui, format!("#{i} "), format!("0x{:x}", v));
+                                        let (name, dtype) = if let Some(ti) =
+                                            self.trigger_info.extra_values.get(&(i as u32))
+                                        {
+                                            (ti.name.clone(), ti.dtype)
+                                        } else {
+                                            (None, TrigDataType::default())
+                                        };
+
+                                        readonly_input!(
+                                            ui,
+                                            name.unwrap_or(format!("#{i} ")),
+                                            dtype.to_string(&self.hashcodes, *v)
+                                        );
                                         ui.end_row();
                                     }
                                 });
@@ -962,21 +935,4 @@ impl MapFrame {
             0.5,
         ))
     }
-}
-
-// https://github.com/Swyter/poptools/blob/9a22651d7cb16a1edb7894c36e9695138b25b2c1/pop_djinn_sav.bt#L32
-fn human_num(v: u32) -> String {
-    let i = v as i32;
-    let f: f32 = unsafe { transmute(v) };
-
-    if i > -9999 && i < 9999 {
-        return i.to_string();
-    }
-    if f < -0.003 && f > -1e7 {
-        return format!("{f:.2}");
-    }
-    if f > 0.003 && f < 1e7 {
-        return format!("{f:.2}");
-    }
-    return format!("0x{v:x}/{f:.2}");
 }

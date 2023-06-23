@@ -1124,6 +1124,7 @@ dependencies = [
  "eurochef-edb",
  "eurochef-filelist",
  "image",
+ "nohash-hasher",
  "serde",
  "serde_yaml",
  "squish",

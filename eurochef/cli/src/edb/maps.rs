@@ -148,13 +148,13 @@ pub fn execute_command(
             };
 
             if let Some(ref typemap) = trigger_typemap {
-                match typemap.get(&ttype) {
+                match typemap.triggers.get(&ttype) {
                     Some(t) => trigger.ttype = t.name.clone(),
                     None => warn!("Couldn't find trigger type {ttype}"),
                 }
 
                 if trigger.tsubtype.is_some() {
-                    match typemap.get(&tsubtype) {
+                    match typemap.triggers.get(&tsubtype) {
                         Some(t) => trigger.tsubtype = Some(t.name.clone()),
                         None => warn!("Couldn't find trigger subtype {tsubtype}"),
                     }
@@ -186,9 +186,7 @@ pub struct EurochefMapExport {
     pub triggers: Vec<UXGeoTrigger>,
 }
 
-fn load_trigger_types<P: AsRef<Path>>(
-    path: P,
-) -> anyhow::Result<BTreeMap<u32, TriggerInformation>> {
+fn load_trigger_types<P: AsRef<Path>>(path: P) -> anyhow::Result<TriggerInformation> {
     let file = File::open(path).unwrap();
     let mut reader = BufReader::new(file);
     Ok(serde_yaml::from_reader(&mut reader)?)

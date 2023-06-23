@@ -1,5 +1,6 @@
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, mem::transmute};
 
+use nohash_hasher::IntMap;
 use serde::{Deserialize, Serialize};
 use tracing::warn;
 
@@ -87,12 +88,18 @@ pub fn parse_trigger_data(
     (data, links, extra_data)
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Default, Clone, Debug, Deserialize)]
 pub struct TriggerInformation {
+    pub extra_values: BTreeMap<u32, TriggerValue>,
+    pub triggers: BTreeMap<u32, TriggerDefinition>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct TriggerDefinition {
     pub name: String,
     pub icon: Option<String>,
     #[serde(default)]
-    pub values: BTreeMap<usize, TriggerValue>,
+    pub values: BTreeMap<u32, TriggerValue>,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -111,8 +118,45 @@ pub enum TrigDataType {
     Hashcode,
 }
 
+impl TrigDataType {
+    pub fn to_string(&self, hashcodes: &IntMap<u32, String>, v: u32) -> String {
+        match self {
+            TrigDataType::Unknown => {
+                if let Some(hc) = hashcodes.get(&v) {
+                    format!("{hc} (0x{:x})", v)
+                } else {
+                    format!("{} (0x{:x})", human_num(v), v)
+                }
+            }
+            TrigDataType::U32 => format!("{0}", v),
+            TrigDataType::F32 => unsafe { format!("{:.5}", transmute::<u32, f32>(v)) },
+            TrigDataType::Hashcode => hashcodes
+                .get(&v)
+                .unwrap_or(&format!("HT_Invalid_{:08x}", v))
+                .clone(),
+        }
+    }
+}
+
 impl Default for TrigDataType {
     fn default() -> Self {
         TrigDataType::Unknown
     }
+}
+
+// https://github.com/Swyter/poptools/blob/9a22651d7cb16a1edb7894c36e9695138b25b2c1/pop_djinn_sav.bt#L32
+fn human_num(v: u32) -> String {
+    let i = v as i32;
+    let f: f32 = unsafe { transmute(v) };
+
+    if i > -9999 && i < 9999 {
+        return i.to_string();
+    }
+    if f < -0.003 && f > -1e7 {
+        return format!("{f:.2}");
+    }
+    if f > 0.003 && f < 1e7 {
+        return format!("{f:.2}");
+    }
+    return format!("0x{v:x}/{f:.2}");
 }

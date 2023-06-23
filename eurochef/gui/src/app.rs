@@ -8,7 +8,6 @@ use crossbeam::atomic::AtomicCell;
 use eframe::CreationContext;
 use egui::{Color32, FontData, FontDefinitions, NumExt};
 use eurochef_edb::versions::Platform;
-use glow::HasContext;
 use nohash_hasher::IntMap;
 
 use crate::{entities, fileinfo, maps, parse_hashcodes, spreadsheet, textures};
@@ -75,6 +74,7 @@ impl EurochefApp {
 
         #[cfg(not(any(target_arch = "wasm32", target_os = "macos")))]
         unsafe {
+            use glow::HasContext;
             let gl = cc.gl.as_ref().unwrap();
 
             gl.enable(glow::DEBUG_OUTPUT);
