@@ -32,7 +32,6 @@ fn main() -> Result<()> {
         initial_window_size: Some([1280., 1024.].into()),
         depth_buffer: 24,
         multisampling: 4,
-        shader_version: Some(egui_glow::ShaderVersion::Es300),
         ..Default::default()
     };
     let res = eframe::run_native(

@@ -73,7 +73,7 @@ impl EurochefApp {
 
         cc.egui_ctx.set_fonts(fonts);
 
-        #[cfg(not(target_arch = "wasm32"))]
+        #[cfg(not(any(target_arch = "wasm32", target_os = "macos")))]
         unsafe {
             let gl = cc.gl.as_ref().unwrap();
 
