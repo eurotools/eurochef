@@ -684,7 +684,7 @@ impl MapFrame {
                         collision_renderer.render(
                             painter.gl(),
                             &viewer.lock().unwrap().uniforms,
-                            t.position,
+                            t.position + Vec3::from(coll.position),
                             Quat::from_euler(
                                 glam::EulerRot::ZXY,
                                 t.rotation.z,
