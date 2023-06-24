@@ -85,9 +85,10 @@ impl TrigDataType {
                 if let Some(hc) = hashcode {
                     hc.clone()
                 } else {
+                    let is_local = (v & 0x80000000) != 0;
+
                     // TODO(cohae): Check if the amount of type/index bits are correct
                     if let Some(hc_base) = hashcodes.get(&(v & 0x7fff0000)) {
-                        let is_local = (v & 0x80000000) != 0;
                         let hc_base_stripped = hc_base
                             .strip_suffix("_HASHCODE_BASE")
                             .unwrap_or("HT_Invalid");
@@ -98,7 +99,11 @@ impl TrigDataType {
                             format!("{hc_base_stripped}_Unknown_{v:08x}")
                         }
                     } else {
-                        format!("HT_Invalid_{v:08x}")
+                        if is_local {
+                            format!("HT_Local_Invalid_{v:08x}")
+                        } else {
+                            format!("HT_Invalid_{v:08x}")
+                        }
                     }
                 }
             }
