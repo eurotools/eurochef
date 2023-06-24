@@ -90,6 +90,7 @@ pub fn parse_trigger_data(
 
 #[derive(Default, Clone, Debug, Deserialize)]
 pub struct TriggerInformation {
+    #[serde(default)]
     pub extra_values: BTreeMap<u32, TriggerValue>,
     pub triggers: BTreeMap<u32, TriggerDefinition>,
 }
@@ -130,10 +131,30 @@ impl TrigDataType {
             }
             TrigDataType::U32 => format!("{0}", v),
             TrigDataType::F32 => unsafe { format!("{:.5}", transmute::<u32, f32>(v)) },
-            TrigDataType::Hashcode => hashcodes
-                .get(&v)
-                .unwrap_or(&format!("HT_Invalid_{:08x}", v))
-                .clone(),
+            TrigDataType::Hashcode => {
+                let hashcode = hashcodes.get(&v);
+
+                if let Some(hc) = hashcode {
+                    hc.clone()
+                } else {
+                    // TODO(cohae): Check if the amount of type/index bits are correct
+                    if let Some(hc_base) = hashcodes.get(&(v & 0x7fff0000)) {
+                        let is_local = (v & 0x80000000) != 0;
+                        let hc_base_stripped = hc_base
+                            .strip_suffix("_HASHCODE_BASE")
+                            .unwrap_or("HT_Invalid");
+
+
+                        if is_local {
+                            format!("HT_Local_{}_Unknown_{v:08x}", &hc_base_stripped[3..])
+                        } else {
+                            format!("{hc_base_stripped}_Unknown_{v:08x}")
+                        }
+                    } else {
+                        format!("HT_Invalid_{v:08x}")
+                    }
+                }
+            }
         }
     }
 }
