@@ -1,4 +1,4 @@
-use binrw::{binrw, BinRead, BinReaderExt};
+use binrw::{binrw, BinRead, BinReaderExt, BinResult};
 use serde::Serialize;
 
 use crate::{
@@ -149,8 +149,49 @@ pub struct EXGeoTrigger {
     pub position: EXVector3, // 0xc
     pub rotation: EXVector3, // 0x18
     pub scale: EXVector3,    // 0x24
-    // TODO: We should make a separate reader for this to prevent over-reads
-    pub data: [u32; 32], // 0x30
+
+    #[br(parse_with = parse_trigdata_values, args(trig_flags))]
+    pub data: [Option<u32>; 16],
+    #[br(parse_with = parse_trigdata_link, args(trig_flags))]
+    pub links: [i32; 8],
+    #[br(parse_with = parse_trigdata_engine, args(trig_flags))]
+    pub engine_data: [Option<u32>; 8],
+}
+
+#[binrw::parser(reader, endian)]
+fn parse_trigdata_values((trig_flags,): (u32,)) -> BinResult<[Option<u32>; 16]> {
+    let mut res = [None; 16];
+    for i in 0..16 {
+        if (trig_flags & (1 << i)) != 0 {
+            res[i] = Some(reader.read_type(endian)?);
+        }
+    }
+
+    Ok(res)
+}
+
+#[binrw::parser(reader, endian)]
+fn parse_trigdata_link((trig_flags,): (u32,)) -> BinResult<[i32; 8]> {
+    let mut res = [-1; 8];
+    for i in 16..24 {
+        if (trig_flags & (1 << i)) != 0 {
+            res[i - 16] = reader.read_type(endian)?;
+        }
+    }
+
+    Ok(res)
+}
+
+#[binrw::parser(reader, endian)]
+fn parse_trigdata_engine((trig_flags,): (u32,)) -> BinResult<[Option<u32>; 8]> {
+    let mut res = [None; 8];
+    for i in 24..32 {
+        if (trig_flags & (1 << i)) != 0 {
+            res[i - 24] = Some(reader.read_type(endian)?);
+        }
+    }
+
+    Ok(res)
 }
 
 #[binrw]

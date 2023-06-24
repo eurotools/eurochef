@@ -185,7 +185,7 @@ impl MapFrame {
             collision_renderer: Arc::new(CollisionCubeRenderer::new(&gl).unwrap()),
             gl: gl.clone(),
             selected_map: 0,
-            trigger_scale: 1.00,
+            trigger_scale: 0.5,
             trigger_focus_tween: None,
             selected_link: None,
             trigger_info: Default::default(),
@@ -655,10 +655,11 @@ impl MapFrame {
                 set_blending_mode(painter.gl(), BlendMode::Blend);
                 // for t in map.triggers.iter() {
                 if let Some(t) = selected_trigger.and_then(|t| map.triggers.get(t)) {
-                    if let Some(coll) = t
-                        .extra_data
+                    if let Some(Some(coll)) = t
+                        .engine_data
                         .get(3)
-                        .and_then(|c| map.trigger_collisions.get(*c as usize))
+                        .map(|c| c.map(|c| map.trigger_collisions.get(c as usize)))
+                        .flatten()
                     {
                         if coll.dtype != 0 {
                             warn!("Unknown collision type {}", coll.dtype);
@@ -828,15 +829,15 @@ impl MapFrame {
                                 });
                             }
 
-                            if trig.extra_data.iter().any(|v| *v != u32::MAX) {
+                            if trig.engine_data.iter().any(|v| v.is_some()) {
                                 ui.separator();
                                 ui.strong("Engine values");
                                 quick_grid!(ui, "t_extravalues", |ui| {
                                     for (i, v) in trig
-                                        .extra_data
+                                        .engine_data
                                         .iter()
                                         .enumerate()
-                                        .filter(|(_, v)| **v != u32::MAX)
+                                        .filter_map(|(i, v)| v.as_ref().map(|v| (i, v)))
                                     {
                                         let (name, dtype) = if let Some(ti) =
                                             self.trigger_info.extra_values.get(&(i as u32))

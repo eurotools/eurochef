@@ -12,7 +12,7 @@ use eurochef_edb::{
     map::{EXGeoBaseDatum, EXGeoMap, EXGeoPlacement},
     versions::Platform,
 };
-use eurochef_shared::{maps::parse_trigger_data, textures::UXGeoTexture, IdentifiableResult};
+use eurochef_shared::{textures::UXGeoTexture, IdentifiableResult};
 use glam::Vec3;
 use nohash_hasher::IntMap;
 
@@ -58,10 +58,9 @@ pub struct ProcessedTrigger {
     pub rotation: Vec3,
     pub scale: Vec3,
 
-    pub raw_data: Vec<u32>,
     pub data: Vec<Option<u32>>,
     pub links: Vec<i32>,
-    pub extra_data: Vec<u32>,
+    pub engine_data: Vec<Option<u32>>,
 
     /// Every trigger that links to this one
     pub incoming_links: Vec<i32>,
@@ -198,7 +197,7 @@ pub fn read_from_file<R: Read + Seek>(reader: &mut R, platform: Platform) -> Vec
             }
         }
 
-        for (i, t) in xmap.trigger_header.triggers.iter().enumerate() {
+        for t in xmap.trigger_header.triggers.iter() {
             let trig = &t.trigger;
             let (ttype, tsubtype) = {
                 let t = &xmap.trigger_header.trigger_types[trig.type_index as usize];
@@ -206,22 +205,6 @@ pub fn read_from_file<R: Read + Seek>(reader: &mut R, platform: Platform) -> Vec
                 (t.trig_type, t.trig_subtype)
             };
 
-            // FIXME: This requires triggers to be sorted. This is the case in official EDB files but it is not a requirement
-            let trigdata_size = {
-                if (i + 1) == xmap.trigger_header.triggers.len() {
-                    32
-                } else {
-                    let current_addr = trig.offset_absolute();
-                    let next_addr = xmap.trigger_header.triggers.data()[i + 1]
-                        .trigger
-                        .offset_absolute();
-
-                    ((next_addr - current_addr - 0x30) / 4) as usize
-                }
-            };
-
-            let (data, links, extra_data) =
-                parse_trigger_data(header.version, trig.trig_flags, &trig.data[..trigdata_size]);
             let trigger = ProcessedTrigger {
                 link_ref: t.link_ref,
                 ttype,
@@ -236,10 +219,9 @@ pub fn read_from_file<R: Read + Seek>(reader: &mut R, platform: Platform) -> Vec
                 position: trig.position.into(),
                 rotation: trig.rotation.into(),
                 scale: trig.scale.into(),
-                raw_data: trig.data[..trigdata_size].to_vec(),
-                extra_data,
-                data,
-                links,
+                engine_data: trig.engine_data.to_vec(),
+                data: trig.data.to_vec(),
+                links: trig.links.to_vec(),
                 incoming_links: vec![],
             };
 

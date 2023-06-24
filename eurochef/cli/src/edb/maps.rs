@@ -1,5 +1,4 @@
 use std::{
-    collections::BTreeMap,
     fs::File,
     io::{BufReader, Seek, Write},
     path::Path,
@@ -14,7 +13,7 @@ use eurochef_edb::{
     versions::Platform,
 };
 
-use eurochef_shared::maps::{parse_trigger_data, TriggerInformation, UXGeoTrigger};
+use eurochef_shared::maps::{TriggerInformation, UXGeoTrigger};
 use serde::Serialize;
 
 use crate::PlatformArg;
@@ -103,7 +102,7 @@ pub fn execute_command(
             }
         }
 
-        for (i, t) in map.trigger_header.triggers.iter().enumerate() {
+        for t in map.trigger_header.triggers.iter() {
             let trig = &t.trigger;
             let (ttype, tsubtype) = {
                 let t = &map.trigger_header.trigger_types[trig.type_index as usize];
@@ -111,22 +110,6 @@ pub fn execute_command(
                 (t.trig_type, t.trig_subtype)
             };
 
-            // FIXME: This requires triggers to be sorted. This is the case in official EDB files but it is not a requirement
-            let trigdata_size = {
-                if (i + 1) == map.trigger_header.triggers.len() {
-                    32
-                } else {
-                    let current_addr = trig.offset_absolute();
-                    let next_addr = map.trigger_header.triggers.data()[i + 1]
-                        .trigger
-                        .offset_absolute();
-
-                    ((next_addr - current_addr - 0x30) / 4) as usize
-                }
-            };
-
-            let (data, links, extra_data) =
-                parse_trigger_data(header.version, trig.trig_flags, &trig.data[..trigdata_size]);
             let mut trigger = UXGeoTrigger {
                 link_ref: t.link_ref,
                 ttype: format!("Trig_{ttype}"),
@@ -141,10 +124,13 @@ pub fn execute_command(
                 position: trig.position,
                 rotation: trig.rotation,
                 scale: trig.scale,
-                raw_data: trig.data[..trigdata_size].to_vec(),
-                extra_data,
-                data,
-                links,
+                extra_data: trig
+                    .engine_data
+                    .iter()
+                    .map(|v| v.unwrap_or(u32::MAX))
+                    .collect(),
+                data: trig.data.to_vec(),
+                links: trig.links.to_vec(),
             };
 
             if let Some(ref typemap) = trigger_typemap {
