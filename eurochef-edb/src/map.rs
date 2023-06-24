@@ -90,7 +90,6 @@ pub struct EXGeoTriggerHeader {
     pub triggers: EXRelArray<EXGeoTrigHeader>,
 
     #[br(count = triggers.iter().map(|t| t.trigger.engine_data[2].map(|v| v+1).unwrap_or(0)).max().unwrap_or(0))]
-    #[br(dbg)]
     pub trigger_scripts: EXRelPtr<Vec<(EXRelPtr, u32)>>,
 
     #[br(count = triggers.iter().map(|v| v.trigger.type_index+1).max().unwrap_or(0))]

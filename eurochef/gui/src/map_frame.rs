@@ -786,7 +786,9 @@ impl MapFrame {
                                 ui.horizontal(|ui| {
                                     ui.label(format!(
                                         "{:.3}, {:.3},  {:.3}",
-                                        trig.rotation.x, trig.rotation.y, trig.rotation.z
+                                        trig.rotation.x.to_degrees(),
+                                        trig.rotation.y.to_degrees(),
+                                        trig.rotation.z.to_degrees()
                                     ));
                                 });
                                 ui.end_row();
