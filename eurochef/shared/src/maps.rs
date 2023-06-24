@@ -123,13 +123,20 @@ impl TrigDataType {
     pub fn to_string(&self, hashcodes: &IntMap<u32, String>, v: u32) -> String {
         match self {
             TrigDataType::Unknown => {
-                if let Some(hc) = hashcodes.get(&v) {
-                    format!("{hc} (0x{:x})", v)
+                if (v & 0xffff0000) != 0 {
+                    if let Some(hc) = hashcodes.get(&v) {
+                        return format!("{hc} (0x{:x})", v);
+                    }
+                }
+                format!("{} (0x{:x})", human_num(v), v)
+            }
+            TrigDataType::U32 => {
+                if v > 9999 {
+                    format!("0x{v:x}")
                 } else {
-                    format!("{} (0x{:x})", human_num(v), v)
+                    format!("{v}")
                 }
             }
-            TrigDataType::U32 => format!("{0}", v),
             TrigDataType::F32 => unsafe { format!("{:.5}", transmute::<u32, f32>(v)) },
             TrigDataType::Hashcode => {
                 let hashcode = hashcodes.get(&v);
@@ -144,9 +151,8 @@ impl TrigDataType {
                             .strip_suffix("_HASHCODE_BASE")
                             .unwrap_or("HT_Invalid");
 
-
                         if is_local {
-                            format!("HT_Local_{}_Unknown_{v:08x}", &hc_base_stripped[3..])
+                            format!("HT_Local_{}_{v:08x}", &hc_base_stripped[3..])
                         } else {
                             format!("{hc_base_stripped}_Unknown_{v:08x}")
                         }

@@ -829,7 +829,7 @@ impl MapFrame {
 
                             if trig.extra_data.iter().any(|v| *v != u32::MAX) {
                                 ui.separator();
-                                ui.strong("Extra values");
+                                ui.strong("Engine values");
                                 quick_grid!(ui, "t_extravalues", |ui| {
                                     for (i, v) in trig
                                         .extra_data
