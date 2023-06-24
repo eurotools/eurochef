@@ -1,8 +1,4 @@
 icon_scale: 1.25
-extra_values:
-  0: { name: Visual Object, type: hashcode }
-  1: { name: File, type: hashcode }
-  4: { name: Trigger Color, type: u32 }
 triggers:
   0x41000001:
     name: HT_TriggerType_Undefined

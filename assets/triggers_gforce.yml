@@ -1,9 +1,4 @@
 icon_scale: 0.25
-extra_values:
-  0: { name: Visual Object, type: hashcode }
-  1: { name: File, type: hashcode }
-  2: { name: Script Index, type: u32 }
-  3: { name: Collision Index, type: u32 }
 triggers:
   0:
     name: OB_Static

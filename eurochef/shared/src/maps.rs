@@ -27,13 +27,45 @@ fn default_icon_scale() -> f32 {
     0.25
 }
 
-#[derive(Default, Clone, Debug, Deserialize)]
+fn default_engine_values() -> BTreeMap<u32, TriggerValue> {
+    BTreeMap::from([
+        (
+            0,
+            TriggerValue::new(Some("Visual Object"), TrigDataType::Hashcode),
+        ),
+        (1, TriggerValue::new(Some("File"), TrigDataType::Hashcode)),
+        (
+            2,
+            TriggerValue::new(Some("Script Index"), TrigDataType::U32),
+        ),
+        (
+            3,
+            TriggerValue::new(Some("Collision Index"), TrigDataType::U32),
+        ),
+        (
+            4,
+            TriggerValue::new(Some("Trigger Color"), TrigDataType::U32),
+        ),
+    ])
+}
+
+#[derive(Clone, Debug, Deserialize)]
 pub struct TriggerInformation {
     #[serde(default = "default_icon_scale")]
     pub icon_scale: f32,
-    #[serde(default)]
+    #[serde(default = "default_engine_values")]
     pub extra_values: BTreeMap<u32, TriggerValue>,
     pub triggers: BTreeMap<u32, TriggerDefinition>,
+}
+
+impl Default for TriggerInformation {
+    fn default() -> Self {
+        Self {
+            icon_scale: default_icon_scale(),
+            extra_values: default_engine_values(),
+            triggers: Default::default(),
+        }
+    }
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -49,6 +81,15 @@ pub struct TriggerValue {
     pub name: Option<String>,
     #[serde(alias = "type", default)]
     pub dtype: TrigDataType,
+}
+
+impl TriggerValue {
+    pub fn new(name: Option<&str>, dtype: TrigDataType) -> Self {
+        Self {
+            name: name.map(|v| v.to_owned()),
+            dtype,
+        }
+    }
 }
 
 #[derive(Copy, Clone, Debug, Deserialize)]
