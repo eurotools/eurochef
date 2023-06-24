@@ -185,7 +185,7 @@ impl MapFrame {
             collision_renderer: Arc::new(CollisionCubeRenderer::new(&gl).unwrap()),
             gl: gl.clone(),
             selected_map: 0,
-            trigger_scale: 0.25,
+            trigger_scale: 1.00,
             trigger_focus_tween: None,
             selected_link: None,
             trigger_info: Default::default(),
@@ -342,6 +342,7 @@ impl MapFrame {
                     .unwrap();
                     self.trigger_info = serde_yaml::from_str(&v)
                         .context("Failed to load trigger definition file")?;
+                    self.trigger_scale = self.trigger_info.icon_scale;
                 }
             }
 

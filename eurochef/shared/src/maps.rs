@@ -88,8 +88,12 @@ pub fn parse_trigger_data(
     (data, links, extra_data)
 }
 
+fn default_icon_scale() -> f32 { 0.25 }
+
 #[derive(Default, Clone, Debug, Deserialize)]
 pub struct TriggerInformation {
+    #[serde(default = "default_icon_scale")]
+    pub icon_scale: f32,
     #[serde(default)]
     pub extra_values: BTreeMap<u32, TriggerValue>,
     pub triggers: BTreeMap<u32, TriggerDefinition>,
