@@ -89,13 +89,13 @@ pub struct EXGeoPortalInfo {
 pub struct EXGeoTriggerHeader {
     pub triggers: EXRelArray<EXGeoTrigHeader>,
 
-    // pub trigger_scripts: EXRelPtr<EXGeoTrigScriptHeader, -4>,
-    pub trigger_scripts: EXRelPtr<(), i32, -4>,
+    #[br(count = triggers.iter().map(|t| t.trigger.engine_data[2].map(|v| v+1).unwrap_or(0)).max().unwrap_or(0))]
+    #[br(dbg)]
+    pub trigger_scripts: EXRelPtr<Vec<(EXRelPtr, u32)>>,
 
-    // TODO(cohae): custom parser
-    #[br(count = if triggers.len() != 0 { triggers.iter().map(|v| v.trigger.type_index).max().unwrap()+1 } else { 0 })]
+    #[br(count = triggers.iter().map(|v| v.trigger.type_index+1).max().unwrap_or(0))]
     pub trigger_types: EXRelPtr<Vec<EXGeoTriggerType>>,
-    // pub trigger_types: EXRelPtr<()>, // Last element is marked by a trig_type of -1?
+
     pub trigger_collisions: EXRelPtr<EXGeoTriggerCollision>,
 }
 
@@ -112,10 +112,9 @@ pub struct EXGeoTriggerType {
 #[derive(Debug, Serialize, Clone)]
 pub struct EXGeoTrigScriptHeader {
     pub script_count: u32,
-    pub data_ptr: EXRelPtr,
 
     #[br(count = script_count)]
-    pub offsets: Vec<(u32, EXRelPtr)>,
+    pub offsets: Vec<(EXRelPtr, u32)>,
 }
 
 #[binrw]
