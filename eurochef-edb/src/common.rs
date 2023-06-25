@@ -150,14 +150,14 @@ impl<T: BinRead + Debug> Deref for EXRelPtr<T> {
 }
 
 #[binrw]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct EXGeoSpreadSheetHeader {
     pub common: EXGeoCommonArrayElement,
     pub stype: u32,
 }
 
 #[binrw]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[brw(import(version: u32))]
 pub struct EXGeoEntityHeader {
     pub common: EXGeoCommonArrayElement,
@@ -177,14 +177,14 @@ pub struct EntityHeaderExt {
 }
 
 #[binrw]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct EXGeoAnimModeHeader {
     pub common: EXGeoCommonArrayElement,
     pub num_anim_modes: u32,
 }
 
 #[binrw]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct EXGeoAnimHeader {
     pub common: EXGeoCommonArrayElement,
     pub motiondata_info_addr: u32,
@@ -194,14 +194,14 @@ pub struct EXGeoAnimHeader {
 }
 
 #[binrw]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct EXGeoAnimSetHeader {
     pub common: EXGeoCommonArrayElement,
     pub num_anim_sets: u32,
 }
 
 #[binrw]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[brw(import(version: u32))]
 pub struct EXGeoAnimSkinHeader {
     pub common: EXGeoCommonArrayElement,

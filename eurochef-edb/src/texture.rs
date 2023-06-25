@@ -3,7 +3,7 @@ use binrw::binrw;
 use crate::{array::EXGeoCommonArrayElement, common::EXRelPtr, versions::Platform};
 
 #[binrw]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct EXGeoTextureHeader {
     pub common: EXGeoCommonArrayElement,
     pub width: u16,

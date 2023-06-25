@@ -1,11 +1,12 @@
 use std::io::{Read, Seek, Write};
 
 use eurochef_edb::{
-    binrw::{BinReaderExt, Endian},
-    header::EXGeoHeader,
+    binrw::BinReaderExt,
     text::{EXGeoSpreadSheet, EXGeoTextItem},
 };
 use tracing::warn;
+
+use crate::edb::DatabaseFile;
 
 #[derive(Clone)]
 pub struct UXGeoSpreadsheet(pub Vec<UXGeoTextSection>);
@@ -25,13 +26,10 @@ pub struct UXGeoTextItem {
 }
 
 impl UXGeoSpreadsheet {
-    pub fn read_all<R: Read + Seek>(
-        header: EXGeoHeader,
-        reader: &mut R,
-        endian: Endian, // TODO: Shouldn't need to pass this for every function
-    ) -> Vec<Self> {
+    pub fn read_all<R: Read + Seek>(edb: &mut DatabaseFile<R>) -> Vec<Self> {
         let mut spreadsheets = vec![];
 
+        let header = edb.header.clone();
         for s in &header.spreadsheet_list {
             if s.stype != 1 {
                 warn!("Skipping data spreadsheet");
@@ -39,12 +37,11 @@ impl UXGeoSpreadsheet {
             }
 
             let mut spreadsheet = UXGeoSpreadsheet(vec![]);
-            reader
-                .seek(std::io::SeekFrom::Start(s.common.address as u64))
+            edb.seek(std::io::SeekFrom::Start(s.common.address as u64))
                 .unwrap();
 
-            let sheader = reader
-                .read_type::<EXGeoSpreadSheet>(endian)
+            let sheader = edb
+                .read_type::<EXGeoSpreadSheet>(edb.endian)
                 .expect("Failed to read spreadsheet");
 
             for s in sheader.sections {
@@ -52,17 +49,16 @@ impl UXGeoSpreadsheet {
                     hashcode: s.hashcode,
                     entries: vec![],
                 };
-                let refpointer = &header.refpointer_list[s.refpointer_index as usize];
+                let refpointer = &edb.header.refpointer_list[s.refpointer_index as usize];
 
-                reader
-                    .seek(std::io::SeekFrom::Start(refpointer.address as u64))
+                edb.seek(std::io::SeekFrom::Start(refpointer.address as u64))
                     .unwrap();
 
-                reader.seek(std::io::SeekFrom::Current(4)).unwrap(); // Skip commonobject
-                let text_count = reader.read_type::<u32>(endian).unwrap();
+                edb.seek(std::io::SeekFrom::Current(4)).unwrap(); // Skip commonobject
+                let text_count = edb.read_type::<u32>(edb.endian).unwrap();
                 for _i in 0..text_count {
-                    let item = reader
-                        .read_type::<EXGeoTextItem>(endian)
+                    let item = edb
+                        .read_type::<EXGeoTextItem>(edb.endian)
                         .expect("Failed to read textitem");
                     section.entries.push(UXGeoTextItem {
                         hashcode: item.hashcode,

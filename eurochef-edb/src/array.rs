@@ -245,7 +245,7 @@ impl<T: BinRead + Serialize> Serialize for EXRelArray<T> {
 }
 
 #[binrw]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct EXGeoCommonArrayElement {
     pub hashcode: u32,
     pub section: u16,

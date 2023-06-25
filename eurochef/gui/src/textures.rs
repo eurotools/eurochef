@@ -6,7 +6,7 @@ use eurochef_edb::{
     header::EXGeoHeader,
     versions::Platform,
 };
-use eurochef_shared::{textures::UXGeoTexture, IdentifiableResult};
+use eurochef_shared::{textures::UXGeoTexture, IdentifiableResult, edb::DatabaseFile};
 use fnv::FnvHashMap;
 use instant::Instant;
 
@@ -238,25 +238,13 @@ impl TextureList {
     }
 }
 
-// TODO(cohae): EdbFile struct so we dont have to read endianness separately
 pub fn read_from_file<R: Read + Seek>(
     reader: &mut R,
     platform: Platform,
 ) -> Vec<IdentifiableResult<UXGeoTexture>> {
-    reader.seek(std::io::SeekFrom::Start(0)).ok();
-    let endian = if reader.read_ne::<u8>().unwrap() == 0x47 {
-        Endian::Big
-    } else {
-        Endian::Little
-    };
+    let mut edb = DatabaseFile::new(reader, platform).expect("Failed to open file");
 
-    reader.seek(std::io::SeekFrom::Start(0)).unwrap();
-
-    let header = reader
-        .read_type::<EXGeoHeader>(endian)
-        .expect("Failed to read header");
-
-    UXGeoTexture::read_all(&header, reader, platform)
+    UXGeoTexture::read_all(&mut edb)
 }
 
 pub fn cutoff_string(string: String, max_len: usize) -> String {

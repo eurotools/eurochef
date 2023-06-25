@@ -1,29 +1,14 @@
-use std::{
-    fs::File,
-    io::{BufReader, Seek},
-};
+use std::{fs::File, io::BufReader};
 
-use eurochef_edb::{
-    binrw::{BinReaderExt, Endian},
-    header::EXGeoHeader,
-};
-use eurochef_shared::spreadsheets::UXGeoSpreadsheet;
+use eurochef_edb::versions::Platform;
+use eurochef_shared::{edb::DatabaseFile, spreadsheets::UXGeoSpreadsheet};
 
 pub fn execute_command(filename: String, section: Option<u32>) -> anyhow::Result<()> {
     let mut file = File::open(filename)?;
-    let mut reader = BufReader::new(&mut file);
-    let endian = if reader.read_ne::<u8>().unwrap() == 0x47 {
-        Endian::Big
-    } else {
-        Endian::Little
-    };
-    reader.seek(std::io::SeekFrom::Start(0))?;
+    let reader = BufReader::new(&mut file);
+    let mut edb = DatabaseFile::new(reader, Platform::Pc)?;
 
-    let header = reader
-        .read_type::<EXGeoHeader>(endian)
-        .expect("Failed to read header");
-
-    let spreadsheets = UXGeoSpreadsheet::read_all(header, &mut reader, endian);
+    let spreadsheets = UXGeoSpreadsheet::read_all(&mut edb);
     assert!(spreadsheets.len() <= 1);
     if spreadsheets.is_empty() {
         println!("No spreadsheets found in file");

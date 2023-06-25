@@ -23,7 +23,7 @@ pub type EXGeoMaterialHeader = EXGeoCommonArrayElement;
 // TODO: This whole system might need a rework
 #[binrw]
 #[brw(magic = 0x47454F4Du32)]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct EXGeoHeader {
     pub hashcode: u32,
 

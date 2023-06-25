@@ -4,8 +4,12 @@ use egui::FontSelection;
 use eurochef_edb::{
     binrw::{BinReaderExt, Endian},
     header::EXGeoHeader,
+    versions::Platform,
 };
-use eurochef_shared::spreadsheets::{UXGeoSpreadsheet, UXGeoTextItem};
+use eurochef_shared::{
+    edb::DatabaseFile,
+    spreadsheets::{UXGeoSpreadsheet, UXGeoTextItem},
+};
 
 pub struct TextItemList {
     /// Search query for a specific hashcode
@@ -163,19 +167,8 @@ impl TextItemList {
     }
 }
 
-// TODO(cohae): EdbFile struct so we dont have to read endianness separately
 pub fn read_from_file<R: Read + Seek>(reader: &mut R) -> Vec<UXGeoSpreadsheet> {
-    reader.seek(std::io::SeekFrom::Start(0)).ok();
-    let endian = if reader.read_ne::<u8>().unwrap() == 0x47 {
-        Endian::Big
-    } else {
-        Endian::Little
-    };
-    reader.seek(std::io::SeekFrom::Start(0)).unwrap();
+    let mut edb = DatabaseFile::new(reader, Platform::Pc).expect("Failed to open file");
 
-    let header = reader
-        .read_type::<EXGeoHeader>(endian)
-        .expect("Failed to read header");
-
-    UXGeoSpreadsheet::read_all(header, reader, endian)
+    UXGeoSpreadsheet::read_all(&mut edb)
 }

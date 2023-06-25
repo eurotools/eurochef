@@ -2,15 +2,11 @@ use std::io::{Read, Seek};
 
 use anyhow::Context;
 use bitflags::bitflags;
-use eurochef_edb::{
-    binrw::{BinReaderExt, Endian},
-    header::EXGeoHeader,
-    texture::EXGeoTexture,
-    versions::Platform,
-};
+use eurochef_edb::{binrw::BinReaderExt, header::EXGeoHeader, texture::EXGeoTexture};
 use image::RgbaImage;
 
 use crate::{
+    edb::DatabaseFile,
     platform::texture::{self, TextureDecoder},
     IdentifiableResult,
 };
@@ -43,28 +39,14 @@ pub struct UXGeoTexture {
 }
 
 impl UXGeoTexture {
-    pub fn read_all<R: Read + Seek>(
-        header: &EXGeoHeader,
-        reader: &mut R,
-        platform: Platform, // TODO: Shouldn't need to pass this for every function
-    ) -> Vec<IdentifiableResult<Self>> {
-        let endian = platform.endianness();
-
+    pub fn read_all<R: Read + Seek>(edb: &mut DatabaseFile<R>) -> Vec<IdentifiableResult<Self>> {
         // ? can this be implemented on-trait???
-        let texture_decoder = texture::create_for_platform(platform);
+        let texture_decoder = texture::create_for_platform(edb.platform);
         let mut textures = vec![];
-        for t in header.texture_list.iter() {
+        for t in edb.header.texture_list.clone().iter() {
             textures.push(IdentifiableResult::new(
                 t.common.hashcode,
-                Self::read(
-                    t.common.address,
-                    header,
-                    endian,
-                    platform,
-                    reader,
-                    &texture_decoder,
-                    t.flags,
-                ),
+                Self::read(t.common.address, edb, &texture_decoder, t.flags),
             ))
         }
 
@@ -73,16 +55,13 @@ impl UXGeoTexture {
 
     pub fn read<R: Read + Seek>(
         address: u32,
-        header: &EXGeoHeader,
-        endian: Endian,
-        platform: Platform,
-        reader: &mut R,
+        edb: &mut DatabaseFile<R>,
         texture_decoder: &Box<dyn TextureDecoder>,
         flags: u32,
     ) -> anyhow::Result<Self> {
-        reader.seek(std::io::SeekFrom::Start(address as u64))?;
-        let tex = reader
-            .read_type_args::<EXGeoTexture>(endian, (header.version, platform))
+        edb.seek(std::io::SeekFrom::Start(address as u64))?;
+        let tex = edb
+            .read_type_args::<EXGeoTexture>(edb.endian, (edb.header.version, edb.platform))
             .context("Failed to read texture")?;
 
         // cohae: This is a bit of a difficult one. We might need an alternative to return these references somehow (enum with variant?), as we cannot open other files from this context.
@@ -134,21 +113,19 @@ impl UXGeoTexture {
             let clut_size = texture_decoder.get_clut_size(tex.format)?;
             clut.resize(clut_size, 0);
 
-            reader.seek(std::io::SeekFrom::Start(clut_offset.offset_absolute()))?;
-            reader.read_exact(&mut clut)?;
+            edb.seek(std::io::SeekFrom::Start(clut_offset.offset_absolute()))?;
+            edb.read_exact(&mut clut)?;
         }
 
         for (i, frame_offset) in tex.frame_offsets.iter().enumerate() {
-            reader.seek(std::io::SeekFrom::Start(frame_offset.offset_absolute()))?;
-            reader
-                .read_exact(&mut data)
+            edb.seek(std::io::SeekFrom::Start(frame_offset.offset_absolute()))?;
+            edb.read_exact(&mut data)
                 .context(format!("Failed to read frame {i}"))?;
 
-            if header.version == 156 && clut.len() == 0 {
+            if edb.header.version == 156 && clut.len() == 0 {
                 let clut_size = texture_decoder.get_clut_size(tex.format)?;
                 clut.resize(clut_size, 0);
-                reader
-                    .read_exact(&mut clut)
+                edb.read_exact(&mut clut)
                     .context(format!("Failed to read clut for frame {i}"))?;
             }
 
@@ -161,7 +138,7 @@ impl UXGeoTexture {
                     tex.height as u32,
                     tex.depth as u32,
                     tex.format,
-                    header.version,
+                    edb.header.version,
                 )
                 .context("Failed to decode texture")?;
 

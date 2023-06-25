@@ -1128,6 +1128,7 @@ dependencies = [
  "serde",
  "serde_yaml",
  "squish",
+ "thiserror",
  "tracing",
 ]
 

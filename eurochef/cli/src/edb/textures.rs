@@ -1,16 +1,12 @@
 use std::{
     fs::File,
-    io::{BufReader, Seek, Write},
+    io::{BufReader, Write},
     path::Path,
 };
 
 use anyhow::Context;
-use eurochef_edb::{
-    binrw::{BinReaderExt, Endian},
-    header::EXGeoHeader,
-    versions::Platform,
-};
-use eurochef_shared::textures::UXGeoTexture;
+use eurochef_edb::versions::Platform;
+use eurochef_shared::{edb::DatabaseFile, textures::UXGeoTexture};
 use indicatif::{ProgressBar, ProgressIterator, ProgressStyle};
 
 use crate::{edb::TICK_STRINGS, PlatformArg};
@@ -33,25 +29,15 @@ pub fn execute_command(
     let output_folder = Path::new(&output_folder);
     std::fs::create_dir_all(output_folder)?;
 
-    let mut file = File::open(&filename)?;
-    let mut reader = BufReader::new(&mut file);
-    let endian = if reader.read_ne::<u8>().unwrap() == 0x47 {
-        Endian::Big
-    } else {
-        Endian::Little
-    };
-    reader.seek(std::io::SeekFrom::Start(0))?;
-
-    let header = reader
-        .read_type::<EXGeoHeader>(endian)
-        .expect("Failed to read header");
-
     let platform = platform
         .map(|p| p.into())
         .or(Platform::from_path(&filename))
         .expect("Failed to detect platform");
 
-    println!("Selected platform {platform:?}");
+    let mut file = File::open(&filename)?;
+    let reader = BufReader::new(&mut file);
+    let mut edb = DatabaseFile::new(reader, platform)?;
+    let header = edb.header.clone();
 
     let pb = ProgressBar::new(header.texture_list.len() as u64)
         .with_finish(indicatif::ProgressFinish::AndLeave);
@@ -65,7 +51,7 @@ pub fn execute_command(
     );
     pb.set_message("Extracting textures");
 
-    let textures = UXGeoTexture::read_all(&header, &mut reader, platform);
+    let textures = UXGeoTexture::read_all(&mut edb);
     for it in textures.into_iter().progress_with(pb) {
         let hash_str = format!("0x{:x}", it.hashcode);
         let _span = error_span!("texture", hash = %hash_str);

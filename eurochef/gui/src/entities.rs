@@ -6,13 +6,10 @@ use std::{
 use anyhow::anyhow;
 use egui::{Color32, RichText, Widget};
 use eurochef_edb::{
-    anim::EXGeoBaseAnimSkin,
-    binrw::{BinReaderExt, Endian},
-    entity::EXGeoEntity,
-    header::EXGeoHeader,
-    versions::Platform,
+    anim::EXGeoBaseAnimSkin, binrw::BinReaderExt, entity::EXGeoEntity, versions::Platform,
 };
 use eurochef_shared::{
+    edb::DatabaseFile,
     entities::{read_entity, TriStrip, UXVertex},
     textures::UXGeoTexture,
     IdentifiableResult,
@@ -700,7 +697,6 @@ impl EntityListPanel {
     }
 }
 
-// TODO(cohae): EdbFile struct so we dont have to read endianness separately
 pub fn read_from_file<R: Read + Seek>(
     reader: &mut R,
     platform: Platform,
@@ -710,42 +706,33 @@ pub fn read_from_file<R: Read + Seek>(
     Vec<IdentifiableResult<(EXGeoEntity, ProcessedEntityMesh)>>,
     Vec<IdentifiableResult<UXGeoTexture>>,
 )> {
-    reader.seek(std::io::SeekFrom::Start(0)).ok();
-    let endian = if reader.read_ne::<u8>()? == 0x47 {
-        Endian::Big
-    } else {
-        Endian::Little
-    };
-    reader.seek(std::io::SeekFrom::Start(0))?;
-
-    let header = reader
-        .read_type::<EXGeoHeader>(endian)
-        .expect("Failed to read header");
+    let mut edb = DatabaseFile::new(reader, platform)?;
+    let header = edb.header.clone();
 
     // TODO(cohae): Replace with header iterators
     let mut entities = vec![];
     for e in header.entity_list.iter() {
-        let ent = read_entity_identifiable(e.common.address, reader, &header, endian, platform);
+        let ent = read_entity_identifiable(e.common.address, &mut edb);
         entities.push(IdentifiableResult::new(e.common.hashcode, ent));
     }
 
     // TODO(cohae): Replace with header iterators?
     let mut refents = vec![];
     for (i, r) in header.refpointer_list.iter().enumerate() {
-        reader.seek(std::io::SeekFrom::Start(r.address as u64))?;
+        edb.seek(std::io::SeekFrom::Start(r.address as u64))?;
 
-        let etype = reader.read_type::<u32>(endian)?;
+        let etype = edb.read_type::<u32>(edb.endian)?;
         if etype == 0x601 || etype == 0x602 || etype == 0x603 {
-            let ent = read_entity_identifiable(r.address, reader, &header, endian, platform);
+            let ent = read_entity_identifiable(r.address, &mut edb);
             refents.push(IdentifiableResult::new(i as _, ent));
         }
     }
 
     let mut skins = vec![];
     for s in header.animskin_list.iter() {
-        reader.seek(std::io::SeekFrom::Start(s.common.address as u64))?;
+        edb.seek(std::io::SeekFrom::Start(s.common.address as u64))?;
 
-        let skin = reader.read_type_args::<EXGeoBaseAnimSkin>(endian, (header.version,));
+        let skin = edb.read_type_args::<EXGeoBaseAnimSkin>(edb.endian, (edb.header.version,));
         skins.push(IdentifiableResult::new(
             s.common.hashcode,
             match skin {
@@ -755,21 +742,18 @@ pub fn read_from_file<R: Read + Seek>(
         ));
     }
 
-    let textures = UXGeoTexture::read_all(&header, reader, platform);
+    let textures = UXGeoTexture::read_all(&mut edb);
 
     Ok((entities, skins, refents, textures))
 }
 
 fn read_entity_identifiable<R: Read + Seek>(
     address: u32,
-    reader: &mut R,
-    header: &EXGeoHeader,
-    endian: Endian,
-    platform: Platform,
+    edb: &mut DatabaseFile<R>,
 ) -> anyhow::Result<(EXGeoEntity, ProcessedEntityMesh)> {
-    reader.seek(std::io::SeekFrom::Start(address as u64))?;
+    edb.seek(std::io::SeekFrom::Start(address as u64))?;
 
-    let ent = reader.read_type_args(endian, (header.version, platform))?;
+    let ent = edb.read_type_args(edb.endian, (edb.header.version, edb.platform))?;
 
     let mut vertex_data = vec![];
     let mut indices = vec![];
@@ -779,10 +763,10 @@ fn read_entity_identifiable<R: Read + Seek>(
         &mut vertex_data,
         &mut indices,
         &mut strips,
-        endian,
-        header.version,
-        platform,
-        reader,
+        edb.endian,
+        edb.header.version,
+        edb.platform,
+        edb,
         4,
         false,
         false,

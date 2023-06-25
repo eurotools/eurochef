@@ -7,13 +7,8 @@ use std::{
 
 use anyhow::Context;
 use base64::Engine;
-use eurochef_edb::{
-    binrw::{BinReaderExt, Endian},
-    entity::EXGeoEntity,
-    header::EXGeoHeader,
-    versions::Platform,
-};
-use eurochef_shared::{entities::read_entity, textures::UXGeoTexture};
+use eurochef_edb::{binrw::BinReaderExt, entity::EXGeoEntity, versions::Platform};
+use eurochef_shared::{edb::DatabaseFile, entities::read_entity, textures::UXGeoTexture};
 use image::ImageOutputFormat;
 use indicatif::{ProgressBar, ProgressIterator, ProgressStyle};
 
@@ -50,23 +45,15 @@ pub fn execute_command(
     ));
     let output_folder = Path::new(&output_folder);
 
-    let mut file = File::open(&filename)?;
-    let mut reader = BufReader::new(&mut file);
-    let endian = if reader.read_ne::<u8>().unwrap() == 0x47 {
-        Endian::Big
-    } else {
-        Endian::Little
-    };
-    reader.seek(std::io::SeekFrom::Start(0))?;
-
-    let header = reader
-        .read_type::<EXGeoHeader>(endian)
-        .expect("Failed to read header");
-
     let platform = platform
         .map(|p| p.into())
         .or(Platform::from_path(&filename))
         .expect("Failed to detect platform");
+
+    let mut file = File::open(&filename)?;
+    let reader = BufReader::new(&mut file);
+    let mut edb = DatabaseFile::new(reader, platform)?;
+    let header = edb.header.clone();
 
     match platform {
         Platform::Pc
@@ -112,7 +99,7 @@ pub fn execute_command(
         );
         pb.set_message("Extracting textures");
 
-        let textures = UXGeoTexture::read_all(&header, &mut reader, platform);
+        let textures = UXGeoTexture::read_all(&mut edb);
         for it in textures.into_iter() {
             let hash_str = format!("0x{:x}", it.hashcode);
             let _span = error_span!("texture", hash = %hash_str);
@@ -164,8 +151,8 @@ pub fn execute_command(
 
     // Find entities in refpointers
     for (i, r) in header.refpointer_list.iter().enumerate() {
-        reader.seek(std::io::SeekFrom::Start(r.address as u64))?;
-        let etype = reader.read_type::<u32>(endian)?;
+        edb.seek(std::io::SeekFrom::Start(r.address as u64))?;
+        let etype = edb.read_type::<u32>(edb.endian)?;
 
         if etype == 0x601 || etype == 0x603 {
             entity_offsets.push((r.address as u64, format!("ref_{i}")))
@@ -188,9 +175,9 @@ pub fn execute_command(
         let _span = error_span!("entity", id = %ent_id);
         let _span_enter = _span.enter();
 
-        reader.seek(std::io::SeekFrom::Start(*ent_offset))?;
+        edb.seek(std::io::SeekFrom::Start(*ent_offset))?;
 
-        let ent = reader.read_type_args::<EXGeoEntity>(endian, (header.version, platform));
+        let ent = edb.read_type_args::<EXGeoEntity>(edb.endian, (header.version, platform));
         if let Err(err) = ent {
             error!("Failed to read entity: {err}");
             continue;
@@ -217,10 +204,10 @@ pub fn execute_command(
             &mut vertex_data,
             &mut indices,
             &mut strips,
-            endian,
+            edb.endian,
             header.version,
             platform,
-            &mut reader,
+            &mut edb,
             4,
             remove_transparent,
             true,

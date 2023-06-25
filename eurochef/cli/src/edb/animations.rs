@@ -1,20 +1,17 @@
 use std::{
     collections::HashMap,
     fs::File,
-    io::{BufReader, Cursor, Seek},
+    io::{BufReader, Cursor, Seek, Write},
     path::Path,
 };
 
 use anyhow::Context;
 use base64::Engine;
 use eurochef_edb::{
-    anim::EXGeoBaseAnimSkin,
-    binrw::{BinReaderExt, Endian},
-    entity::EXGeoEntity,
-    header::EXGeoHeader,
+    anim::EXGeoBaseAnimSkin, binrw::BinReaderExt, common::EXVector, entity::EXGeoEntity,
     versions::Platform,
 };
-use eurochef_shared::{entities::read_entity, textures::UXGeoTexture};
+use eurochef_shared::{edb::DatabaseFile, entities::read_entity, textures::UXGeoTexture};
 use image::ImageOutputFormat;
 use indicatif::{ProgressBar, ProgressIterator, ProgressStyle};
 
@@ -39,26 +36,6 @@ pub fn execute_command(
     ));
     let output_folder = Path::new(&output_folder);
 
-    let mut file = File::open(&filename)?;
-    let mut reader = BufReader::new(&mut file);
-    let endian = if reader.read_ne::<u8>().unwrap() == 0x47 {
-        Endian::Big
-    } else {
-        Endian::Little
-    };
-    reader.seek(std::io::SeekFrom::Start(0))?;
-
-    let header = reader
-        .read_type::<EXGeoHeader>(endian)
-        .expect("Failed to read header");
-
-    if header.animskin_list.len() == 0 {
-        warn!("File does not contain any animation skins!");
-        return Ok(());
-    }
-
-    std::fs::create_dir_all(output_folder)?;
-
     let platform = platform
         .map(|p| p.into())
         .or(Platform::from_path(&filename))
@@ -67,6 +44,18 @@ pub fn execute_command(
     if platform != Platform::Pc && platform != Platform::Xbox && platform != Platform::Xbox360 {
         anyhow::bail!("Entity extraction is only supported for PC and Xbox (360) (for now)")
     }
+
+    let mut file = File::open(&filename)?;
+    let reader = BufReader::new(&mut file);
+    let mut edb = DatabaseFile::new(reader, platform)?;
+    let header = edb.header.clone();
+
+    if header.animskin_list.len() == 0 {
+        warn!("File does not contain any animation skins!");
+        return Ok(());
+    }
+
+    std::fs::create_dir_all(output_folder)?;
 
     let mut texture_uri_map: HashMap<u32, (String, Transparency)> = HashMap::new();
     let pb = ProgressBar::new(header.texture_list.len() as u64)
@@ -81,7 +70,7 @@ pub fn execute_command(
     );
     pb.set_message("Extracting textures");
 
-    let textures = UXGeoTexture::read_all(&header, &mut reader, platform);
+    let textures = UXGeoTexture::read_all(&mut edb);
     for it in textures.into_iter() {
         let hash_str = format!("0x{:x}", it.hashcode);
         let _span = error_span!("texture", hash = %hash_str);
@@ -138,10 +127,10 @@ pub fn execute_command(
         let skin_id = format!("{:x}", a.common.hashcode);
         let _span = error_span!("animskin", id = %skin_id);
         let _span_enter = _span.enter();
-        reader.seek(std::io::SeekFrom::Start(a.common.address as u64))?;
+        edb.seek(std::io::SeekFrom::Start(a.common.address as u64))?;
 
-        let skin = reader
-            .read_type_args::<EXGeoBaseAnimSkin>(endian, (header.version,))
+        let skin = edb
+            .read_type_args::<EXGeoBaseAnimSkin>(edb.endian, (header.version,))
             .context("Failed to read animation")?;
 
         let entity_indices: Vec<u32> = skin
@@ -159,9 +148,9 @@ pub fn execute_command(
             let _espan = error_span!("entity", id = %ent_id);
             let _espan_enter = _espan.enter();
 
-            reader.seek(std::io::SeekFrom::Start(e.common.address as u64))?;
+            edb.seek(std::io::SeekFrom::Start(e.common.address as u64))?;
 
-            let ent = reader.read_type_args::<EXGeoEntity>(endian, (header.version, platform));
+            let ent = edb.read_type_args::<EXGeoEntity>(edb.endian, (header.version, platform));
 
             if let Err(err) = ent {
                 error!("Failed to read entity: {err}");
@@ -179,10 +168,10 @@ pub fn execute_command(
                 &mut vertex_data,
                 &mut indices,
                 &mut strips,
-                endian,
+                edb.endian,
                 header.version,
                 platform,
-                &mut reader,
+                &mut edb,
                 4,
                 false,
                 true,
