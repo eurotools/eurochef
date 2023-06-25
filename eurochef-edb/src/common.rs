@@ -29,6 +29,14 @@ impl<T: BinRead, OT: BinRead + NumCast + NumSize, const OFFSET: i64> EXRelPtr<T,
     pub fn offset_relative(&self) -> i32 {
         self.offset.to_i32().unwrap()
     }
+
+    pub fn new_with_offset(offset: OT, offset_absolute: u64, data: T) -> Self {
+        Self {
+            offset,
+            offset_absolute,
+            data,
+        }
+    }
 }
 
 impl<'a, T: BinRead, OT: BinRead + NumCast + NumSize, const OFFSET: i64> BinRead
