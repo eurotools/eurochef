@@ -434,8 +434,6 @@ impl MapFrame {
 
             (cp, cr)
         };
-        // TODO(cohae): Why is this necessary?
-        let camera_pos = Vec3::new(-camera_pos.x, camera_pos.y, camera_pos.z);
 
         // TODO(cohae): How do we get out of this situation
         let textures = self.textures.clone(); // FIXME: UUUUGH.
