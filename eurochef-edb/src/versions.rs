@@ -80,6 +80,13 @@ impl Platform {
             Self::ThreeDS => Endian::Little,
         }
     }
+
+    pub fn is_gx(&self) -> bool {
+        match *self {
+            Platform::GameCube | Platform::Wii => true,
+            _ => false,
+        }
+    }
 }
 
 impl Display for Platform {

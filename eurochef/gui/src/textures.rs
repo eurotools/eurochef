@@ -234,7 +234,7 @@ impl TextureList {
 
 pub fn cutoff_string(string: String, max_len: usize) -> String {
     if string.len() > max_len {
-        let new_string = string[..max_len].to_string();
+        let new_string = String::from_utf8_lossy(&string.as_bytes()[..max_len]).to_string();
         new_string + "..."
     } else {
         string

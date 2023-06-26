@@ -2,6 +2,7 @@ pub mod anim;
 pub mod array;
 pub mod common;
 pub mod entity;
+pub mod entity_mesh;
 pub mod error;
 pub mod header;
 pub mod map;
