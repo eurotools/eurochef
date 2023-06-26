@@ -227,10 +227,6 @@ impl eframe::App for EurochefApp {
 
         if let Some((data, platform)) = self.pending_file.as_ref() {
             if let Some(platform) = platform {
-                info!(
-                    "Loading file of {} bytes with platform {platform}",
-                    data.len()
-                );
                 let mut cur = Cursor::new(data.clone()); // FIXME: Cloning the data hurts my soul
                 self.load_file(*platform, &mut cur, ctx);
                 self.pending_file = None;

@@ -301,7 +301,7 @@ impl MapFrame {
 
             ui.add(
                 egui::DragValue::new(&mut self.trigger_scale)
-                    .clamp_range(0.25..=2.0)
+                    .clamp_range(0.1..=2.0)
                     .max_decimals(2)
                     .speed(0.05),
             );
@@ -719,7 +719,7 @@ impl MapFrame {
                         .map(|c| c.map(|c| map.trigger_collisions.get(c as usize)))
                         .flatten()
                     {
-                        if coll.dtype == 0 {
+                        if coll.dtype == 0 || coll.dtype == 3 {
                             collision_renderer.render(
                                 painter.gl(),
                                 &viewer.lock().unwrap().uniforms,
@@ -864,15 +864,15 @@ impl MapFrame {
                                     .flatten()
                                 {
                                     ui.label("Collision");
-                                    if coll.dtype != 0 {
-                                        ui.label(format!(
+                                    match coll.dtype {
+                                        0 => ui.label("Box"),
+                                        3 => ui.label("Cylinder"),
+                                        u => ui.label(format!(
                                             "{} Unknown collision type {}",
                                             font_awesome::EXCLAMATION_TRIANGLE,
-                                            coll.dtype
-                                        ));
-                                    } else {
-                                        ui.label("Box");
-                                    }
+                                            u
+                                        )),
+                                    };
                                     ui.end_row();
                                 }
                             });

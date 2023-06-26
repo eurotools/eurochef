@@ -50,7 +50,8 @@ impl<'d> EdbFile<'d> {
         let header = reader.read_type::<EXGeoHeader>(endian)?;
 
         info!(
-            "Loaded EDB v{} (build date {}, size 0x{:x}, platform {})",
+            "Loaded EDB {:08x} v{} (build date {}, size 0x{:x}, platform {})",
+            header.hashcode,
             header.version,
             chrono::NaiveDateTime::from_timestamp_opt(header.time as _, 0).unwrap(),
             header.file_size,
