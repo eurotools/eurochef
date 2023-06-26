@@ -65,6 +65,7 @@ triggers:
     name: HT_TriggerType_SteamBuggy_Floor
   0x41000023:
     name: HT_TriggerType_Script
+    icon: OB_Static
   0x41000024:
     name: HT_TriggerType_MorphEnv
   0x41000025:

@@ -183,10 +183,10 @@ pub fn execute_command(
         let ent = ent.unwrap();
 
         if let EXGeoEntity::Mesh(ref mesh) = ent {
-            if mesh.vertex_count == 0 {
+            if mesh.data.vertex_count == 0 {
                 warn!(
                     "Skipping entity without vertex data! (v={}/i={}/t={})",
-                    mesh.vertex_count, mesh.index_count, mesh.tristrip_count
+                    mesh.data.vertex_count, mesh.data.index_count, mesh.data.tristrip_count
                 );
                 continue;
             }

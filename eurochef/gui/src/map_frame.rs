@@ -201,28 +201,29 @@ impl MapFrame {
                 s.ref_renderers.push((*i, r));
             }
 
-            for (i, (e, m)) in entities
+            for (hashcode, (e, m)) in entities
                 .iter()
                 .filter(|v| v.data.is_ok())
                 .map(|v| (v.hashcode, v.data.as_ref().unwrap()))
             {
-                // Only allow split/normal meshes
+                let r = Arc::new(Mutex::new(EntityRenderer::new(&gl, platform)));
+
                 match e {
-                    EXGeoEntity::Mesh(_) => {}
-                    EXGeoEntity::Split(_) => {}
-                    _ => continue,
+                    EXGeoEntity::Mesh(_) | EXGeoEntity::Split(_) => {
+                        r.lock().unwrap().load_mesh(&gl, m);
+                    }
+                    _ => {
+                        warn!("Creating dud EntityRenderer for EXGeoEntity::0x{:x} with hashcode {:08x}", e.type_code(), hashcode);
+                    }
                 };
 
-                let r = Arc::new(Mutex::new(EntityRenderer::new(&gl, platform)));
-                r.lock().unwrap().load_mesh(&gl, m);
-
                 let base = e.base().unwrap().clone();
-                s.placement_renderers.push((i, base, r));
+                s.placement_renderers.push((hashcode, base, r));
             }
         }
 
-        s.placement_renderers
-            .sort_by(|(_, e, _), (_, e2, _)| e.sort_value.cmp(&e2.sort_value));
+        // s.placement_renderers
+        //     .sort_by(|(_, e, _), (_, e2, _)| e.sort_value.cmp(&e2.sort_value));
 
         s
     }
@@ -522,6 +523,35 @@ impl MapFrame {
                 }
             }
 
+            for t in map.triggers.iter() {
+                if let Some(Some(v)) = t.engine_data.get(0) {
+                    // Render if it's a local entity
+                    if (*v & 0xff000000) == 0x82000000 {
+                        let renderer_lock = &placement_renderers[(*v & 0x0000ffff) as usize]
+                            .2
+                            .lock()
+                            .unwrap();
+
+                        let rotation: Quat = Quat::from_euler(
+                            glam::EulerRot::ZXY,
+                            t.rotation[2],
+                            t.rotation[0],
+                            t.rotation[1],
+                        );
+
+                        renderer_lock.draw_opaque(
+                            painter.gl(),
+                            &viewer.lock().unwrap().uniforms,
+                            t.position,
+                            rotation,
+                            t.scale,
+                            time,
+                            &textures,
+                        );
+                    }
+                }
+            }
+
             painter.gl().depth_mask(false);
 
             for (_, r) in renderers.iter().filter(|(i, _)| *i == map.hashcode) {
@@ -564,6 +594,35 @@ impl MapFrame {
                         time,
                         &textures,
                     );
+                }
+            }
+
+            for t in map.triggers.iter() {
+                if let Some(Some(v)) = t.engine_data.get(0) {
+                    // Render if it's a local entity
+                    if (*v & 0xff000000) == 0x82000000 {
+                        let renderer_lock = &placement_renderers[(*v & 0x0000ffff) as usize]
+                            .2
+                            .lock()
+                            .unwrap();
+
+                        let rotation: Quat = Quat::from_euler(
+                            glam::EulerRot::ZXY,
+                            t.rotation[2],
+                            t.rotation[0],
+                            t.rotation[1],
+                        );
+
+                        renderer_lock.draw_transparent(
+                            painter.gl(),
+                            &viewer.lock().unwrap().uniforms,
+                            t.position,
+                            rotation,
+                            t.scale,
+                            time,
+                            &textures,
+                        );
+                    }
                 }
             }
 

@@ -58,6 +58,7 @@ pub struct EXGeoMeshEntityData {
     #[brw(if(platform == Platform::Wii))]
     _unk78: [f32; 10], // ???
 
+    // TODO: Can we make this less fucky?
     #[brw(if(platform == Platform::Ps2))]
     tristrip_count_ps2: u16, // 0x68
     #[brw(if(platform == Platform::Ps2))]
