@@ -719,23 +719,20 @@ impl MapFrame {
                         .map(|c| c.map(|c| map.trigger_collisions.get(c as usize)))
                         .flatten()
                     {
-                        if coll.dtype != 0 {
-                            warn!("Unknown collision type {}", coll.dtype);
-                            // continue;
+                        if coll.dtype == 0 {
+                            collision_renderer.render(
+                                painter.gl(),
+                                &viewer.lock().unwrap().uniforms,
+                                t.position + Vec3::from(coll.position),
+                                Quat::from_euler(
+                                    glam::EulerRot::ZXY,
+                                    t.rotation.z,
+                                    t.rotation.x,
+                                    t.rotation.y,
+                                ),
+                                coll,
+                            );
                         }
-
-                        collision_renderer.render(
-                            painter.gl(),
-                            &viewer.lock().unwrap().uniforms,
-                            t.position + Vec3::from(coll.position),
-                            Quat::from_euler(
-                                glam::EulerRot::ZXY,
-                                t.rotation.z,
-                                t.rotation.x,
-                                t.rotation.y,
-                            ),
-                            coll,
-                        );
                     }
                 }
             }
@@ -859,6 +856,25 @@ impl MapFrame {
                                     ));
                                 });
                                 ui.end_row();
+
+                                if let Some(Some(coll)) = trig
+                                    .engine_data
+                                    .get(3)
+                                    .map(|c| c.map(|c| map.trigger_collisions.get(c as usize)))
+                                    .flatten()
+                                {
+                                    ui.label("Collision");
+                                    if coll.dtype != 0 {
+                                        ui.label(format!(
+                                            "{} Unknown collision type {}",
+                                            font_awesome::EXCLAMATION_TRIANGLE,
+                                            coll.dtype
+                                        ));
+                                    } else {
+                                        ui.label("Box");
+                                    }
+                                    ui.end_row();
+                                }
                             });
 
                             if !trig.data.is_empty() {
