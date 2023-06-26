@@ -1,4 +1,4 @@
-use std::io::{Read, Seek, Write};
+use std::io::{Seek, Write};
 
 use eurochef_edb::{
     binrw::BinReaderExt,
@@ -6,7 +6,7 @@ use eurochef_edb::{
 };
 use tracing::warn;
 
-use crate::edb::DatabaseFile;
+use crate::edb::EdbFile;
 
 #[derive(Clone)]
 pub struct UXGeoSpreadsheet(pub Vec<UXGeoTextSection>);
@@ -26,7 +26,7 @@ pub struct UXGeoTextItem {
 }
 
 impl UXGeoSpreadsheet {
-    pub fn read_all<R: Read + Seek>(edb: &mut DatabaseFile<R>) -> Vec<Self> {
+    pub fn read_all(edb: &mut EdbFile) -> Vec<Self> {
         let mut spreadsheets = vec![];
 
         let header = edb.header.clone();

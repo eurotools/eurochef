@@ -8,6 +8,7 @@ use crossbeam::atomic::AtomicCell;
 use eframe::CreationContext;
 use egui::{Color32, FontData, FontDefinitions, NumExt};
 use eurochef_edb::versions::Platform;
+use eurochef_shared::{edb::EdbFile, spreadsheets::UXGeoSpreadsheet, textures::UXGeoTexture};
 use nohash_hasher::IntMap;
 
 use crate::{entities, fileinfo, maps, parse_hashcodes, spreadsheet, textures};
@@ -136,17 +137,23 @@ impl EurochefApp {
             self.ps2_warning = true;
         }
 
+        let mut edb = match EdbFile::new(reader, platform) {
+            Ok(v) => v,
+            Err(e) => {
+                self.state = AppState::Error(e.into());
+                return;
+            }
+        };
+
         self.current_panel = Panel::FileInfo;
         self.spreadsheetlist = None;
         self.fileinfo = None;
         self.textures = None;
 
         // TODO(cohae): should loader functions be in the struct impls?
-        self.fileinfo = Some(fileinfo::FileInfoPanel::new(fileinfo::read_from_file(
-            reader,
-        )));
+        self.fileinfo = Some(fileinfo::FileInfoPanel::new(edb.header.clone()));
 
-        let spreadsheets = spreadsheet::read_from_file(reader);
+        let spreadsheets = UXGeoSpreadsheet::read_all(&mut edb);
         if spreadsheets.len() > 0 {
             self.spreadsheetlist = Some(spreadsheet::TextItemList::new(spreadsheets[0].clone()));
         }
@@ -161,11 +168,11 @@ impl EurochefApp {
         ]
         .contains(&platform)
         {
-            match entities::read_from_file(reader, platform) {
+            match entities::read_from_file(&mut edb) {
                 Ok((entities, skins, ref_entities, textures)) => {
                     if entities.len() + skins.len() + ref_entities.len() > 0 {
                         if self.fileinfo.as_ref().unwrap().header.map_list.len() > 0 {
-                            let map = maps::read_from_file(reader, platform);
+                            let map = maps::read_from_file(&mut edb);
                             self.maps = Some(maps::MapViewerPanel::new(
                                 ctx,
                                 self.gl.clone(),
@@ -195,7 +202,7 @@ impl EurochefApp {
             self.entities = None;
         }
 
-        let textures = textures::read_from_file(reader, platform);
+        let textures = UXGeoTexture::read_all(&mut edb);
         if textures.len() == 1 && textures[0].hashcode == 0x06000000 {
             self.textures = None;
         } else {

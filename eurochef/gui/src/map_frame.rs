@@ -122,7 +122,6 @@ impl MapFrame {
         }
 
         let mut trigger_icons = FxHashMap::default();
-        println!("{:?}", exe_dir.join("./assets/icons/triggers"));
         if let Ok(d) = exe_dir.join("./assets/icons/triggers").read_dir() {
             for p in d
                 .filter(|d| d.as_ref().unwrap().file_type().unwrap().is_file())

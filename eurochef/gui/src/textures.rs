@@ -1,12 +1,6 @@
-use std::io::{Read, Seek};
 
 use egui::{Color32, Widget};
-use eurochef_edb::{
-    binrw::{BinReaderExt, Endian},
-    header::EXGeoHeader,
-    versions::Platform,
-};
-use eurochef_shared::{textures::UXGeoTexture, IdentifiableResult, edb::DatabaseFile};
+use eurochef_shared::{textures::UXGeoTexture, IdentifiableResult};
 use fnv::FnvHashMap;
 use instant::Instant;
 
@@ -236,15 +230,6 @@ impl TextureList {
             self.enlarged_texture = None;
         }
     }
-}
-
-pub fn read_from_file<R: Read + Seek>(
-    reader: &mut R,
-    platform: Platform,
-) -> Vec<IdentifiableResult<UXGeoTexture>> {
-    let mut edb = DatabaseFile::new(reader, platform).expect("Failed to open file");
-
-    UXGeoTexture::read_all(&mut edb)
 }
 
 pub fn cutoff_string(string: String, max_len: usize) -> String {

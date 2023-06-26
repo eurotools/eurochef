@@ -1,18 +1,14 @@
-use std::{
-    io::{Read, Seek},
-    sync::Arc,
-};
+use std::{io::Seek, sync::Arc};
 
 use anyhow::Context;
 
 use eurochef_edb::{
-    binrw::{BinReaderExt, Endian},
+    binrw::BinReaderExt,
     entity::{EXGeoEntity, EXGeoMapZoneEntity},
-    header::EXGeoHeader,
     map::{EXGeoBaseDatum, EXGeoMap, EXGeoPlacement},
     versions::Platform,
 };
-use eurochef_shared::{textures::UXGeoTexture, IdentifiableResult};
+use eurochef_shared::{edb::EdbFile, textures::UXGeoTexture, IdentifiableResult};
 use glam::Vec3;
 use nohash_hasher::IntMap;
 
@@ -142,28 +138,16 @@ impl MapViewerPanel {
     }
 }
 
-// TODO(cohae): EdbFile struct so we dont have to read endianness separately
-pub fn read_from_file<R: Read + Seek>(reader: &mut R, platform: Platform) -> Vec<ProcessedMap> {
-    reader.seek(std::io::SeekFrom::Start(0)).ok();
-    let endian = if reader.read_ne::<u8>().unwrap() == 0x47 {
-        Endian::Big
-    } else {
-        Endian::Little
-    };
-    reader.seek(std::io::SeekFrom::Start(0)).unwrap();
-
-    let header = reader
-        .read_type::<EXGeoHeader>(endian)
-        .expect("Failed to read header");
+pub fn read_from_file(edb: &mut EdbFile) -> Vec<ProcessedMap> {
+    let header = edb.header.clone();
 
     let mut maps = vec![];
     for m in header.map_list.iter() {
-        reader
-            .seek(std::io::SeekFrom::Start(m.address as u64))
+        edb.seek(std::io::SeekFrom::Start(m.address as u64))
             .unwrap();
 
-        let xmap = reader
-            .read_type_args::<EXGeoMap>(endian, (header.version,))
+        let xmap = edb
+            .read_type_args::<EXGeoMap>(edb.endian, (header.version,))
             .context("Failed to read map")
             .unwrap();
 
@@ -177,13 +161,12 @@ pub fn read_from_file<R: Read + Seek>(reader: &mut R, platform: Platform) -> Vec
 
         for z in &xmap.zones {
             let entity_offset = header.refpointer_list[z.entity_refptr as usize].address;
-            reader
-                .seek(std::io::SeekFrom::Start(entity_offset as u64))
+            edb.seek(std::io::SeekFrom::Start(entity_offset as u64))
                 .context("Mapzone refptr pointer to a non-entity object!")
                 .unwrap();
 
-            let ent = reader
-                .read_type_args::<EXGeoEntity>(endian, (header.version, platform))
+            let ent = edb
+                .read_type_args::<EXGeoEntity>(edb.endian, (header.version, edb.platform))
                 .unwrap();
 
             if let EXGeoEntity::MapZone(mapzone) = ent {

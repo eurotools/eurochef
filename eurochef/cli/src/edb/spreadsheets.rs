@@ -1,12 +1,12 @@
 use std::{fs::File, io::BufReader};
 
 use eurochef_edb::versions::Platform;
-use eurochef_shared::{edb::DatabaseFile, spreadsheets::UXGeoSpreadsheet};
+use eurochef_shared::{edb::EdbFile, spreadsheets::UXGeoSpreadsheet};
 
 pub fn execute_command(filename: String, section: Option<u32>) -> anyhow::Result<()> {
     let mut file = File::open(filename)?;
-    let reader = BufReader::new(&mut file);
-    let mut edb = DatabaseFile::new(reader, Platform::Pc)?;
+    let mut reader = BufReader::new(&mut file);
+    let mut edb = EdbFile::new(&mut reader, Platform::Pc)?;
 
     let spreadsheets = UXGeoSpreadsheet::read_all(&mut edb);
     assert!(spreadsheets.len() <= 1);

@@ -8,15 +8,12 @@ use std::{
 use anyhow::Context;
 use base64::Engine;
 use eurochef_edb::{binrw::BinReaderExt, entity::EXGeoEntity, versions::Platform};
-use eurochef_shared::{edb::DatabaseFile, entities::read_entity, textures::UXGeoTexture};
+use eurochef_shared::{edb::EdbFile, entities::read_entity, textures::UXGeoTexture};
 use image::ImageOutputFormat;
 use indicatif::{ProgressBar, ProgressIterator, ProgressStyle};
 
 use crate::{
-    edb::{
-        gltf_export::{self},
-        TICK_STRINGS,
-    },
+    edb::{gltf_export, TICK_STRINGS},
     PlatformArg,
 };
 
@@ -51,8 +48,8 @@ pub fn execute_command(
         .expect("Failed to detect platform");
 
     let mut file = File::open(&filename)?;
-    let reader = BufReader::new(&mut file);
-    let mut edb = DatabaseFile::new(reader, platform)?;
+    let mut reader = BufReader::new(&mut file);
+    let mut edb = EdbFile::new(&mut reader, platform)?;
     let header = edb.header.clone();
 
     match platform {

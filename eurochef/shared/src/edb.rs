@@ -5,20 +5,24 @@ use eurochef_edb::{
     header::EXGeoHeader,
     versions::Platform,
 };
-use tracing::debug;
+use tracing::info;
 
 use crate::error::Result;
 
-pub struct DatabaseFile<T: Read + Seek> {
-    reader: T,
+pub trait DatabaseReader: Read + Seek {}
+
+impl<R: Read + Seek + Sized> DatabaseReader for R {}
+
+pub struct EdbFile<'d> {
+    reader: &'d mut dyn DatabaseReader,
     pub endian: Endian,
     pub platform: Platform,
     pub header: EXGeoHeader,
 }
 
-impl<T: Read + Seek> DatabaseFile<T> {
+impl<'d> EdbFile<'d> {
     /// Resets the reader, tests endianness and reads the header
-    pub fn new(reader: T, platform: Platform) -> Result<Self> {
+    pub fn new(reader: &'d mut dyn DatabaseReader, platform: Platform) -> Result<Self> {
         let mut reader = reader;
         reader.seek(std::io::SeekFrom::Start(0)).ok();
         let endian = if reader.read_ne::<u8>()? == 0x47 {
@@ -32,9 +36,9 @@ impl<T: Read + Seek> DatabaseFile<T> {
             .read_type::<EXGeoHeader>(endian)
             .expect("Failed to read header");
 
-        debug!(
-            "Loaded EDB v{} (build date {}, size 0x{:x})",
-            header.version, header.time, header.file_size
+        info!(
+            "Loaded EDB v{} (build date {}, size 0x{:x}, platform {})",
+            header.version, header.time, header.file_size, platform
         );
 
         Ok(Self {
@@ -46,13 +50,13 @@ impl<T: Read + Seek> DatabaseFile<T> {
     }
 }
 
-impl<T: Read + Seek> Seek for DatabaseFile<T> {
+impl<'d> Seek for EdbFile<'d> {
     fn seek(&mut self, pos: std::io::SeekFrom) -> std::io::Result<u64> {
         self.reader.seek(pos)
     }
 }
 
-impl<T: Read + Seek> Read for DatabaseFile<T> {
+impl<'d> Read for EdbFile<'d> {
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
         self.reader.read(buf)
     }

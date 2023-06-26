@@ -11,7 +11,7 @@ use eurochef_edb::{
     anim::EXGeoBaseAnimSkin, binrw::BinReaderExt, common::EXVector, entity::EXGeoEntity,
     versions::Platform,
 };
-use eurochef_shared::{edb::DatabaseFile, entities::read_entity, textures::UXGeoTexture};
+use eurochef_shared::{edb::EdbFile, entities::read_entity, textures::UXGeoTexture};
 use image::ImageOutputFormat;
 use indicatif::{ProgressBar, ProgressIterator, ProgressStyle};
 
@@ -46,8 +46,8 @@ pub fn execute_command(
     }
 
     let mut file = File::open(&filename)?;
-    let reader = BufReader::new(&mut file);
-    let mut edb = DatabaseFile::new(reader, platform)?;
+    let mut reader = BufReader::new(&mut file);
+    let mut edb = EdbFile::new(&mut reader, platform)?;
     let header = edb.header.clone();
 
     if header.animskin_list.len() == 0 {

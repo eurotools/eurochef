@@ -1,7 +1,4 @@
-use std::{
-    io::{Read, Seek},
-    sync::Arc,
-};
+use std::{io::Seek, sync::Arc};
 
 use anyhow::anyhow;
 use egui::{Color32, RichText, Widget};
@@ -9,7 +6,7 @@ use eurochef_edb::{
     anim::EXGeoBaseAnimSkin, binrw::BinReaderExt, entity::EXGeoEntity, versions::Platform,
 };
 use eurochef_shared::{
-    edb::DatabaseFile,
+    edb::EdbFile,
     entities::{read_entity, TriStrip, UXVertex},
     textures::UXGeoTexture,
     IdentifiableResult,
@@ -697,22 +694,20 @@ impl EntityListPanel {
     }
 }
 
-pub fn read_from_file<R: Read + Seek>(
-    reader: &mut R,
-    platform: Platform,
+pub fn read_from_file(
+    edb: &mut EdbFile,
 ) -> anyhow::Result<(
     Vec<IdentifiableResult<(EXGeoEntity, ProcessedEntityMesh)>>,
     Vec<IdentifiableResult<EXGeoBaseAnimSkin>>,
     Vec<IdentifiableResult<(EXGeoEntity, ProcessedEntityMesh)>>,
     Vec<IdentifiableResult<UXGeoTexture>>,
 )> {
-    let mut edb = DatabaseFile::new(reader, platform)?;
     let header = edb.header.clone();
 
     // TODO(cohae): Replace with header iterators
     let mut entities = vec![];
     for e in header.entity_list.iter() {
-        let ent = read_entity_identifiable(e.common.address, &mut edb);
+        let ent = read_entity_identifiable(e.common.address, edb);
         entities.push(IdentifiableResult::new(e.common.hashcode, ent));
     }
 
@@ -723,7 +718,7 @@ pub fn read_from_file<R: Read + Seek>(
 
         let etype = edb.read_type::<u32>(edb.endian)?;
         if etype == 0x601 || etype == 0x602 || etype == 0x603 {
-            let ent = read_entity_identifiable(r.address, &mut edb);
+            let ent = read_entity_identifiable(r.address, edb);
             refents.push(IdentifiableResult::new(i as _, ent));
         }
     }
@@ -742,14 +737,14 @@ pub fn read_from_file<R: Read + Seek>(
         ));
     }
 
-    let textures = UXGeoTexture::read_all(&mut edb);
+    let textures = UXGeoTexture::read_all(edb);
 
     Ok((entities, skins, refents, textures))
 }
 
-fn read_entity_identifiable<R: Read + Seek>(
+fn read_entity_identifiable(
     address: u32,
-    edb: &mut DatabaseFile<R>,
+    edb: &mut EdbFile,
 ) -> anyhow::Result<(EXGeoEntity, ProcessedEntityMesh)> {
     edb.seek(std::io::SeekFrom::Start(address as u64))?;
 

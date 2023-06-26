@@ -1,15 +1,5 @@
-use std::io::{Read, Seek};
-
 use egui::FontSelection;
-use eurochef_edb::{
-    binrw::{BinReaderExt, Endian},
-    header::EXGeoHeader,
-    versions::Platform,
-};
-use eurochef_shared::{
-    edb::DatabaseFile,
-    spreadsheets::{UXGeoSpreadsheet, UXGeoTextItem},
-};
+use eurochef_shared::spreadsheets::{UXGeoSpreadsheet, UXGeoTextItem};
 
 pub struct TextItemList {
     /// Search query for a specific hashcode
@@ -165,10 +155,4 @@ impl TextItemList {
             });
         });
     }
-}
-
-pub fn read_from_file<R: Read + Seek>(reader: &mut R) -> Vec<UXGeoSpreadsheet> {
-    let mut edb = DatabaseFile::new(reader, Platform::Pc).expect("Failed to open file");
-
-    UXGeoSpreadsheet::read_all(&mut edb)
 }

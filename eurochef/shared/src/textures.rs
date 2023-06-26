@@ -2,11 +2,11 @@ use std::io::{Read, Seek};
 
 use anyhow::Context;
 use bitflags::bitflags;
-use eurochef_edb::{binrw::BinReaderExt, header::EXGeoHeader, texture::EXGeoTexture};
+use eurochef_edb::{binrw::BinReaderExt, texture::EXGeoTexture};
 use image::RgbaImage;
 
 use crate::{
-    edb::DatabaseFile,
+    edb::EdbFile,
     platform::texture::{self, TextureDecoder},
     IdentifiableResult,
 };
@@ -39,7 +39,7 @@ pub struct UXGeoTexture {
 }
 
 impl UXGeoTexture {
-    pub fn read_all<R: Read + Seek>(edb: &mut DatabaseFile<R>) -> Vec<IdentifiableResult<Self>> {
+    pub fn read_all(edb: &mut EdbFile) -> Vec<IdentifiableResult<Self>> {
         // ? can this be implemented on-trait???
         let texture_decoder = texture::create_for_platform(edb.platform);
         let mut textures = vec![];
@@ -53,9 +53,9 @@ impl UXGeoTexture {
         textures
     }
 
-    pub fn read<R: Read + Seek>(
+    pub fn read(
         address: u32,
-        edb: &mut DatabaseFile<R>,
+        edb: &mut EdbFile,
         texture_decoder: &Box<dyn TextureDecoder>,
         flags: u32,
     ) -> anyhow::Result<Self> {

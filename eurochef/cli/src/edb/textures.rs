@@ -6,7 +6,7 @@ use std::{
 
 use anyhow::Context;
 use eurochef_edb::versions::Platform;
-use eurochef_shared::{edb::DatabaseFile, textures::UXGeoTexture};
+use eurochef_shared::{edb::EdbFile, textures::UXGeoTexture};
 use indicatif::{ProgressBar, ProgressIterator, ProgressStyle};
 
 use crate::{edb::TICK_STRINGS, PlatformArg};
@@ -35,8 +35,8 @@ pub fn execute_command(
         .expect("Failed to detect platform");
 
     let mut file = File::open(&filename)?;
-    let reader = BufReader::new(&mut file);
-    let mut edb = DatabaseFile::new(reader, platform)?;
+    let mut reader = BufReader::new(&mut file);
+    let mut edb = EdbFile::new(&mut reader, platform)?;
     let header = edb.header.clone();
 
     let pb = ProgressBar::new(header.texture_list.len() as u64)
