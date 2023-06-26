@@ -10,7 +10,7 @@ pub enum EurochefError {
     #[error("Input/output error: {0}")]
     Io(#[from] std::io::Error),
 
-    #[error("BinRW error: {0}")]
+    #[error("BinRW error")]
     BinRw(#[from] eurochef_edb::binrw::Error),
 }
 

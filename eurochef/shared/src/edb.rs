@@ -30,15 +30,31 @@ impl<'d> EdbFile<'d> {
         } else {
             Endian::Little
         };
+
+        reader.seek(std::io::SeekFrom::Start(8))?;
+        let version = reader.read_type::<u32>(endian)?;
+        if version >= 0x10000 {
+            return Err(crate::error::EurochefError::Unsupported(
+                crate::error::UnsupportedError::EngineXT(version),
+            ));
+        }
+
+        if version < 182 || version > 263 {
+            return Err(crate::error::EurochefError::Unsupported(
+                crate::error::UnsupportedError::Version(version),
+            ));
+        }
+
         reader.seek(std::io::SeekFrom::Start(0))?;
 
-        let header = reader
-            .read_type::<EXGeoHeader>(endian)
-            .expect("Failed to read header");
+        let header = reader.read_type::<EXGeoHeader>(endian)?;
 
         info!(
             "Loaded EDB v{} (build date {}, size 0x{:x}, platform {})",
-            header.version, header.time, header.file_size, platform
+            header.version,
+            chrono::NaiveDateTime::from_timestamp_opt(header.time as _, 0).unwrap(),
+            header.file_size,
+            platform
         );
 
         Ok(Self {
