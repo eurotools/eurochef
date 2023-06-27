@@ -6,6 +6,7 @@ pub mod entity_mesh;
 pub mod error;
 pub mod header;
 pub mod map;
+pub mod script;
 pub mod text;
 pub mod texture;
 pub mod versions;

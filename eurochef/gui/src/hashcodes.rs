@@ -1,7 +1,20 @@
 use nohash_hasher::IntMap;
 
 pub fn parse_hashcodes(string: &str) -> IntMap<u32, String> {
-    string.lines().filter_map(|l| parse_hashcode(l)).collect()
+    let res: IntMap<u32, String> = string.lines().filter_map(|l| parse_hashcode(l)).collect();
+
+    let base_count = res
+        .values()
+        .filter(|k| k.ends_with("_HASHCODE_BASE"))
+        .count();
+
+    info!(
+        "Loaded {} hashcodes ({} base hashcodes)",
+        res.len(),
+        base_count
+    );
+
+    res
 }
 
 fn parse_hashcode(line: &str) -> Option<(u32, String)> {

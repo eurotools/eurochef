@@ -70,7 +70,7 @@ impl FileInfoPanel {
         quick_array!("Entities", entity_list);
         quick_array!("Animations", anim_list);
         quick_array!("Animation skins", animskin_list);
-        quick_array!("Animation sequences", animsequence_list);
+        quick_array!("Animation scripts", animscript_list);
         quick_array!("Maps", map_list);
         quick_array!("Animation modes", animmode_list);
         quick_array!("Animation sets", animset_list);

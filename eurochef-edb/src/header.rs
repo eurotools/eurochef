@@ -15,7 +15,7 @@ use crate::{
 pub type EXGeoMapHeader = EXGeoCommonArrayElement;
 pub type EXGeoParticleHeader = EXGeoCommonArrayElement;
 pub type EXGeoRefPointerHeader = EXGeoCommonArrayElement;
-pub type EXGeoAnimSequenceHeader = EXGeoCommonArrayElement;
+pub type EXGeoAnimScript = EXGeoCommonArrayElement;
 pub type EXGeoSwooshHeader = EXGeoCommonArrayElement;
 pub type EXGeoFontHeader = EXGeoCommonArrayElement;
 pub type EXGeoMaterialHeader = EXGeoCommonArrayElement;
@@ -44,7 +44,7 @@ pub struct EXGeoHeader {
     pub anim_list: EXGeoHashArray<EXGeoAnimHeader>,
     #[br(args(version))]
     pub animskin_list: EXGeoHashArray<EXGeoAnimSkinHeader>, // 0x60
-    pub animsequence_list: EXGeoHashArray<EXGeoAnimSequenceHeader>,
+    pub animscript_list: EXGeoHashArray<EXGeoAnimScript>,
     pub map_list: EXGeoHashArray<EXGeoMapHeader>, // 0x70
     pub animmode_list: EXGeoHashArray<EXGeoAnimModeHeader>,
     pub animset_list: EXGeoHashArray<EXGeoAnimSetHeader>, // 0x80
