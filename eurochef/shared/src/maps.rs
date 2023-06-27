@@ -120,33 +120,35 @@ impl TrigDataType {
                 }
             }
             TrigDataType::F32 => unsafe { format!("{:.5}", transmute::<u32, f32>(v)) },
-            TrigDataType::Hashcode => {
-                let hashcode = hashcodes.get(&v);
+            TrigDataType::Hashcode => format_hashcode(hashcodes, v),
+        }
+    }
+}
 
-                if let Some(hc) = hashcode {
-                    hc.clone()
-                } else {
-                    let is_local = (v & 0x80000000) != 0;
+pub fn format_hashcode(hashcodes: &IntMap<u32, String>, hc: u32) -> String {
+    let hashcode = hashcodes.get(&hc);
 
-                    // TODO(cohae): Check if the amount of type/index bits are correct
-                    if let Some(hc_base) = hashcodes.get(&(v & 0x7fff0000)) {
-                        let hc_base_stripped = hc_base
-                            .strip_suffix("_HASHCODE_BASE")
-                            .unwrap_or("HT_Invalid");
+    if let Some(hc) = hashcode {
+        hc.clone()
+    } else {
+        let is_local = (hc & 0x80000000) != 0;
 
-                        if is_local {
-                            format!("HT_Local_{}_{v:08x}", &hc_base_stripped[3..])
-                        } else {
-                            format!("{hc_base_stripped}_Unknown_{v:08x}")
-                        }
-                    } else {
-                        if is_local {
-                            format!("HT_Local_Invalid_{v:08x}")
-                        } else {
-                            format!("HT_Invalid_{v:08x}")
-                        }
-                    }
-                }
+        // TODO(cohae): Check if the amount of type/index bits are correct
+        if let Some(hc_base) = hashcodes.get(&(hc & 0x7fff0000)) {
+            let hc_base_stripped = hc_base
+                .strip_suffix("_HASHCODE_BASE")
+                .unwrap_or("HT_Invalid");
+
+            if is_local {
+                format!("HT_Local_{}_{hc:08x}", &hc_base_stripped[3..])
+            } else {
+                format!("{hc_base_stripped}_Unknown_{hc:08x}")
+            }
+        } else {
+            if is_local {
+                format!("HT_Local_Invalid_{hc:08x}")
+            } else {
+                format!("HT_Invalid_{hc:08x}")
             }
         }
     }
