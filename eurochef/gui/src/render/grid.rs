@@ -15,6 +15,10 @@ impl GridRenderer {
     pub unsafe fn draw(&self, context: &RenderContext, gl: &glow::Context) {
         let shader = context.shaders.grid;
         gl.use_program(Some(shader));
+        gl.uniform_1_i32(
+            gl.get_uniform_location(shader, "u_size").as_ref(),
+            self.size,
+        );
         gl.uniform_matrix_4_f32_slice(
             gl.get_uniform_location(shader, "u_view").as_ref(),
             false,
