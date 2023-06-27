@@ -1,4 +1,4 @@
-icon_scale: 0.25
+icon_scale: 0.75
 triggers:
   0:
     name: XTrigger_Player
