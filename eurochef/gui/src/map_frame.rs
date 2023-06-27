@@ -1,4 +1,5 @@
 use std::{
+    collections::VecDeque,
     fs::File,
     io::Cursor,
     sync::{Arc, Mutex},
@@ -473,6 +474,14 @@ impl MapFrame {
             v.start_render(painter.gl(), info.viewport.aspect_ratio(), time as f32);
             let render_context = v.render_context();
 
+            struct QueuedEntityRender {
+                entity: Arc<Mutex<EntityRenderer>>,
+                position: Vec3,
+                rotation: Quat,
+                scale: Vec3,
+            }
+
+            let mut render_queue = Vec::<QueuedEntityRender>::new();
             if let Some((_, _, sky_renderer)) =
                 placement_renderers.iter().find(|(hc, _, _)| *hc == sky_ent)
             {
@@ -493,16 +502,12 @@ impl MapFrame {
 
             // Render base (ref) entities
             for (_, r) in renderers.iter().filter(|(i, _)| *i == map.hashcode) {
-                let renderer_lock = r.lock().unwrap();
-                renderer_lock.draw_opaque(
-                    painter.gl(),
-                    &render_context,
-                    Vec3::ZERO,
-                    Quat::IDENTITY,
-                    Vec3::ONE,
-                    time,
-                    &textures,
-                );
+                render_queue.push(QueuedEntityRender {
+                    entity: r.clone(),
+                    position: Vec3::ZERO,
+                    rotation: Quat::IDENTITY,
+                    scale: Vec3::ONE,
+                })
             }
 
             for p in &map.placements {
@@ -521,89 +526,42 @@ impl MapFrame {
                         rotation = -camera_rot;
                     }
 
-                    let renderer_lock = r.lock().unwrap();
-                    renderer_lock.draw_opaque(
-                        painter.gl(),
-                        &render_context,
+                    render_queue.push(QueuedEntityRender {
+                        entity: r.clone(),
                         position,
                         rotation,
-                        p.scale.into(),
-                        time,
-                        &textures,
-                    );
+                        scale: p.scale.into(),
+                    })
                 }
             }
 
-            for t in map.triggers.iter() {
-                if let Some(Some(v)) = t.engine_data.get(0) {
-                    // Render if it's a local entity
-                    if (*v & 0xff000000) == 0x82000000 {
-                        if let Some(renderer) = &placement_renderers.get((*v & 0x0000ffff) as usize)
-                        {
-                            let renderer_lock = renderer.2.lock().unwrap();
-                            let rotation: Quat = Quat::from_euler(
-                                glam::EulerRot::ZXY,
-                                t.rotation[2],
-                                t.rotation[0],
-                                t.rotation[1],
-                            );
-
-                            renderer_lock.draw_opaque(
-                                painter.gl(),
-                                &render_context,
-                                t.position,
-                                rotation,
-                                t.scale,
-                                time,
-                                &textures,
-                            );
-                        }
-                    }
+            for r in render_queue.iter() {
+                if let Ok(e) = r.entity.try_lock() {
+                    e.draw_opaque(
+                        painter.gl(),
+                        &render_context,
+                        r.position,
+                        r.rotation,
+                        r.scale,
+                        time,
+                        &textures,
+                    )
                 }
             }
 
             painter.gl().depth_mask(false);
 
-            for (_, r) in renderers.iter().filter(|(i, _)| *i == map.hashcode) {
-                let renderer_lock = r.lock().unwrap();
-                renderer_lock.draw_transparent(
-                    painter.gl(),
-                    &render_context,
-                    Vec3::ZERO,
-                    Quat::IDENTITY,
-                    Vec3::ONE,
-                    time,
-                    &textures,
-                );
-            }
-
-            for p in &map.placements {
-                if let Some((_, base, r)) = placement_renderers
-                    .iter()
-                    .find(|(i, _, _)| *i == p.object_ref)
-                {
-                    let mut rotation: Quat = Quat::from_euler(
-                        glam::EulerRot::ZXY,
-                        p.rotation[2],
-                        p.rotation[0],
-                        p.rotation[1],
-                    );
-                    let position: Vec3 = p.position.into();
-                    // TODO(cohae): Shouldn't this be part of the entity renderer?
-                    if (base.flags & 0x4) != 0 {
-                        rotation = -camera_rot;
-                    }
-
-                    let renderer_lock = r.lock().unwrap();
-                    renderer_lock.draw_transparent(
+            for r in render_queue.iter() {
+                if let Ok(e) = r.entity.try_lock() {
+                    e.draw_transparent(
                         painter.gl(),
                         &render_context,
-                        position,
-                        rotation,
-                        p.scale.into(),
+                        r.position,
+                        r.rotation,
+                        r.scale,
                         time,
                         &textures,
-                    );
+                    )
                 }
             }
 
@@ -613,7 +571,6 @@ impl MapFrame {
                     if (*v & 0xff000000) == 0x82000000 {
                         if let Some(renderer) = &placement_renderers.get((*v & 0x0000ffff) as usize)
                         {
-                            let renderer_lock = renderer.2.lock().unwrap();
                             let rotation: Quat = Quat::from_euler(
                                 glam::EulerRot::ZXY,
                                 t.rotation[2],
@@ -621,15 +578,12 @@ impl MapFrame {
                                 t.rotation[1],
                             );
 
-                            renderer_lock.draw_transparent(
-                                painter.gl(),
-                                &render_context,
-                                t.position,
+                            render_queue.push(QueuedEntityRender {
+                                entity: renderer.2.clone(),
+                                position: t.position,
                                 rotation,
-                                t.scale,
-                                time,
-                                &textures,
-                            );
+                                scale: t.scale,
+                            })
                         }
                     }
                 }
