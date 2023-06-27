@@ -1,5 +1,4 @@
 use std::{
-    collections::VecDeque,
     fs::File,
     io::Cursor,
     sync::{Arc, Mutex},
@@ -36,6 +35,17 @@ use crate::{
     },
 };
 
+bitflags::bitflags! {
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+    struct RenderFilter: u32 {
+        const MapZone = (1 << 0);
+        const Placements = (1 << 1);
+        const Triggers = (1 << 2);
+        const Opaque = (1 << 16);
+        const Transparent = (1 << 17);
+    }
+}
+
 pub struct MapFrame {
     gl: Arc<glow::Context>,
     pub textures: Vec<RenderableTexture>,
@@ -69,6 +79,7 @@ pub struct MapFrame {
 
     hashcodes: Arc<IntMap<u32, String>>,
     trigger_icons: Arc<FxHashMap<String, glow::Texture>>,
+    render_filter: RenderFilter,
 }
 
 const DEFAULT_ICON_DATA: &[u8] = include_bytes!("../../../assets/icons/triggers/default.png");
@@ -194,6 +205,10 @@ impl MapFrame {
             available_triginfo_paths,
             hashcodes,
             trigger_icons: Arc::new(trigger_icons),
+            render_filter: RenderFilter::all(),
+            // render_filter: RenderFilter::Triggers
+            //     | RenderFilter::Opaque
+            //     | RenderFilter::Transparent,
         };
 
         if s.reload_trigger_defs().is_err() {
@@ -465,6 +480,7 @@ impl MapFrame {
         let hovered_link = self.selected_link;
         let trigger_info = self.trigger_info.clone();
         let trigger_icons = self.trigger_icons.clone();
+        let render_filter = self.render_filter;
 
         let collision_renderer = self.collision_renderer.clone();
         let placement_renderers = self.placement_renderers.clone();
@@ -501,90 +517,101 @@ impl MapFrame {
             }
 
             // Render base (ref) entities
-            for (_, r) in renderers.iter().filter(|(i, _)| *i == map.hashcode) {
-                render_queue.push(QueuedEntityRender {
-                    entity: r.clone(),
-                    position: Vec3::ZERO,
-                    rotation: Quat::IDENTITY,
-                    scale: Vec3::ONE,
-                })
-            }
-
-            for p in &map.placements {
-                if let Some((_, base, r)) = placement_renderers
-                    .iter()
-                    .find(|(i, _, _)| *i == p.object_ref)
-                {
-                    let mut rotation: Quat = Quat::from_euler(
-                        glam::EulerRot::ZXY,
-                        p.rotation[2],
-                        p.rotation[0],
-                        p.rotation[1],
-                    );
-                    let position: Vec3 = p.position.into();
-                    if (base.flags & 0x4) != 0 {
-                        rotation = -camera_rot;
-                    }
-
+            if render_filter.contains(RenderFilter::MapZone) {
+                for (_, r) in renderers.iter().filter(|(i, _)| *i == map.hashcode) {
                     render_queue.push(QueuedEntityRender {
                         entity: r.clone(),
-                        position,
-                        rotation,
-                        scale: p.scale.into(),
+                        position: Vec3::ZERO,
+                        rotation: Quat::IDENTITY,
+                        scale: Vec3::ONE,
                     })
                 }
             }
 
-            for r in render_queue.iter() {
-                if let Ok(e) = r.entity.try_lock() {
-                    e.draw_opaque(
-                        painter.gl(),
-                        &render_context,
-                        r.position,
-                        r.rotation,
-                        r.scale,
-                        time,
-                        &textures,
-                    )
+            if render_filter.contains(RenderFilter::Placements) {
+                for p in &map.placements {
+                    if let Some((_, base, r)) = placement_renderers
+                        .iter()
+                        .find(|(i, _, _)| *i == p.object_ref)
+                    {
+                        let mut rotation: Quat = Quat::from_euler(
+                            glam::EulerRot::ZXY,
+                            p.rotation[2],
+                            p.rotation[0],
+                            p.rotation[1],
+                        );
+                        let position: Vec3 = p.position.into();
+                        if (base.flags & 0x4) != 0 {
+                            rotation = -camera_rot;
+                        }
+
+                        render_queue.push(QueuedEntityRender {
+                            entity: r.clone(),
+                            position,
+                            rotation,
+                            scale: p.scale.into(),
+                        })
+                    }
+                }
+            }
+
+            if render_filter.contains(RenderFilter::Triggers) {
+                for t in map.triggers.iter() {
+                    if let Some(Some(v)) = t.engine_data.get(0) {
+                        // Render if it's a local entity
+                        if (*v & 0xff000000) == 0x82000000 {
+                            if let Some(renderer) =
+                                &placement_renderers.get((*v & 0x0000ffff) as usize)
+                            {
+                                let rotation: Quat = Quat::from_euler(
+                                    glam::EulerRot::ZXY,
+                                    t.rotation[2],
+                                    t.rotation[0],
+                                    t.rotation[1],
+                                );
+
+                                render_queue.push(QueuedEntityRender {
+                                    entity: renderer.2.clone(),
+                                    position: t.position,
+                                    rotation,
+                                    scale: t.scale,
+                                })
+                            }
+                        }
+                    }
+                }
+            }
+
+            if render_filter.contains(RenderFilter::Opaque) {
+                for r in render_queue.iter() {
+                    if let Ok(e) = r.entity.try_lock() {
+                        e.draw_opaque(
+                            painter.gl(),
+                            &render_context,
+                            r.position,
+                            r.rotation,
+                            r.scale,
+                            time,
+                            &textures,
+                        )
+                    }
                 }
             }
 
             painter.gl().depth_mask(false);
 
-            for r in render_queue.iter() {
-                if let Ok(e) = r.entity.try_lock() {
-                    e.draw_transparent(
-                        painter.gl(),
-                        &render_context,
-                        r.position,
-                        r.rotation,
-                        r.scale,
-                        time,
-                        &textures,
-                    )
-                }
-            }
-
-            for t in map.triggers.iter() {
-                if let Some(Some(v)) = t.engine_data.get(0) {
-                    // Render if it's a local entity
-                    if (*v & 0xff000000) == 0x82000000 {
-                        if let Some(renderer) = &placement_renderers.get((*v & 0x0000ffff) as usize)
-                        {
-                            let rotation: Quat = Quat::from_euler(
-                                glam::EulerRot::ZXY,
-                                t.rotation[2],
-                                t.rotation[0],
-                                t.rotation[1],
-                            );
-
-                            render_queue.push(QueuedEntityRender {
-                                entity: renderer.2.clone(),
-                                position: t.position,
-                                rotation,
-                                scale: t.scale,
-                            })
-                        }
+            if render_filter.contains(RenderFilter::Transparent) {
+                for r in render_queue.iter() {
+                    if let Ok(e) = r.entity.try_lock() {
+                        e.draw_transparent(
+                            painter.gl(),
+                            &render_context,
+                            r.position,
+                            r.rotation,
+                            r.scale,
+                            time,
+                            &textures,
+                        )
                     }
                 }
             }
