@@ -90,6 +90,7 @@ impl MapFrame {
         entities: &Vec<IdentifiableResult<(EXGeoEntity, ProcessedEntityMesh)>>,
         platform: Platform,
         hashcodes: Arc<IntMap<u32, String>>,
+        game: &str,
     ) -> Self {
         assert!(textures.len() != 0);
 
@@ -188,11 +189,13 @@ impl MapFrame {
             trigger_focus_tween: None,
             selected_link: None,
             trigger_info: Default::default(),
-            selected_triginfo_path: String::new(),
+            selected_triginfo_path: format!("triggers_{game}.yml"),
             available_triginfo_paths,
             hashcodes,
             trigger_icons: Arc::new(trigger_icons),
         };
+
+        s.reload_trigger_defs().ok();
 
         unsafe {
             for (i, m) in meshes {
@@ -226,6 +229,18 @@ impl MapFrame {
         //     .sort_by(|(_, e, _), (_, e2, _)| e.sort_value.cmp(&e2.sort_value));
 
         s
+    }
+
+    fn reload_trigger_defs(&mut self) -> anyhow::Result<()> {
+        let exe_path = std::env::current_exe().unwrap();
+        let exe_dir = exe_path.parent().unwrap();
+        let v = std::fs::read_to_string(
+            exe_dir.join(&format!("./assets/{}", self.selected_triginfo_path)),
+        )?;
+        self.trigger_info =
+            serde_yaml::from_str(&v).context("Failed to load trigger definition file")?;
+        self.trigger_scale = self.trigger_info.icon_scale;
+        Ok(())
     }
 
     pub fn show(
@@ -286,7 +301,6 @@ impl MapFrame {
                 .checkbox(&mut self.vertex_lighting, "Vertex Lighting")
                 .changed()
             {
-                // TODO(cohae): Global shaders will make this less painful
                 for r in self
                     .ref_renderers
                     .iter()
@@ -334,15 +348,7 @@ impl MapFrame {
                 if self.selected_triginfo_path.is_empty() {
                     self.trigger_info = Default::default();
                 } else {
-                    let exe_path = std::env::current_exe().unwrap();
-                    let exe_dir = exe_path.parent().unwrap();
-                    let v = std::fs::read_to_string(
-                        exe_dir.join(&format!("./assets/{}", self.selected_triginfo_path)),
-                    )
-                    .unwrap();
-                    self.trigger_info = serde_yaml::from_str(&v)
-                        .context("Failed to load trigger definition file")?;
-                    self.trigger_scale = self.trigger_info.icon_scale;
+                    self.reload_trigger_defs()?;
                 }
             }
 

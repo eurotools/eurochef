@@ -11,7 +11,10 @@ use eurochef_edb::versions::Platform;
 use eurochef_shared::{edb::EdbFile, spreadsheets::UXGeoSpreadsheet, textures::UXGeoTexture};
 use nohash_hasher::IntMap;
 
-use crate::{entities, fileinfo, maps, parse_hashcodes, spreadsheet, textures};
+use crate::{
+    entities, fileinfo, filesystem::path::DissectedFilelistPath, maps, parse_hashcodes,
+    spreadsheet, textures,
+};
 
 /// Basic app tracking state
 pub enum AppState {
@@ -49,6 +52,7 @@ pub struct EurochefApp {
     ps2_warning: bool,
 
     hashcodes: Arc<IntMap<u32, String>>,
+    game: String,
 }
 
 impl EurochefApp {
@@ -107,6 +111,7 @@ impl EurochefApp {
             selected_platform: Platform::Ps2,
             ps2_warning: false,
             hashcodes: Arc::new(hashcodes),
+            game: String::new(),
         };
 
         if let Some(path) = path {
@@ -119,6 +124,10 @@ impl EurochefApp {
     // TODO: Error handling
     pub fn load_file_with_path<P: AsRef<std::path::Path>>(&mut self, path: P) {
         let platform = Platform::from_path(&path);
+
+        if let Some(dissected_path) = DissectedFilelistPath::dissect(&path) {
+            self.game = dissected_path.game;
+        }
 
         let mut f = File::open(path).unwrap();
         let mut data = vec![];
@@ -150,7 +159,6 @@ impl EurochefApp {
         self.fileinfo = None;
         self.textures = None;
 
-        // TODO(cohae): should loader functions be in the struct impls?
         self.fileinfo = Some(fileinfo::FileInfoPanel::new(edb.header.clone()));
 
         let spreadsheets = UXGeoSpreadsheet::read_all(&mut edb);
@@ -182,6 +190,7 @@ impl EurochefApp {
                                 &textures,
                                 platform,
                                 self.hashcodes.clone(),
+                                &self.game,
                             ));
                         }
 

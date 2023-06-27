@@ -72,6 +72,7 @@ impl MapViewerPanel {
         textures: &[IdentifiableResult<UXGeoTexture>],
         platform: Platform,
         hashcodes: Arc<IntMap<u32, String>>,
+        game: &str,
     ) -> Self {
         let textures = EntityListPanel::load_textures(&gl, textures);
         MapViewerPanel {
@@ -83,6 +84,7 @@ impl MapViewerPanel {
                 &textures,
                 platform,
                 hashcodes.clone(),
+                game,
             ),
             _textures: textures,
             _gl: gl,
@@ -100,6 +102,7 @@ impl MapViewerPanel {
         textures: &[RenderableTexture],
         platform: Platform,
         hashcodes: Arc<IntMap<u32, String>>,
+        game: &str,
     ) -> MapFrame {
         let mut map_entities = vec![];
 
@@ -121,7 +124,15 @@ impl MapViewerPanel {
             }
         }
 
-        let ef = MapFrame::new(gl, &map_entities, textures, entities, platform, hashcodes);
+        let ef = MapFrame::new(
+            gl,
+            &map_entities,
+            textures,
+            entities,
+            platform,
+            hashcodes,
+            game,
+        );
         ef.viewer
             .lock()
             .map(|mut v| {

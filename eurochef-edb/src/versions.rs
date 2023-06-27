@@ -39,7 +39,11 @@ impl Platform {
             .to_lowercase()
             .to_owned();
 
-        Some(match path_bin.get(5..)? {
+        Self::from_shorthand(path_bin.get(5..)?)
+    }
+
+    pub fn from_shorthand(code: &str) -> Option<Self> {
+        Some(match code {
             "gc" => Self::GameCube,
             "pc" => Self::Pc,
             "ps2" => Self::Ps2,
@@ -47,7 +51,7 @@ impl Platform {
             "xe" => Self::Xbox360,
             "wii" => Self::Wii,
             _ => {
-                println!("Platform path prefix found, but can't match it to any known platform! ({path_bin})");
+                println!("Can't match shorthand ID to any known platform! ({code})");
                 return None;
             }
         })
