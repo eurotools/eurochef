@@ -1,6 +1,7 @@
 use std::{
     fs::File,
     io::{Cursor, Read, Seek},
+    path::PathBuf,
     sync::Arc,
 };
 
@@ -138,6 +139,23 @@ impl EurochefApp {
 
             if let Ok(hfs) = std::fs::read_to_string(dissected_path.hashcodes_file()) {
                 self.hashcodes = Arc::new(parse_hashcodes(&hfs));
+            } else {
+                // Fall back to the 'hashcodes' directory
+                let exe_path = std::env::current_exe().unwrap();
+                let exe_dir = exe_path.parent().unwrap();
+                if let Ok(hfs) = std::fs::read_to_string(exe_dir.join(PathBuf::from_iter(&[
+                    "hashcodes",
+                    &dissected_path.game,
+                    "albert",
+                    "hashcodes.h",
+                ]))) {
+                    self.hashcodes = Arc::new(parse_hashcodes(&hfs));
+                } else {
+                    warn!(
+                        "Couldn't find a hashcodes.h file for {} :(",
+                        dissected_path.game
+                    );
+                }
             }
         }
 
