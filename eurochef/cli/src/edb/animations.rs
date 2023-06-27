@@ -1,15 +1,14 @@
 use std::{
     collections::HashMap,
     fs::File,
-    io::{BufReader, Cursor, Seek, Write},
+    io::{BufReader, Cursor, Seek},
     path::Path,
 };
 
 use anyhow::Context;
 use base64::Engine;
 use eurochef_edb::{
-    anim::EXGeoBaseAnimSkin, binrw::BinReaderExt, common::EXVector, entity::EXGeoEntity,
-    versions::Platform,
+    anim::EXGeoBaseAnimSkin, binrw::BinReaderExt, entity::EXGeoEntity, versions::Platform,
 };
 use eurochef_shared::{edb::EdbFile, entities::read_entity, textures::UXGeoTexture};
 use image::ImageOutputFormat;

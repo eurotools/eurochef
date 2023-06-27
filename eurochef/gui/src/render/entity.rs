@@ -7,23 +7,18 @@ use crate::{entities::ProcessedEntityMesh, entity_frame::RenderableTexture};
 
 use super::{
     blend::{set_blending_mode, BlendMode},
-    gl_helper, RenderUniforms,
+    viewer::RenderContext,
 };
 
 pub struct EntityRenderer {
-    // TODO(cohae): We shouldn't be compiling shaders more than once (global program struct?)
-    mesh_shader: glow::Program,
-    mesh_shader_unlit: glow::Program,
     mesh: Option<(usize, glow::VertexArray, glow::Buffer, Vec<TriStrip>)>,
     platform: Platform,
     pub vertex_lighting: bool,
 }
 
 impl EntityRenderer {
-    pub fn new(gl: &glow::Context, platform: Platform) -> Self {
+    pub fn new(_gl: &glow::Context, platform: Platform) -> Self {
         Self {
-            mesh_shader: unsafe { Self::create_mesh_program(gl, true).unwrap() },
-            mesh_shader_unlit: unsafe { Self::create_mesh_program(gl, false).unwrap() },
             mesh: None,
             platform,
             vertex_lighting: true,
@@ -108,86 +103,56 @@ impl EntityRenderer {
         center
     }
 
-    unsafe fn create_mesh_program(
-        gl: &glow::Context,
-        vertex_lighting: bool,
-    ) -> Result<glow::Program, String> {
-        let shader_sources = [
-            (
-                glow::VERTEX_SHADER,
-                include_str!("../../assets/shaders/entity.vert"),
-            ),
-            (
-                glow::FRAGMENT_SHADER,
-                include_str!("../../assets/shaders/entity.frag"),
-            ),
-        ];
-
-        gl_helper::compile_shader(
-            gl,
-            &shader_sources,
-            if vertex_lighting {
-                &[]
-            } else {
-                &["#define EC_NO_VERTEX_LIGHTING"]
-            },
-        )
-    }
-
     unsafe fn init_draw(
         &self,
         gl: &glow::Context,
         position: Vec3,
         rotation: Quat,
         scale: Vec3,
-        uniforms: &RenderUniforms,
+        context: &RenderContext,
     ) {
-        gl.use_program(Some(if self.vertex_lighting {
-            self.mesh_shader
+        let shader = if self.vertex_lighting {
+            context.shaders.entity_simple
         } else {
-            self.mesh_shader_unlit
-        }));
+            context.shaders.entity_simple_unlit
+        };
+        gl.use_program(Some(shader));
         gl.uniform_matrix_4_f32_slice(
-            gl.get_uniform_location(self.mesh_shader, "u_view").as_ref(),
+            gl.get_uniform_location(shader, "u_view").as_ref(),
             false,
-            &uniforms.view.to_cols_array(),
+            &context.uniforms.view.to_cols_array(),
         );
 
         let model =
             Mat4::from_translation(position) * Mat4::from_quat(rotation) * Mat4::from_scale(scale);
         gl.uniform_matrix_4_f32_slice(
-            gl.get_uniform_location(self.mesh_shader, "u_model")
-                .as_ref(),
+            gl.get_uniform_location(shader, "u_model").as_ref(),
             false,
             &model.to_cols_array(),
         );
 
-        gl.uniform_1_i32(
-            gl.get_uniform_location(self.mesh_shader, "u_texture")
-                .as_ref(),
-            0,
-        );
+        gl.uniform_1_i32(gl.get_uniform_location(shader, "u_texture").as_ref(), 0);
     }
 
     pub unsafe fn draw_both(
         &self,
         gl: &glow::Context,
-        uniforms: &RenderUniforms,
+        context: &RenderContext,
         position: Vec3,
         rotation: Quat,
         scale: Vec3,
         time: f64,
         textures: &[RenderableTexture],
     ) {
-        self.draw_opaque(gl, uniforms, position, rotation, scale, time, textures);
+        self.draw_opaque(gl, context, position, rotation, scale, time, textures);
         gl.depth_mask(false);
-        self.draw_transparent(gl, uniforms, position, rotation, scale, time, textures);
+        self.draw_transparent(gl, context, position, rotation, scale, time, textures);
     }
 
     pub unsafe fn draw_opaque(
         &self,
         gl: &glow::Context,
-        uniforms: &RenderUniforms,
+        context: &RenderContext,
         position: Vec3,
         rotation: Quat,
         scale: Vec3,
@@ -195,15 +160,20 @@ impl EntityRenderer {
         textures: &[RenderableTexture],
     ) {
         if let Some((_index_count, vertex_array, index_buffer, strips)) = self.mesh.as_ref() {
-            self.init_draw(gl, position, rotation, scale, uniforms);
+            self.init_draw(gl, position, rotation, scale, context);
             gl.bind_vertex_array(Some(*vertex_array));
             gl.bind_buffer(glow::ELEMENT_ARRAY_BUFFER, Some(*index_buffer));
 
+            let shader = if self.vertex_lighting {
+                context.shaders.entity_simple
+            } else {
+                context.shaders.entity_simple_unlit
+            };
             for t in strips
                 .iter()
                 .filter(|t| t.transparency == 0 && (t.flags & 0x8) == 0)
             {
-                self.draw_strip(gl, t, time, textures);
+                self.draw_strip(gl, shader, t, time, textures);
             }
         }
     }
@@ -211,7 +181,7 @@ impl EntityRenderer {
     pub unsafe fn draw_transparent(
         &self,
         gl: &glow::Context,
-        uniforms: &RenderUniforms,
+        context: &RenderContext,
         position: Vec3,
         rotation: Quat,
         scale: Vec3,
@@ -219,15 +189,20 @@ impl EntityRenderer {
         textures: &[RenderableTexture],
     ) {
         if let Some((_index_count, vertex_array, index_buffer, strips)) = self.mesh.as_ref() {
-            self.init_draw(gl, position, rotation, scale, uniforms);
+            self.init_draw(gl, position, rotation, scale, context);
             gl.bind_vertex_array(Some(*vertex_array));
             gl.bind_buffer(glow::ELEMENT_ARRAY_BUFFER, Some(*index_buffer));
 
+            let shader = if self.vertex_lighting {
+                context.shaders.entity_simple
+            } else {
+                context.shaders.entity_simple_unlit
+            };
             for t in strips
                 .iter()
                 .filter(|t| t.transparency != 0 || (t.flags & 0x8) != 0)
             {
-                self.draw_strip(gl, t, time, textures);
+                self.draw_strip(gl, shader, t, time, textures);
             }
         }
     }
@@ -235,6 +210,7 @@ impl EntityRenderer {
     unsafe fn draw_strip(
         &self,
         gl: &glow::Context,
+        shader: glow::Program,
         t: &TriStrip,
         time: f64,
         textures: &[RenderableTexture],
@@ -321,8 +297,7 @@ impl EntityRenderer {
             gl.bind_texture(glow::TEXTURE_2D, None);
         }
         gl.uniform_2_f32(
-            gl.get_uniform_location(self.mesh_shader, "u_scroll")
-                .as_ref(),
+            gl.get_uniform_location(shader, "u_scroll").as_ref(),
             scroll.x,
             scroll.y,
         );
@@ -330,7 +305,7 @@ impl EntityRenderer {
         set_blending_mode(gl, transparency);
 
         gl.uniform_1_f32(
-            gl.get_uniform_location(self.mesh_shader, "u_cutoutThreshold")
+            gl.get_uniform_location(shader, "u_cutoutThreshold")
                 .as_ref(),
             if transparency == BlendMode::Cutout {
                 0.5

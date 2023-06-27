@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{fmt::Display, sync::Arc};
 
 use glam::Vec3;
 use instant::Instant;
@@ -6,6 +6,7 @@ use instant::Instant;
 use super::{
     camera::{ArcBallCamera, Camera3D, FpsCamera},
     grid::GridRenderer,
+    shaders::Shaders,
     RenderUniforms,
 };
 
@@ -24,6 +25,11 @@ impl Display for CameraType {
     }
 }
 
+pub struct RenderContext<'r> {
+    pub shaders: &'r Shaders,
+    pub uniforms: &'r RenderUniforms,
+}
+
 pub struct BaseViewer {
     pub show_grid: bool,
     pub orthographic: bool,
@@ -32,6 +38,7 @@ pub struct BaseViewer {
     pub selected_camera: CameraType,
     pub grid: GridRenderer,
     pub uniforms: RenderUniforms,
+    pub shaders: Arc<Shaders>,
 
     last_frame: Instant,
 }
@@ -46,6 +53,7 @@ impl BaseViewer {
             orthographic: false,
             grid: GridRenderer::new(gl, 30),
             uniforms: RenderUniforms::default(),
+            shaders: Arc::new(Shaders::load_shaders(gl)),
             last_frame: Instant::now(),
         }
     }
@@ -130,11 +138,18 @@ impl BaseViewer {
         );
 
         if self.show_grid {
-            unsafe { self.grid.draw(&self.uniforms, gl) }
+            unsafe { self.grid.draw(&self.render_context(), gl) }
         }
     }
 
     pub fn focus_on_point(&mut self, point: Vec3, dist_scale: f32) {
         self.camera_mut().focus_on_point(point, dist_scale);
+    }
+
+    pub fn render_context(&self) -> RenderContext {
+        RenderContext {
+            shaders: &self.shaders,
+            uniforms: &self.uniforms,
+        }
     }
 }

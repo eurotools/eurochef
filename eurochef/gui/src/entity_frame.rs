@@ -96,17 +96,15 @@ impl EntityFrame {
 
         let renderers = self.renderers.clone();
         let cb = egui_glow::CallbackFn::new(move |info, painter| unsafe {
-            viewer.lock().unwrap().start_render(
-                painter.gl(),
-                info.viewport.aspect_ratio(),
-                time as f32,
-            );
+            let mut v = viewer.lock().unwrap();
+            v.start_render(painter.gl(), info.viewport.aspect_ratio(), time as f32);
+            let render_context = v.render_context();
 
             for r in &renderers {
                 let renderer_lock = r.lock().unwrap();
                 renderer_lock.draw_opaque(
                     painter.gl(),
-                    &viewer.lock().unwrap().uniforms,
+                    &render_context,
                     -mesh_center,
                     Quat::IDENTITY,
                     Vec3::ONE,
@@ -121,7 +119,7 @@ impl EntityFrame {
                 let renderer_lock = r.lock().unwrap();
                 renderer_lock.draw_transparent(
                     painter.gl(),
-                    &viewer.lock().unwrap().uniforms,
+                    &render_context,
                     -mesh_center,
                     Quat::IDENTITY,
                     Vec3::ONE,

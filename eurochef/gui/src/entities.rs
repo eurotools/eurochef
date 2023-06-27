@@ -18,7 +18,10 @@ use glow::HasContext;
 
 use crate::{
     entity_frame::{EntityFrame, RenderableTexture},
-    render::{self, camera::ArcBallCamera, entity::EntityRenderer, gl_helper, RenderUniforms},
+    render::{
+        self, camera::ArcBallCamera, entity::EntityRenderer, gl_helper, shaders::Shaders,
+        viewer::RenderContext, RenderUniforms,
+    },
     strip_ansi_codes,
     textures::cutoff_string,
 };
@@ -29,6 +32,8 @@ pub struct EntityListPanel {
     entity_label: String,
 
     entity_previews: FnvHashMap<u32, Option<egui::TextureHandle>>,
+    // TODO(cohae): Hack to get shaders for entity previews
+    shaders: Shaders,
 
     entities: Vec<IdentifiableResult<(EXGeoEntity, ProcessedEntityMesh)>>,
     skins: Vec<IdentifiableResult<EXGeoBaseAnimSkin>>,
@@ -96,6 +101,7 @@ impl EntityListPanel {
             framebuffer_msaa,
             framebuffer: unsafe { Self::create_preview_framebuffer(&gl, false, preview_size) },
             textures: Self::load_textures(&gl, textures),
+            shaders: Shaders::load_shaders(&gl),
             gl,
             entity_renderer: None,
             entity_label: String::new(),
@@ -504,12 +510,17 @@ impl EntityListPanel {
                         .clear(glow::COLOR_BUFFER_BIT | glow::DEPTH_BUFFER_BIT);
                     self.gl.viewport(0, 0, self.preview_size, self.preview_size);
 
+                    let context = RenderContext {
+                        shaders: &self.shaders,
+                        uniforms: &uniforms,
+                    };
+
                     if meshes.len() == 1 {
                         let mut er = EntityRenderer::new(&self.gl, self.platform);
                         er.load_mesh(&self.gl, meshes[0]);
                         er.draw_both(
                             &self.gl,
-                            &uniforms,
+                            &context,
                             -mesh_center,
                             Quat::IDENTITY,
                             Vec3::ONE,
@@ -529,7 +540,7 @@ impl EntityListPanel {
                         for r in &renderers {
                             r.draw_opaque(
                                 &self.gl,
-                                &uniforms,
+                                &context,
                                 -mesh_center,
                                 Quat::IDENTITY,
                                 Vec3::ONE,
@@ -543,7 +554,7 @@ impl EntityListPanel {
                         for r in &renderers {
                             r.draw_transparent(
                                 &self.gl,
-                                &uniforms,
+                                &context,
                                 -mesh_center,
                                 Quat::IDENTITY,
                                 Vec3::ONE,

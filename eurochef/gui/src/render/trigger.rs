@@ -8,37 +8,20 @@ use glow::HasContext;
 
 use super::{
     blend::{set_blending_mode, BlendMode},
-    gl_helper, RenderUniforms,
+    viewer::RenderContext,
 };
 
-pub struct LinkLineRenderer {
-    shader: glow::Program,
-}
+pub struct LinkLineRenderer;
 
 impl LinkLineRenderer {
-    pub fn new(gl: &glow::Context) -> Result<Self, String> {
-        Ok(Self {
-            shader: gl_helper::compile_shader(
-                gl,
-                &[
-                    (
-                        glow::VERTEX_SHADER,
-                        include_str!("../../assets/shaders/trigger_link.vert"),
-                    ),
-                    (
-                        glow::FRAGMENT_SHADER,
-                        include_str!("../../assets/shaders/trigger_link.frag"),
-                    ),
-                ],
-                &[],
-            )?,
-        })
+    pub fn new(_gl: &glow::Context) -> Result<Self, String> {
+        Ok(Self)
     }
 
     pub fn render(
         &self,
         gl: &glow::Context,
-        uniforms: &RenderUniforms,
+        context: &RenderContext,
         start: Vec3,
         end: Vec3,
         color: Vec3,
@@ -46,37 +29,35 @@ impl LinkLineRenderer {
     ) {
         set_blending_mode(gl, BlendMode::None);
         unsafe {
+            let shader = context.shaders.trigger_link;
             gl.line_width(3.0);
-            gl.use_program(Some(self.shader));
+            gl.use_program(Some(shader));
 
             gl.uniform_matrix_4_f32_slice(
-                gl.get_uniform_location(self.shader, "u_view").as_ref(),
+                gl.get_uniform_location(shader, "u_view").as_ref(),
                 false,
-                &uniforms.view.to_cols_array(),
+                &context.uniforms.view.to_cols_array(),
             );
 
             gl.uniform_3_f32_slice(
-                gl.get_uniform_location(self.shader, "u_start").as_ref(),
+                gl.get_uniform_location(shader, "u_start").as_ref(),
                 &start.to_array(),
             );
 
             gl.uniform_3_f32_slice(
-                gl.get_uniform_location(self.shader, "u_end").as_ref(),
+                gl.get_uniform_location(shader, "u_end").as_ref(),
                 &end.to_array(),
             );
 
             gl.uniform_1_f32(
-                gl.get_uniform_location(self.shader, "u_time").as_ref(),
-                uniforms.time,
+                gl.get_uniform_location(shader, "u_time").as_ref(),
+                context.uniforms.time,
             );
 
-            gl.uniform_1_f32(
-                gl.get_uniform_location(self.shader, "u_scale").as_ref(),
-                scale,
-            );
+            gl.uniform_1_f32(gl.get_uniform_location(shader, "u_scale").as_ref(), scale);
 
             gl.uniform_3_f32_slice(
-                gl.get_uniform_location(self.shader, "u_color").as_ref(),
+                gl.get_uniform_location(shader, "u_color").as_ref(),
                 &color.to_array(),
             );
 
@@ -86,7 +67,6 @@ impl LinkLineRenderer {
 }
 
 pub struct SelectCubeRenderer {
-    shader: glow::Program,
     buffers: (glow::Buffer, glow::VertexArray),
 }
 
@@ -108,20 +88,6 @@ impl SelectCubeRenderer {
 
     pub fn new(gl: &glow::Context) -> Result<Self, String> {
         Ok(Self {
-            shader: gl_helper::compile_shader(
-                gl,
-                &[
-                    (
-                        glow::VERTEX_SHADER,
-                        include_str!("../../assets/shaders/select_cube.vert"),
-                    ),
-                    (
-                        glow::FRAGMENT_SHADER,
-                        include_str!("../../assets/shaders/select_cube.frag"),
-                    ),
-                ],
-                &[],
-            )?,
             buffers: Self::cube_data(gl),
         })
     }
@@ -162,34 +128,35 @@ impl SelectCubeRenderer {
     pub fn render(
         &self,
         gl: &glow::Context,
-        uniforms: &RenderUniforms,
+        context: &RenderContext,
         pos: Vec3,
         rotation: Quat,
         scale: f32,
     ) {
         set_blending_mode(gl, BlendMode::None);
         unsafe {
+            let shader = context.shaders.select_cube;
             gl.line_width(1.0);
-            gl.use_program(Some(self.shader));
+            gl.use_program(Some(shader));
             gl.bind_vertex_array(Some(self.buffers.1));
             gl.bind_buffer(glow::ELEMENT_ARRAY_BUFFER, Some(self.buffers.0));
 
             gl.uniform_matrix_4_f32_slice(
-                gl.get_uniform_location(self.shader, "u_view").as_ref(),
+                gl.get_uniform_location(shader, "u_view").as_ref(),
                 false,
-                &uniforms.view.to_cols_array(),
+                &context.uniforms.view.to_cols_array(),
             );
 
             let model = Mat4::from_translation(pos)
                 * Mat4::from_quat(rotation)
                 * Mat4::from_scale(Vec3::splat(scale));
             gl.uniform_matrix_4_f32_slice(
-                gl.get_uniform_location(self.shader, "u_model").as_ref(),
+                gl.get_uniform_location(shader, "u_model").as_ref(),
                 false,
                 &model.to_cols_array(),
             );
             gl.uniform_4_f32(
-                gl.get_uniform_location(self.shader, "u_color").as_ref(),
+                gl.get_uniform_location(shader, "u_color").as_ref(),
                 0.913,
                 0.547,
                 0.125,
@@ -206,29 +173,14 @@ impl SelectCubeRenderer {
     }
 }
 
-pub struct CollisionCubeRenderer {
-    shader: glow::Program,
+pub struct CollisionDatumRenderer {
     buffers_cube: (glow::Buffer, glow::Buffer, glow::VertexArray, i32, i32),
     buffers_cylinder: (glow::Buffer, glow::Buffer, glow::VertexArray, i32, i32),
 }
 
-impl CollisionCubeRenderer {
+impl CollisionDatumRenderer {
     pub fn new(gl: &glow::Context) -> Result<Self, String> {
         Ok(Self {
-            shader: gl_helper::compile_shader(
-                gl,
-                &[
-                    (
-                        glow::VERTEX_SHADER,
-                        include_str!("../../assets/shaders/select_cube.vert"),
-                    ),
-                    (
-                        glow::FRAGMENT_SHADER,
-                        include_str!("../../assets/shaders/select_cube.frag"),
-                    ),
-                ],
-                &[],
-            )?,
             buffers_cube: Self::load_cube_mesh(gl),
             buffers_cylinder: Self::load_cylinder_mesh(gl),
         })
@@ -356,15 +308,16 @@ impl CollisionCubeRenderer {
     pub fn render(
         &self,
         gl: &glow::Context,
-        uniforms: &RenderUniforms,
+        context: &RenderContext,
         position: Vec3,
         rotation: Quat,
         collision: &EXGeoBaseDatum,
     ) {
         set_blending_mode(gl, BlendMode::None);
         unsafe {
+            let shader = context.shaders.select_cube;
             gl.line_width(3.0);
-            gl.use_program(Some(self.shader));
+            gl.use_program(Some(shader));
 
             let (ebo_tris, ebo_lines, vao, count_tris, count_lines) = match collision.dtype {
                 0 => self.buffers_cube,
@@ -385,21 +338,21 @@ impl CollisionCubeRenderer {
             gl.bind_vertex_array(Some(vao));
 
             gl.uniform_matrix_4_f32_slice(
-                gl.get_uniform_location(self.shader, "u_view").as_ref(),
+                gl.get_uniform_location(shader, "u_view").as_ref(),
                 false,
-                &uniforms.view.to_cols_array(),
+                &context.uniforms.view.to_cols_array(),
             );
 
             let model = Mat4::from_translation(position + Vec3::from(collision.position))
                 * Mat4::from_quat(rotation * Quat::from_array(collision.q))
                 * Mat4::from_scale(extents.into());
             gl.uniform_matrix_4_f32_slice(
-                gl.get_uniform_location(self.shader, "u_model").as_ref(),
+                gl.get_uniform_location(shader, "u_model").as_ref(),
                 false,
                 &model.to_cols_array(),
             );
             gl.uniform_4_f32(
-                gl.get_uniform_location(self.shader, "u_color").as_ref(),
+                gl.get_uniform_location(shader, "u_color").as_ref(),
                 0.913,
                 0.547,
                 0.125,
@@ -410,7 +363,7 @@ impl CollisionCubeRenderer {
             gl.draw_elements(glow::LINES, count_lines, glow::UNSIGNED_SHORT, 0);
 
             gl.uniform_4_f32(
-                gl.get_uniform_location(self.shader, "u_color").as_ref(),
+                gl.get_uniform_location(shader, "u_color").as_ref(),
                 0.913,
                 0.547,
                 0.125,

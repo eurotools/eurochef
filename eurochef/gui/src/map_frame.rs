@@ -29,7 +29,7 @@ use crate::{
         entity::EntityRenderer,
         gl_helper,
         pickbuffer::{PickBuffer, PickBufferType},
-        trigger::{CollisionCubeRenderer, LinkLineRenderer, SelectCubeRenderer},
+        trigger::{CollisionDatumRenderer, LinkLineRenderer, SelectCubeRenderer},
         tweeny::{self, Tweeny3D},
         viewer::BaseViewer,
     },
@@ -41,7 +41,7 @@ pub struct MapFrame {
     pub ref_renderers: Vec<(u32, Arc<Mutex<EntityRenderer>>)>,
     pub placement_renderers: Vec<(u32, EXGeoBaseEntity, Arc<Mutex<EntityRenderer>>)>,
     billboard_renderer: Arc<BillboardRenderer>,
-    collision_renderer: Arc<CollisionCubeRenderer>,
+    collision_renderer: Arc<CollisionDatumRenderer>,
     default_trigger_icon: glow::Texture,
     link_renderer: Arc<LinkLineRenderer>,
     selected_trigger: Option<usize>,
@@ -181,7 +181,7 @@ impl MapFrame {
             },
             selected_trigger: None,
             pickbuffer: PickBuffer::new(&gl),
-            collision_renderer: Arc::new(CollisionCubeRenderer::new(&gl).unwrap()),
+            collision_renderer: Arc::new(CollisionDatumRenderer::new(&gl).unwrap()),
             gl: gl.clone(),
             selected_map: 0,
             trigger_scale: 0.5,
@@ -454,11 +454,9 @@ impl MapFrame {
         let placement_renderers = self.placement_renderers.clone();
         let renderers = self.ref_renderers.clone();
         let cb = egui_glow::CallbackFn::new(move |info, painter| unsafe {
-            viewer.lock().unwrap().start_render(
-                painter.gl(),
-                info.viewport.aspect_ratio(),
-                time as f32,
-            );
+            let mut v = viewer.lock().unwrap();
+            v.start_render(painter.gl(), info.viewport.aspect_ratio(), time as f32);
+            let render_context = v.render_context();
 
             if let Some((_, _, sky_renderer)) =
                 placement_renderers.iter().find(|(hc, _, _)| *hc == sky_ent)
@@ -467,7 +465,7 @@ impl MapFrame {
 
                 sky_renderer.lock().unwrap().draw_both(
                     painter.gl(),
-                    &viewer.lock().unwrap().uniforms,
+                    &render_context,
                     camera_pos,
                     Quat::IDENTITY,
                     Vec3::ONE,
@@ -483,7 +481,7 @@ impl MapFrame {
                 let renderer_lock = r.lock().unwrap();
                 renderer_lock.draw_opaque(
                     painter.gl(),
-                    &viewer.lock().unwrap().uniforms,
+                    &render_context,
                     Vec3::ZERO,
                     Quat::IDENTITY,
                     Vec3::ONE,
@@ -511,7 +509,7 @@ impl MapFrame {
                     let renderer_lock = r.lock().unwrap();
                     renderer_lock.draw_opaque(
                         painter.gl(),
-                        &viewer.lock().unwrap().uniforms,
+                        &render_context,
                         position,
                         rotation,
                         p.scale.into(),
@@ -539,7 +537,7 @@ impl MapFrame {
 
                         renderer_lock.draw_opaque(
                             painter.gl(),
-                            &viewer.lock().unwrap().uniforms,
+                            &render_context,
                             t.position,
                             rotation,
                             t.scale,
@@ -556,7 +554,7 @@ impl MapFrame {
                 let renderer_lock = r.lock().unwrap();
                 renderer_lock.draw_transparent(
                     painter.gl(),
-                    &viewer.lock().unwrap().uniforms,
+                    &render_context,
                     Vec3::ZERO,
                     Quat::IDENTITY,
                     Vec3::ONE,
@@ -585,7 +583,7 @@ impl MapFrame {
                     let renderer_lock = r.lock().unwrap();
                     renderer_lock.draw_transparent(
                         painter.gl(),
-                        &viewer.lock().unwrap().uniforms,
+                        &render_context,
                         position,
                         rotation,
                         p.scale.into(),
@@ -613,7 +611,7 @@ impl MapFrame {
 
                         renderer_lock.draw_transparent(
                             painter.gl(),
-                            &viewer.lock().unwrap().uniforms,
+                            &render_context,
                             t.position,
                             rotation,
                             t.scale,
@@ -637,7 +635,7 @@ impl MapFrame {
                             let end = map.triggers[*l as usize].position;
                             link_renderer.render(
                                 painter.gl(),
-                                &viewer.lock().unwrap().uniforms,
+                                &render_context,
                                 trig.position,
                                 end,
                                 if hovered_link.map(|v| v == *l).unwrap_or_default() {
@@ -660,7 +658,7 @@ impl MapFrame {
                             let end = map.triggers[*l as usize].position;
                             link_renderer.render(
                                 painter.gl(),
-                                &viewer.lock().unwrap().uniforms,
+                                &render_context,
                                 end,
                                 trig.position,
                                 if hovered_link.map(|v| v == *l).unwrap_or_default() {
@@ -675,7 +673,7 @@ impl MapFrame {
 
                     select_renderer.render(
                         painter.gl(),
-                        &viewer.lock().unwrap().uniforms,
+                        &render_context,
                         trig.position,
                         Quat::from_euler(
                             glam::EulerRot::ZXY,
@@ -699,7 +697,7 @@ impl MapFrame {
 
                     billboard_renderer.render(
                         painter.gl(),
-                        &viewer.lock().unwrap().uniforms,
+                        &render_context,
                         trigger_texture,
                         t.position,
                         trigger_scale,
@@ -720,7 +718,7 @@ impl MapFrame {
                         if coll.dtype == 0 || coll.dtype == 3 {
                             collision_renderer.render(
                                 painter.gl(),
-                                &viewer.lock().unwrap().uniforms,
+                                &render_context,
                                 t.position + Vec3::from(coll.position),
                                 Quat::from_euler(
                                     glam::EulerRot::ZXY,
@@ -749,7 +747,7 @@ impl MapFrame {
         for (i, t) in map.triggers.iter().enumerate() {
             self.billboard_renderer.render_pickbuffer(
                 &self.gl,
-                &self.viewer.lock().unwrap().uniforms,
+                &self.viewer.lock().unwrap().render_context(),
                 t.position,
                 self.trigger_scale,
                 (PickBufferType::Trigger, i as u32),

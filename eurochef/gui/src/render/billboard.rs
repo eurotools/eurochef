@@ -4,33 +4,17 @@ use glow::HasContext;
 
 use super::{
     blend::set_blending_mode,
-    gl_helper,
     pickbuffer::{PickBuffer, PickBufferType},
-    RenderUniforms,
+    viewer::RenderContext,
 };
 
 pub struct BillboardRenderer {
     quad: glow::VertexArray,
-    shader: glow::Program,
 }
 
 impl BillboardRenderer {
     pub fn new(gl: &glow::Context) -> Result<Self, String> {
         Ok(Self {
-            shader: gl_helper::compile_shader(
-                gl,
-                &[
-                    (
-                        glow::VERTEX_SHADER,
-                        include_str!("../../assets/shaders/sprite3d.vert"),
-                    ),
-                    (
-                        glow::FRAGMENT_SHADER,
-                        include_str!("../../assets/shaders/sprite3d.frag"),
-                    ),
-                ],
-                &[],
-            )?,
             quad: Self::quad_vao(gl),
         })
     }
@@ -72,34 +56,37 @@ impl BillboardRenderer {
     pub fn render(
         &self,
         gl: &glow::Context,
-        uniforms: &RenderUniforms,
+        context: &RenderContext,
         texture: glow::Texture,
         pos: Vec3,
         scale: f32,
     ) {
         set_blending_mode(gl, super::blend::BlendMode::Cutout);
         unsafe {
-            gl.use_program(Some(self.shader));
+            gl.use_program(Some(context.shaders.sprite3d));
             gl.active_texture(glow::TEXTURE0);
             gl.bind_texture(glow::TEXTURE_2D, Some(texture));
 
             gl.uniform_matrix_4_f32_slice(
-                gl.get_uniform_location(self.shader, "u_view").as_ref(),
+                gl.get_uniform_location(context.shaders.sprite3d, "u_view")
+                    .as_ref(),
                 false,
-                &uniforms.view.to_cols_array(),
+                &context.uniforms.view.to_cols_array(),
             );
 
             let model = Mat4::from_translation(pos)
-                * Mat4::from_quat(-uniforms.camera_rotation)
+                * Mat4::from_quat(-context.uniforms.camera_rotation)
                 * Mat4::from_scale(Vec3::splat(scale));
             gl.uniform_matrix_4_f32_slice(
-                gl.get_uniform_location(self.shader, "u_model").as_ref(),
+                gl.get_uniform_location(context.shaders.sprite3d, "u_model")
+                    .as_ref(),
                 false,
                 &model.to_cols_array(),
             );
 
             gl.uniform_1_i32(
-                gl.get_uniform_location(self.shader, "u_texture").as_ref(),
+                gl.get_uniform_location(context.shaders.sprite3d, "u_texture")
+                    .as_ref(),
                 0,
             );
 
@@ -111,17 +98,17 @@ impl BillboardRenderer {
     pub fn render_pickbuffer(
         &self,
         gl: &glow::Context,
-        uniforms: &RenderUniforms,
+        context: &RenderContext,
         pos: Vec3,
         scale: f32,
         id: (PickBufferType, u32),
         pb: &PickBuffer,
     ) {
         let model = Mat4::from_translation(pos)
-            * Mat4::from_quat(-uniforms.camera_rotation)
+            * Mat4::from_quat(-context.uniforms.camera_rotation)
             * Mat4::from_scale(Vec3::splat(scale));
 
-        pb.draw(uniforms, gl, model, id, |gl| unsafe {
+        pb.draw(context, gl, model, id, |gl| unsafe {
             gl.bind_vertex_array(Some(self.quad));
             gl.draw_arrays(glow::TRIANGLE_STRIP, 0, 4);
         });
