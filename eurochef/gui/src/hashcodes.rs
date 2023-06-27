@@ -23,7 +23,7 @@ fn parse_hashcode(line: &str) -> Option<(u32, String)> {
     }
 
     let parts: Vec<&str> = line.split_whitespace().skip(1).collect();
-    if parts.len() != 2 {
+    if parts.len() < 2 {
         return None;
     }
 

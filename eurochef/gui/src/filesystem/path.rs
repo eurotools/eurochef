@@ -48,4 +48,10 @@ impl DissectedFilelistPath {
             .iter()
             .collect()
     }
+
+    pub fn sound_hashcodes_file(&self) -> PathBuf {
+        [&self.root, &self.game, "sonix", "sound.h"]
+            .iter()
+            .collect()
+    }
 }

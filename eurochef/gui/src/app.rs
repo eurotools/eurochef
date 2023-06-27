@@ -7,7 +7,7 @@ use std::{
 
 use crossbeam::atomic::AtomicCell;
 use eframe::CreationContext;
-use egui::{Color32, FontData, FontDefinitions, NumExt};
+use egui::{epaint::ahash::HashMapExt, Color32, FontData, FontDefinitions, NumExt};
 use eurochef_edb::versions::Platform;
 use eurochef_shared::{edb::EdbFile, spreadsheets::UXGeoSpreadsheet, textures::UXGeoTexture};
 use nohash_hasher::IntMap;
@@ -137,8 +137,9 @@ impl EurochefApp {
         if let Some(dissected_path) = DissectedFilelistPath::dissect(&path) {
             self.game = dissected_path.game.clone();
 
+            let mut hashcodes = IntMap::new();
             if let Ok(hfs) = std::fs::read_to_string(dissected_path.hashcodes_file()) {
-                self.hashcodes = Arc::new(parse_hashcodes(&hfs));
+                hashcodes.extend(parse_hashcodes(&hfs));
             } else {
                 // Fall back to the 'hashcodes' directory
                 let exe_path = std::env::current_exe().unwrap();
@@ -149,7 +150,7 @@ impl EurochefApp {
                     "albert",
                     "hashcodes.h",
                 ]))) {
-                    self.hashcodes = Arc::new(parse_hashcodes(&hfs));
+                    hashcodes.extend(parse_hashcodes(&hfs));
                 } else {
                     warn!(
                         "Couldn't find a hashcodes.h file for {} :(",
@@ -157,6 +158,29 @@ impl EurochefApp {
                     );
                 }
             }
+
+            if let Ok(hfs) = std::fs::read_to_string(dissected_path.sound_hashcodes_file()) {
+                hashcodes.extend(parse_hashcodes(&hfs));
+            } else {
+                // Fall back to the 'hashcodes' directory
+                let exe_path = std::env::current_exe().unwrap();
+                let exe_dir = exe_path.parent().unwrap();
+                if let Ok(hfs) = std::fs::read_to_string(exe_dir.join(PathBuf::from_iter(&[
+                    "hashcodes",
+                    &dissected_path.game,
+                    "sonix",
+                    "sound.h",
+                ]))) {
+                    hashcodes.extend(parse_hashcodes(&hfs));
+                } else {
+                    warn!(
+                        "Couldn't find a sound.h file for {} :(",
+                        dissected_path.game
+                    );
+                }
+            }
+
+            self.hashcodes = Arc::new(hashcodes);
         }
 
         let mut f = File::open(path)?;
