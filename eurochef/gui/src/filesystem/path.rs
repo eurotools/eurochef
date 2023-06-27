@@ -42,4 +42,10 @@ impl DissectedFilelistPath {
             filename,
         })
     }
+
+    pub fn hashcodes_file(&self) -> PathBuf {
+        [&self.root, &self.game, "albert", "hashcodes.h"]
+            .iter()
+            .collect()
+    }
 }

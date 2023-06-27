@@ -115,44 +115,51 @@ impl EurochefApp {
         };
 
         if let Some(path) = path {
-            s.load_file_with_path(path);
+            match s.load_file_with_path(path) {
+                Ok(_) => {}
+                Err(e) => {
+                    s.state = AppState::Error(e.into());
+                }
+            }
         }
 
         s
     }
 
     // TODO: Error handling
-    pub fn load_file_with_path<P: AsRef<std::path::Path>>(&mut self, path: P) {
+    pub fn load_file_with_path<P: AsRef<std::path::Path>>(
+        &mut self,
+        path: P,
+    ) -> anyhow::Result<()> {
         let platform = Platform::from_path(&path);
 
         if let Some(dissected_path) = DissectedFilelistPath::dissect(&path) {
-            self.game = dissected_path.game;
+            self.game = dissected_path.game.clone();
+
+            if let Ok(hfs) = std::fs::read_to_string(dissected_path.hashcodes_file()) {
+                self.hashcodes = Arc::new(parse_hashcodes(&hfs));
+            }
         }
 
-        let mut f = File::open(path).unwrap();
+        let mut f = File::open(path)?;
         let mut data = vec![];
-        f.read_to_end(&mut data).unwrap();
+        f.read_to_end(&mut data)?;
         self.pending_file = Some((data, platform));
+
+        Ok(())
     }
 
-    // TODO: Error handling
     pub fn load_file<R: Read + Seek>(
         &mut self,
         platform: Platform,
         reader: &mut R,
         ctx: &egui::Context,
-    ) {
+    ) -> anyhow::Result<()> {
         if platform == Platform::Ps2 {
             self.ps2_warning = true;
         }
 
-        let mut edb = match EdbFile::new(reader, platform) {
-            Ok(v) => v,
-            Err(e) => {
-                self.state = AppState::Error(e.into());
-                return;
-            }
-        };
+        let mut edb = EdbFile::new(reader, platform)?;
 
         self.current_panel = Panel::FileInfo;
         self.spreadsheetlist = None;
@@ -176,36 +183,32 @@ impl EurochefApp {
         ]
         .contains(&platform)
         {
-            match entities::read_from_file(&mut edb) {
-                Ok((entities, skins, ref_entities, textures)) => {
-                    if entities.len() + skins.len() + ref_entities.len() > 0 {
-                        if self.fileinfo.as_ref().unwrap().header.map_list.len() > 0 {
-                            let map = maps::read_from_file(&mut edb);
-                            self.maps = Some(maps::MapViewerPanel::new(
-                                ctx,
-                                self.gl.clone(),
-                                map,
-                                entities.clone(),
-                                ref_entities.clone(),
-                                &textures,
-                                platform,
-                                self.hashcodes.clone(),
-                                &self.game,
-                            ));
-                        }
-
-                        self.entities = Some(entities::EntityListPanel::new(
-                            ctx,
-                            self.gl.clone(),
-                            entities,
-                            skins,
-                            ref_entities,
-                            &textures,
-                            platform,
-                        ));
-                    }
+            let (entities, skins, ref_entities, textures) = entities::read_from_file(&mut edb)?;
+            if entities.len() + skins.len() + ref_entities.len() > 0 {
+                if self.fileinfo.as_ref().unwrap().header.map_list.len() > 0 {
+                    let map = maps::read_from_file(&mut edb);
+                    self.maps = Some(maps::MapViewerPanel::new(
+                        ctx,
+                        self.gl.clone(),
+                        map,
+                        entities.clone(),
+                        ref_entities.clone(),
+                        &textures,
+                        platform,
+                        self.hashcodes.clone(),
+                        &self.game,
+                    ));
                 }
-                Err(e) => self.state = AppState::Error(e),
+
+                self.entities = Some(entities::EntityListPanel::new(
+                    ctx,
+                    self.gl.clone(),
+                    entities,
+                    skins,
+                    ref_entities,
+                    &textures,
+                    platform,
+                ));
             }
         } else {
             self.entities = None;
@@ -219,6 +222,8 @@ impl EurochefApp {
         }
 
         self.state = AppState::Ready;
+
+        Ok(())
     }
 }
 
@@ -237,7 +242,12 @@ impl eframe::App for EurochefApp {
         if let Some((data, platform)) = self.pending_file.as_ref() {
             if let Some(platform) = platform {
                 let mut cur = Cursor::new(data.clone()); // FIXME: Cloning the data hurts my soul
-                self.load_file(*platform, &mut cur, ctx);
+                match self.load_file(*platform, &mut cur, ctx) {
+                    Ok(_) => {}
+                    Err(e) => {
+                        self.state = AppState::Error(e.into());
+                    }
+                }
                 self.pending_file = None;
             } else {
                 self.state = AppState::SelectPlatform;

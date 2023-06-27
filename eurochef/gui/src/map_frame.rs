@@ -195,7 +195,9 @@ impl MapFrame {
             trigger_icons: Arc::new(trigger_icons),
         };
 
-        s.reload_trigger_defs().ok();
+        if s.reload_trigger_defs().is_err() {
+            s.selected_triginfo_path = "None".to_string();
+        }
 
         unsafe {
             for (i, m) in meshes {
@@ -240,6 +242,13 @@ impl MapFrame {
         self.trigger_info =
             serde_yaml::from_str(&v).context("Failed to load trigger definition file")?;
         self.trigger_scale = self.trigger_info.icon_scale;
+
+        info!(
+            "Loaded {} trigger definitions from trigger file '{}'",
+            self.trigger_info.triggers.len(),
+            self.selected_triginfo_path
+        );
+
         Ok(())
     }
 
@@ -327,7 +336,7 @@ impl MapFrame {
                 .show_ui(ui, |ui| {
                     let mut resp = ui.selectable_value(
                         &mut self.selected_triginfo_path,
-                        String::new(),
+                        "None".to_string(),
                         "None",
                     );
                     for p in &self.available_triginfo_paths {
@@ -529,27 +538,26 @@ impl MapFrame {
                 if let Some(Some(v)) = t.engine_data.get(0) {
                     // Render if it's a local entity
                     if (*v & 0xff000000) == 0x82000000 {
-                        let renderer_lock = &placement_renderers[(*v & 0x0000ffff) as usize]
-                            .2
-                            .lock()
-                            .unwrap();
+                        if let Some(renderer) = &placement_renderers.get((*v & 0x0000ffff) as usize)
+                        {
+                            let renderer_lock = renderer.2.lock().unwrap();
+                            let rotation: Quat = Quat::from_euler(
+                                glam::EulerRot::ZXY,
+                                t.rotation[2],
+                                t.rotation[0],
+                                t.rotation[1],
+                            );
 
-                        let rotation: Quat = Quat::from_euler(
-                            glam::EulerRot::ZXY,
-                            t.rotation[2],
-                            t.rotation[0],
-                            t.rotation[1],
-                        );
-
-                        renderer_lock.draw_opaque(
-                            painter.gl(),
-                            &render_context,
-                            t.position,
-                            rotation,
-                            t.scale,
-                            time,
-                            &textures,
-                        );
+                            renderer_lock.draw_opaque(
+                                painter.gl(),
+                                &render_context,
+                                t.position,
+                                rotation,
+                                t.scale,
+                                time,
+                                &textures,
+                            );
+                        }
                     }
                 }
             }
@@ -603,27 +611,26 @@ impl MapFrame {
                 if let Some(Some(v)) = t.engine_data.get(0) {
                     // Render if it's a local entity
                     if (*v & 0xff000000) == 0x82000000 {
-                        let renderer_lock = &placement_renderers[(*v & 0x0000ffff) as usize]
-                            .2
-                            .lock()
-                            .unwrap();
+                        if let Some(renderer) = &placement_renderers.get((*v & 0x0000ffff) as usize)
+                        {
+                            let renderer_lock = renderer.2.lock().unwrap();
+                            let rotation: Quat = Quat::from_euler(
+                                glam::EulerRot::ZXY,
+                                t.rotation[2],
+                                t.rotation[0],
+                                t.rotation[1],
+                            );
 
-                        let rotation: Quat = Quat::from_euler(
-                            glam::EulerRot::ZXY,
-                            t.rotation[2],
-                            t.rotation[0],
-                            t.rotation[1],
-                        );
-
-                        renderer_lock.draw_transparent(
-                            painter.gl(),
-                            &render_context,
-                            t.position,
-                            rotation,
-                            t.scale,
-                            time,
-                            &textures,
-                        );
+                            renderer_lock.draw_transparent(
+                                painter.gl(),
+                                &render_context,
+                                t.position,
+                                rotation,
+                                t.scale,
+                                time,
+                                &textures,
+                            );
+                        }
                     }
                 }
             }
