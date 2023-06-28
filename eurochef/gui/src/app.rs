@@ -383,6 +383,14 @@ impl eframe::App for EurochefApp {
                         ui.close_menu()
                     }
                 });
+
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    let style: egui::Style = (*ui.ctx().style()).clone();
+                    let new_visuals = style.visuals.light_dark_small_toggle_button(ui);
+                    if let Some(visuals) = new_visuals {
+                        ui.ctx().set_visuals(visuals);
+                    }
+                });
             });
         });
 
