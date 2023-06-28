@@ -94,6 +94,13 @@ fn load_png_frame(data: &[u8]) -> (Vec<u8>, png::OutputInfo) {
     (img_data[..info.buffer_size()].to_vec(), info)
 }
 
+pub struct QueuedEntityRender {
+    pub entity: Arc<Mutex<EntityRenderer>>,
+    pub position: Vec3,
+    pub rotation: Quat,
+    pub scale: Vec3,
+}
+
 impl MapFrame {
     pub fn new(
         gl: Arc<glow::Context>,
@@ -489,13 +496,6 @@ impl MapFrame {
             let mut v = viewer.lock().unwrap();
             v.start_render(painter.gl(), info.viewport.aspect_ratio(), time as f32);
             let render_context = v.render_context();
-
-            struct QueuedEntityRender {
-                entity: Arc<Mutex<EntityRenderer>>,
-                position: Vec3,
-                rotation: Quat,
-                scale: Vec3,
-            }
 
             let mut render_queue = Vec::<QueuedEntityRender>::new();
             if let Some((_, _, sky_renderer)) =

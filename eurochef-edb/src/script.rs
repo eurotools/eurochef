@@ -63,7 +63,7 @@ pub struct EXGeoAnimScriptCmd {
     pub parent_thread: u8,
 
     pub unk0: u8,
-    pub unk1: u8,
+    pub unk1: i8,
 }
 
 impl BinRead for EXGeoAnimScriptCmd {

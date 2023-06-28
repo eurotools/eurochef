@@ -9,12 +9,17 @@ use crossbeam::atomic::AtomicCell;
 use eframe::CreationContext;
 use egui::{epaint::ahash::HashMapExt, Color32, FontData, FontDefinitions, NumExt};
 use eurochef_edb::versions::Platform;
-use eurochef_shared::{edb::EdbFile, spreadsheets::UXGeoSpreadsheet, textures::UXGeoTexture};
+use eurochef_shared::{
+    edb::EdbFile, hashcodes::parse_hashcodes, script::UXGeoScript, spreadsheets::UXGeoSpreadsheet,
+    textures::UXGeoTexture,
+};
 use nohash_hasher::IntMap;
 
 use crate::{
-    entities, fileinfo, filesystem::path::DissectedFilelistPath, maps, parse_hashcodes,
-    spreadsheet, textures,
+    entities::{self, EntityListPanel},
+    fileinfo,
+    filesystem::path::DissectedFilelistPath,
+    maps, scripts, spreadsheet, textures,
 };
 
 /// Basic app tracking state
@@ -32,6 +37,7 @@ enum Panel {
     Entities,
     Textures,
     Spreadsheets,
+    Scripts,
 }
 
 pub struct EurochefApp {
@@ -45,6 +51,7 @@ pub struct EurochefApp {
     textures: Option<textures::TextureList>,
     entities: Option<entities::EntityListPanel>,
     maps: Option<maps::MapViewerPanel>,
+    scripts: Option<scripts::ScriptListPanel>,
 
     load_input: Arc<AtomicCell<Option<(Vec<u8>, String)>>>,
     pending_file: Option<(Vec<u8>, Option<Platform>)>,
@@ -107,6 +114,7 @@ impl EurochefApp {
             textures: None,
             entities: None,
             maps: None,
+            scripts: None,
             load_input: Arc::new(AtomicCell::new(None)),
             pending_file: None,
             selected_platform: Platform::Ps2,
@@ -207,6 +215,8 @@ impl EurochefApp {
         self.spreadsheetlist = None;
         self.fileinfo = None;
         self.textures = None;
+        self.maps = None;
+        self.scripts = None;
 
         self.fileinfo = Some(fileinfo::FileInfoPanel::new(edb.header.clone()));
 
@@ -226,9 +236,22 @@ impl EurochefApp {
         .contains(&platform)
         {
             let (entities, skins, ref_entities, textures) = entities::read_from_file(&mut edb)?;
+
+            let scripts = UXGeoScript::read_all(&mut edb)?;
+            if scripts.len() > 0 {
+                self.scripts = Some(scripts::ScriptListPanel::new(
+                    &self.gl,
+                    scripts,
+                    &EntityListPanel::load_textures(&self.gl, &textures),
+                    &entities,
+                    platform,
+                ));
+            }
+
             if entities.len() + skins.len() + ref_entities.len() > 0 {
                 if self.fileinfo.as_ref().unwrap().header.map_list.len() > 0 {
                     let map = maps::read_from_file(&mut edb);
+
                     self.maps = Some(maps::MapViewerPanel::new(
                         ctx,
                         self.gl.clone(),
@@ -304,8 +327,9 @@ impl eframe::App for EurochefApp {
             textures,
             load_input,
             entities,
-            selected_platform,
+            scripts,
             maps,
+            selected_platform,
             ..
         } = self;
 
@@ -354,7 +378,9 @@ impl eframe::App for EurochefApp {
 
         // Run the app at refresh rate on the texture panel (for animated textures)
         match current_panel {
-            Panel::Entities | Panel::Textures | Panel::Maps => ctx.request_repaint(),
+            Panel::Entities | Panel::Textures | Panel::Maps | Panel::Scripts => {
+                ctx.request_repaint()
+            }
             _ => {
                 ctx.request_repaint_after(std::time::Duration::from_secs_f32(1.));
             }
@@ -524,12 +550,16 @@ impl eframe::App for EurochefApp {
                     ui.selectable_value(current_panel, Panel::Spreadsheets, "Text");
                 }
 
+                if textures.is_some() {
+                    ui.selectable_value(current_panel, Panel::Textures, "Textures");
+                }
+
                 if entities.is_some() {
                     ui.selectable_value(current_panel, Panel::Entities, "Entities");
                 }
 
-                if textures.is_some() {
-                    ui.selectable_value(current_panel, Panel::Textures, "Textures");
+                if scripts.is_some() {
+                    ui.selectable_value(current_panel, Panel::Scripts, "Scripts");
                 }
 
                 if maps.is_some() {
@@ -548,9 +578,11 @@ impl eframe::App for EurochefApp {
                         self.state = AppState::Error(e);
                     }
                 }),
+                Panel::Scripts => scripts.as_mut().map(|s| s.show(ui)),
             };
         });
 
+        // TODO(cohae): Should be implemented in `TextureList::show`
         match current_panel {
             Panel::Textures => textures.as_mut().map(|s| s.show_enlarged_window(ctx)),
             _ => None,

@@ -1146,6 +1146,7 @@ dependencies = [
  "eurochef-filelist",
  "image",
  "nohash-hasher",
+ "parse_int",
  "serde",
  "serde_yaml",
  "squish",

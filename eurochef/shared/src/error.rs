@@ -12,6 +12,9 @@ pub enum EurochefError {
 
     #[error("BinRW error")]
     BinRw(#[from] eurochef_edb::binrw::Error),
+
+    #[error("Error")]
+    Misc(#[from] anyhow::Error),
 }
 
 #[derive(Error, Debug)]

@@ -6,8 +6,10 @@ use anyhow::anyhow;
 pub mod edb;
 pub mod entities;
 pub mod error;
+pub mod hashcodes;
 pub mod maps;
 pub mod platform;
+pub mod script;
 pub mod spreadsheets;
 pub mod textures;
 
