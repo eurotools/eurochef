@@ -452,14 +452,14 @@ impl MapFrame {
         let time: f64 = ui.input(|t| t.time);
 
         let viewer = self.viewer.clone();
-        let (camera_pos, camera_rot) = {
+        let camera_pos = {
             let mut v = viewer.lock().unwrap();
             if !self.textfield_focused {
                 v.update(ui, &response);
             }
 
             let camera = v.camera_mut();
-            let (cp, cr) = (camera.position(), camera.rotation());
+            let camera_pos = camera.position();
 
             if let Some(tween) = &mut self.trigger_focus_tween {
                 if tween.is_finished() {
@@ -470,7 +470,7 @@ impl MapFrame {
                 }
             }
 
-            (cp, cr)
+            camera_pos
         };
 
         // TODO(cohae): How do we get out of this situation
@@ -530,24 +530,20 @@ impl MapFrame {
 
             if render_filter.contains(RenderFilter::Placements) {
                 for p in &map.placements {
-                    if let Some((_, base, r)) = placement_renderers
+                    if let Some((_, _, r)) = placement_renderers
                         .iter()
                         .find(|(i, _, _)| *i == p.object_ref)
                     {
-                        let mut rotation: Quat = Quat::from_euler(
+                        let rotation: Quat = Quat::from_euler(
                             glam::EulerRot::ZXY,
                             p.rotation[2],
                             p.rotation[0],
                             p.rotation[1],
                         );
-                        let position: Vec3 = p.position.into();
-                        if (base.flags & 0x4) != 0 {
-                            rotation = -camera_rot;
-                        }
 
                         render_queue.push(QueuedEntityRender {
                             entity: r.clone(),
-                            position,
+                            position: p.position.into(),
                             rotation,
                             scale: p.scale.into(),
                         })
@@ -697,7 +693,6 @@ impl MapFrame {
                         trigger_scale,
                     );
                 }
-                set_blending_mode(painter.gl(), BlendMode::None);
 
                 // Trigger collisions
                 set_blending_mode(painter.gl(), BlendMode::Blend);

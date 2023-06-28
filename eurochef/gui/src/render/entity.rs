@@ -13,6 +13,7 @@ use super::{
 pub struct EntityRenderer {
     mesh: Option<(usize, glow::VertexArray, glow::Buffer, Vec<TriStrip>)>,
     platform: Platform,
+    flags: u32,
     pub vertex_lighting: bool,
 }
 
@@ -21,6 +22,7 @@ impl EntityRenderer {
         Self {
             mesh: None,
             platform,
+            flags: 0,
             vertex_lighting: true,
         }
     }
@@ -31,6 +33,7 @@ impl EntityRenderer {
             vertex_data,
             indices,
             strips,
+            flags,
         } = mesh;
 
         let bounding_box = mesh.bounding_box();
@@ -99,6 +102,7 @@ impl EntityRenderer {
         strips_sorted.sort_by(|a, b| a.transparency.cmp(&b.transparency));
 
         self.mesh = Some((indices.len(), vertex_array, index_buffer, strips_sorted));
+        self.flags = *flags;
 
         center
     }
@@ -122,6 +126,12 @@ impl EntityRenderer {
             false,
             &context.uniforms.view.to_cols_array(),
         );
+
+        let mut rotation = rotation;
+
+        if (self.flags & 0x4) != 0 {
+            rotation = context.uniforms.camera_rotation;
+        }
 
         let model =
             Mat4::from_translation(position) * Mat4::from_quat(rotation) * Mat4::from_scale(scale);

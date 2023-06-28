@@ -53,6 +53,7 @@ pub struct ProcessedEntityMesh {
     pub vertex_data: Vec<UXVertex>,
     pub indices: Vec<u32>,
     pub strips: Vec<TriStrip>,
+    pub flags: u32,
 }
 
 impl ProcessedEntityMesh {
@@ -778,12 +779,15 @@ fn read_entity_identifiable(
         false,
     )?;
 
+    let flags = ent.base().map(|b| b.flags).unwrap_or_default();
+
     Ok((
         ent,
         ProcessedEntityMesh {
             vertex_data,
             indices,
             strips,
+            flags,
         },
     ))
 }
