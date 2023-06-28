@@ -77,7 +77,6 @@ impl Default for ArcBallCamera {
 
 impl Camera3D for ArcBallCamera {
     fn update(&mut self, ui: &egui::Ui, response: Option<&egui::Response>, _delta: f32) {
-        self.zoom += -ui.input(|i| i.scroll_delta).y * 0.005;
         if let Some(multi_touch) = ui.ctx().multi_touch() {
             self.zoom += -(multi_touch.zoom_delta - 1.0);
         } else {
@@ -93,6 +92,10 @@ impl Camera3D for ArcBallCamera {
         }
 
         if let Some(response) = &response {
+            if response.hover_pos().is_some() {
+                self.zoom += -ui.input(|i| i.scroll_delta).y * 0.005;
+            }
+
             if response.dragged_by(egui::PointerButton::Secondary) {
                 self.pivot += (-self.up() * response.drag_delta().y * 0.003) * self.zoom();
                 self.pivot += (self.right() * response.drag_delta().x * 0.003) * self.zoom();
@@ -217,10 +220,12 @@ impl FpsCamera {
 
 impl Camera3D for FpsCamera {
     fn update(&mut self, ui: &egui::Ui, response: Option<&egui::Response>, delta: f32) {
-        let scroll = ui.input(|i| i.scroll_delta);
-        self.speed_mul = (self.speed_mul + scroll.y * 0.005).clamp(0.0, 5.0);
-
         if let Some(response) = response {
+            if response.hover_pos().is_some() {
+                let scroll = ui.input(|i| i.scroll_delta);
+                self.speed_mul = (self.speed_mul + scroll.y * 0.005).clamp(0.0, 5.0);
+            }
+
             let mouse_delta = response.drag_delta();
             self.orientation += Vec2::new(mouse_delta.y as f32 * 0.8, mouse_delta.x as f32) * 0.15;
         }
