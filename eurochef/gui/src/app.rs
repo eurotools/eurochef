@@ -10,7 +10,10 @@ use eframe::CreationContext;
 use egui::{epaint::ahash::HashMapExt, Color32, FontData, FontDefinitions, NumExt};
 use eurochef_edb::versions::Platform;
 use eurochef_shared::{
-    edb::EdbFile, hashcodes::parse_hashcodes, script::UXGeoScript, spreadsheets::UXGeoSpreadsheet,
+    edb::EdbFile,
+    hashcodes::{parse_hashcodes, HashcodeUtils},
+    script::UXGeoScript,
+    spreadsheets::UXGeoSpreadsheet,
     textures::UXGeoTexture,
 };
 use nohash_hasher::IntMap;
@@ -237,6 +240,12 @@ impl EurochefApp {
         {
             let (entities, skins, ref_entities, textures) = entities::read_from_file(&mut edb)?;
 
+            for (i, e) in entities.iter().enumerate() {
+                if e.hashcode.is_local() {
+                    debug_assert_eq!(e.hashcode.index(), i as u32);
+                }
+            }
+
             let scripts = UXGeoScript::read_all(&mut edb)?;
             if scripts.len() > 0 {
                 self.scripts = Some(scripts::ScriptListPanel::new(
@@ -244,6 +253,7 @@ impl EurochefApp {
                     scripts,
                     &EntityListPanel::load_textures(&self.gl, &textures),
                     &entities,
+                    self.hashcodes.clone(),
                     platform,
                 ));
             }

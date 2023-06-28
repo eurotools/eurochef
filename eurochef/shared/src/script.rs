@@ -14,6 +14,7 @@ pub enum UXGeoScriptCommandData {
     Sound { hashcode: Hashcode },
     Particle { hashcode: Hashcode, file: Hashcode },
     EventType { event_type: Hashcode },
+    SubScript { hashcode: Hashcode, file: Hashcode },
     Unknown { cmd: u8, data: Vec<u8> },
 }
 
@@ -22,6 +23,7 @@ pub struct UXGeoScriptCommand {
     pub start: i16,
     pub length: u16,
     pub thread: u8,
+    pub parent_thread: u8,
 
     pub data: UXGeoScriptCommandData,
 }
@@ -37,6 +39,7 @@ pub struct UXGeoScript {
     pub hashcode: Hashcode,
     pub framerate: f32,
     pub length: u32,
+    pub num_threads: u32,
 
     pub commands: Vec<UXGeoScriptCommand>,
 }
@@ -63,6 +66,10 @@ impl UXGeoScript {
                     hashcode: u32_from_index(&c.data, edb.endian, 8)?,
                     file: u32_from_index(&c.data, edb.endian, 4)?,
                 },
+                4 => UXGeoScriptCommandData::SubScript {
+                    hashcode: u32_from_index(&c.data, edb.endian, 8)?,
+                    file: u32_from_index(&c.data, edb.endian, 4)?,
+                },
                 5 => UXGeoScriptCommandData::Sound {
                     hashcode: u32_from_index(&c.data, edb.endian, 20)?,
                 },
@@ -83,6 +90,7 @@ impl UXGeoScript {
                 start: c.start,
                 length: c.length,
                 thread: c.thread,
+                parent_thread: c.parent_thread,
                 data,
             });
         }
@@ -91,6 +99,7 @@ impl UXGeoScript {
             hashcode: header.hashcode,
             framerate: script.frame_rate,
             length: script.length,
+            num_threads: script.unk3c as u32,
             commands,
         })
     }
