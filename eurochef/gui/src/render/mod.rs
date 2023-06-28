@@ -10,7 +10,6 @@ pub mod entity;
 pub mod gl_helper;
 pub mod grid;
 pub mod pickbuffer;
-pub mod script;
 pub mod shaders;
 pub mod trigger;
 pub mod tweeny;
