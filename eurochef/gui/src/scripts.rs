@@ -88,7 +88,17 @@ impl ScriptListPanel {
             .map(|v| {
                 v.commands
                     .iter()
-                    .map(|c| (c.thread as i8) as isize + 1)
+                    .map(|c| {
+                        if let UXGeoScriptCommandData::Unknown { cmd, .. } = c.data {
+                            if cmd == 0x10 || cmd == 0x11 || cmd == 0x12 {
+                                0
+                            } else {
+                                (c.thread as i8) as isize + 1
+                            }
+                        } else {
+                            (c.thread as i8) as isize + 1
+                        }
+                    })
                     .max()
                     .unwrap_or_default()
             })
@@ -141,7 +151,9 @@ impl ScriptListPanel {
                 ui.add_space(4.0);
 
                 if let Some(script) = self.current_script() {
-                    self.draw_script_graph(script, ui)
+                    egui::ScrollArea::vertical()
+                        .id_source("script_graph_scroll_area")
+                        .show(ui, |ui| self.draw_script_graph(script, ui));
                 }
             });
         });
@@ -158,9 +170,13 @@ impl ScriptListPanel {
 
     fn show_canvas(&mut self, ui: &mut egui::Ui) {
         let (rect, response) = ui.allocate_exact_size(
-            ui.available_size()
+            (ui.available_size()
                 - egui::vec2(0., 96.)
-                - egui::vec2(0., self.thread_count() as f32 * 17.0),
+                - egui::vec2(0., self.thread_count() as f32 * 17.0))
+            .clamp(
+                egui::vec2(f32::MIN, ui.available_height() / 2.0),
+                egui::vec2(f32::MAX, f32::MAX),
+            ),
             egui::Sense::click_and_drag(),
         );
 
@@ -313,33 +329,42 @@ impl ScriptListPanel {
         );
 
         for c in &script.commands {
-            let (color, label) = match &c.data {
-                UXGeoScriptCommandData::Entity { hashcode, .. } => (
+            let (color, label, file_hash) = match &c.data {
+                UXGeoScriptCommandData::Entity { hashcode, file } => (
                     Self::COMMAND_COLOR_ENTITY,
                     format!("Entity {}", format_hashcode(&self.hashcodes, *hashcode)),
+                    *file,
                 ),
-                UXGeoScriptCommandData::SubScript { hashcode, .. } => (
+                UXGeoScriptCommandData::SubScript { hashcode, file } => (
                     Self::COMMAND_COLOR_SUBSCRIPT,
                     format!("Sub-Script {}", format_hashcode(&self.hashcodes, *hashcode)),
+                    *file,
                 ),
                 UXGeoScriptCommandData::Sound { hashcode } => (
                     Self::COMMAND_COLOR_SOUND,
                     format!("Sound {}", format_hashcode(&self.hashcodes, *hashcode)),
+                    u32::MAX,
                 ),
-                UXGeoScriptCommandData::Particle { hashcode, .. } => (
+                UXGeoScriptCommandData::Particle { hashcode, file } => (
                     Self::COMMAND_COLOR_PARTICLE,
                     format!("Particle {}", format_hashcode(&self.hashcodes, *hashcode)),
+                    *file,
                 ),
                 UXGeoScriptCommandData::EventType { event_type } => (
                     Self::COMMAND_COLOR_EVENT,
                     format!("Event {}", format_hashcode(&self.hashcodes, *event_type)),
+                    u32::MAX,
                 ),
                 UXGeoScriptCommandData::Unknown { cmd, .. } => {
-                    if *cmd == 0x11 || *cmd == 0x12 {
+                    if *cmd == 0x10 || *cmd == 0x11 || *cmd == 0x12 {
                         continue;
                     }
 
-                    (Self::COMMAND_COLOR_UNKNOWN, format!("Unknown 0x{cmd:x}"))
+                    (
+                        Self::COMMAND_COLOR_UNKNOWN,
+                        format!("Unknown 0x{cmd:x}"),
+                        u32::MAX,
+                    )
                 }
             };
 
@@ -360,8 +385,15 @@ impl ScriptListPanel {
             );
 
             cmd_response.on_hover_text_at_pointer(format!(
-                "{}\nStart: {}\nLength: {}",
-                label, c.start, c.length
+                "{}{}\nStart: {}\nLength: {}",
+                label,
+                if file_hash != u32::MAX {
+                    format!(" ({})", format_hashcode(&self.hashcodes, file_hash))
+                } else {
+                    String::new()
+                },
+                c.start,
+                c.length
             ));
 
             let cmd_rect = egui::Rect::from_min_size(
@@ -390,7 +422,7 @@ impl ScriptListPanel {
             rect.min.x + current_frame * single_frame_width,
             rect.min.y..=(rect.min.y + num_threads as f32 * 19.0),
             egui::Stroke::new(1.0, egui::Color32::RED),
-        )
+        );
     }
 }
 
