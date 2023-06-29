@@ -531,7 +531,7 @@ impl ScriptListPanel {
         }
 
         // Render playhead
-        ui.painter().vline(
+        ui.painter_at(rect).vline(
             rect.min.x + current_frame * single_frame_width,
             rect.min.y..=(rect.min.y + num_threads as f32 * 19.0),
             egui::Stroke::new(1.0, egui::Color32::RED),
