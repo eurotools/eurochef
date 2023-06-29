@@ -17,7 +17,7 @@ use crate::{
     entities::ProcessedEntityMesh,
     entity_frame::RenderableTexture,
     map_frame::QueuedEntityRender,
-    render::{entity::EntityRenderer, viewer::BaseViewer},
+    render::{entity::EntityRenderer, tweeny::ease_in_out_sine, viewer::BaseViewer},
 };
 
 pub struct ScriptListPanel {
@@ -198,91 +198,92 @@ impl ScriptListPanel {
         let mut transforms = vec![];
         for cf in &current_frame_commands {
             let script = self.current_script().unwrap();
-            let (pos, rot, scale) =
-                if let Some(c) = script.controllers.get(cf.controller_index as usize) {
-                    macro_rules! get_interp_pos {
-                        ($v:expr, $default:expr) => {{
-                            let mut previous_frame = -1;
-                            let mut next_frame = -1;
-                            let current_frame = self.current_time * script.framerate;
+            let (pos, rot, scale) = if let Some(c) =
+                script.controllers.get(cf.controller_index as usize)
+            {
+                macro_rules! get_interp_pos {
+                    ($v:expr, $default:expr) => {{
+                        let mut previous_frame = -1;
+                        let mut next_frame = -1;
+                        let current_frame = self.current_time * script.framerate;
 
-                            for (i, (start, _)) in $v.iter().enumerate() {
-                                if *start >= current_frame {
-                                    break;
-                                }
-
-                                previous_frame = i as isize;
+                        for (i, (start, _)) in $v.iter().enumerate() {
+                            if *start >= current_frame {
+                                break;
                             }
 
-                            if previous_frame != -1 {
-                                next_frame = previous_frame + 1;
-                            }
+                            previous_frame = i as isize;
+                        }
 
-                            if next_frame == -1 || next_frame > $v.len() as isize {
-                                next_frame = 0;
-                            }
+                        if previous_frame != -1 {
+                            next_frame = previous_frame + 1;
+                        }
 
-                            let (start, start_value) =
-                                if let Some((k, fvalue)) = $v.get(previous_frame as usize) {
-                                    (*k, *fvalue)
-                                } else {
-                                    (cf.start as f32, $default)
-                                };
+                        if next_frame == -1 || next_frame > $v.len() as isize {
+                            next_frame = 0;
+                        }
 
-                            let (end, end_value) =
-                                if let Some((k, fvalue)) = $v.get(next_frame as usize) {
-                                    (*k, *fvalue)
-                                } else {
-                                    (start, start_value)
-                                };
+                        let (start, start_value) =
+                            if let Some((k, fvalue)) = $v.get(previous_frame as usize) {
+                                (*k, *fvalue)
+                            } else {
+                                (cf.start as f32, $default)
+                            };
 
-                            (start, start_value, end, end_value)
-                        }};
+                        let (end, end_value) =
+                            if let Some((k, fvalue)) = $v.get(next_frame as usize) {
+                                (*k, *fvalue)
+                            } else {
+                                (start, start_value)
+                            };
+
+                        (start, start_value, end, end_value)
+                    }};
+                }
+
+                let rot = {
+                    let (start, start_rot, end, end_rot) =
+                        get_interp_pos!(c.channels.quat_0, Quat::IDENTITY.to_array());
+
+                    let length = end - start;
+                    let offset = ((self.current_time * script.framerate) - start) / length;
+                    if start == end {
+                        Quat::from_array(start_rot)
+                    } else {
+                        Quat::from_array(start_rot).lerp(Quat::from_array(end_rot), offset)
                     }
-
-                    let rot = {
-                        let (start, start_rot, end, end_rot) =
-                            get_interp_pos!(c.channels.quat_0, Quat::IDENTITY.to_array());
-
-                        let length = end - start;
-                        let offset = ((self.current_time * script.framerate) - start) / length;
-                        if start == end {
-                            Quat::from_array(start_rot)
-                        } else {
-                            Quat::from_array(start_rot).lerp(Quat::from_array(end_rot), offset)
-                        }
-                    };
-
-                    let pos = {
-                        let (start, start_pos, end, end_pos) =
-                            get_interp_pos!(c.channels.vector_0, Vec3::ZERO.to_array());
-
-                        let length = end - start;
-                        let offset = ((self.current_time * script.framerate) - start) / length;
-                        if start == end {
-                            start_pos.into()
-                        } else {
-                            Vec3::from(start_pos).lerp(Vec3::from(end_pos), offset)
-                        }
-                    };
-
-                    let scale = {
-                        let (start, start_scale, end, end_scale) =
-                            get_interp_pos!(c.channels.vector_1, Vec3::ONE.to_array());
-
-                        let length = end - start;
-                        let offset = ((self.current_time * script.framerate) - start) / length;
-                        if start == end {
-                            start_scale.into()
-                        } else {
-                            Vec3::from(start_scale).lerp(Vec3::from(end_scale), offset)
-                        }
-                    };
-
-                    (pos, rot, scale)
-                } else {
-                    (Vec3::ZERO, Quat::IDENTITY, Vec3::ONE)
                 };
+
+                let pos = {
+                    let (start, start_pos, end, end_pos) =
+                        get_interp_pos!(c.channels.vector_0, Vec3::ZERO.to_array());
+
+                    let length = end - start;
+                    let offset = ((self.current_time * script.framerate) - start) / length;
+                    if start == end {
+                        start_pos.into()
+                    } else {
+                        Vec3::from(start_pos).lerp(Vec3::from(end_pos), ease_in_out_sine(offset))
+                    }
+                };
+
+                let scale = {
+                    let (start, start_scale, end, end_scale) =
+                        get_interp_pos!(c.channels.vector_1, Vec3::ONE.to_array());
+
+                    let length = end - start;
+                    let offset = ((self.current_time * script.framerate) - start) / length;
+                    if start == end {
+                        start_scale.into()
+                    } else {
+                        Vec3::from(start_scale).lerp(Vec3::from(end_scale), offset)
+                    }
+                };
+
+                (pos, rot, scale)
+            } else {
+                (Vec3::ZERO, Quat::IDENTITY, Vec3::ONE)
+            };
 
             transforms.push((pos, rot, scale));
         }

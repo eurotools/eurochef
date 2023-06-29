@@ -54,3 +54,8 @@ pub fn ease_out_exponential(x: f32) -> f32 {
 //         1.0 - (-2.0 * x + 2.0).powf(3.0) / 2.0
 //     }
 // }
+
+// https://easings.net/#easeInOutSine
+pub fn ease_in_out_sine(x: f32) -> f32 {
+    -((std::f32::consts::PI * x).cos() - 1.0) / 2.0
+}
