@@ -216,7 +216,7 @@ impl ScriptListPanel {
                         let current_frame = self.current_time * script.framerate;
 
                         for (i, (start, _)) in $v.iter().enumerate() {
-                            if *start >= current_frame {
+                            if *start > current_frame {
                                 break;
                             }
 
