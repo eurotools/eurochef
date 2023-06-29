@@ -277,10 +277,6 @@ impl EntityRenderer {
         gl.active_texture(glow::TEXTURE0);
         if (t.texture_index as usize) < textures.len() {
             let tex = &textures[t.texture_index as usize];
-            // Cubemap texture
-            if (tex.flags & 0x30000) != 0 {
-                return;
-            }
 
             let frametime_scale = tex.frame_count as f32 / tex.frames.len() as f32;
             let frame_time = (1. / tex.framerate as f32) * frametime_scale;
