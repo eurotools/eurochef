@@ -195,6 +195,98 @@ impl ScriptListPanel {
             vec![]
         };
 
+        let mut transforms = vec![];
+        for cf in &current_frame_commands {
+            let script = self.current_script().unwrap();
+            let (pos, rot, scale) =
+                if let Some(c) = script.controllers.get(cf.controller_index as usize) {
+                    macro_rules! get_interp_pos {
+                        ($v:expr, $default:expr) => {{
+                            let mut previous_frame = -1;
+                            let mut next_frame = -1;
+                            let current_frame = self.current_time * script.framerate;
+
+                            for (i, (start, _)) in $v.iter().enumerate() {
+                                if *start >= current_frame {
+                                    break;
+                                }
+
+                                previous_frame = i as isize;
+                            }
+
+                            if previous_frame != -1 {
+                                next_frame = previous_frame + 1;
+                            }
+
+                            if next_frame == -1 || next_frame > $v.len() as isize {
+                                next_frame = 0;
+                            }
+
+                            let (start, start_value) =
+                                if let Some((k, fvalue)) = $v.get(previous_frame as usize) {
+                                    (*k, *fvalue)
+                                } else {
+                                    (cf.start as f32, $default)
+                                };
+
+                            let (end, end_value) =
+                                if let Some((k, fvalue)) = $v.get(next_frame as usize) {
+                                    (*k, *fvalue)
+                                } else {
+                                    (start, start_value)
+                                };
+
+                            (start, start_value, end, end_value)
+                        }};
+                    }
+
+                    let rot = {
+                        let (start, start_rot, end, end_rot) =
+                            get_interp_pos!(c.channels.quat_0, Quat::IDENTITY.to_array());
+
+                        let length = end - start;
+                        let offset = ((self.current_time * script.framerate) - start) / length;
+                        if start == end {
+                            Quat::from_array(start_rot)
+                        } else {
+                            Quat::from_array(start_rot).lerp(Quat::from_array(end_rot), offset)
+                        }
+                    };
+
+                    let pos = {
+                        let (start, start_pos, end, end_pos) =
+                            get_interp_pos!(c.channels.vector_0, Vec3::ZERO.to_array());
+
+                        let length = end - start;
+                        let offset = ((self.current_time * script.framerate) - start) / length;
+                        if start == end {
+                            start_pos.into()
+                        } else {
+                            Vec3::from(start_pos).lerp(Vec3::from(end_pos), offset)
+                        }
+                    };
+
+                    let scale = {
+                        let (start, start_scale, end, end_scale) =
+                            get_interp_pos!(c.channels.vector_1, Vec3::ONE.to_array());
+
+                        let length = end - start;
+                        let offset = ((self.current_time * script.framerate) - start) / length;
+                        if start == end {
+                            start_scale.into()
+                        } else {
+                            Vec3::from(start_scale).lerp(Vec3::from(end_scale), offset)
+                        }
+                    };
+
+                    (pos, rot, scale)
+                } else {
+                    (Vec3::ZERO, Quat::IDENTITY, Vec3::ONE)
+                };
+
+            transforms.push((pos, rot, scale));
+        }
+
         self.viewer.lock().unwrap().update(ui, &response);
         let viewer = self.viewer.clone();
         let cb = egui_glow::CallbackFn::new(move |info, painter| unsafe {
@@ -203,7 +295,7 @@ impl ScriptListPanel {
             let render_context = v.render_context();
 
             let mut render_queue: Vec<QueuedEntityRender> = vec![];
-            for c in &current_frame_commands {
+            for (c, transform) in current_frame_commands.iter().zip(&transforms) {
                 match c.data {
                     UXGeoScriptCommandData::Entity { hashcode, file } => {
                         if file != u32::MAX {
@@ -213,9 +305,9 @@ impl ScriptListPanel {
                         if let Some((_, renderer)) = entities.get(hashcode.index() as usize) {
                             render_queue.push(QueuedEntityRender {
                                 entity: renderer.clone(),
-                                position: Vec3::ZERO,
-                                rotation: Quat::IDENTITY,
-                                scale: Vec3::ONE,
+                                position: transform.0,
+                                rotation: transform.1,
+                                scale: transform.2,
                             })
                         }
                     }
@@ -385,7 +477,7 @@ impl ScriptListPanel {
             );
 
             cmd_response.on_hover_text_at_pointer(format!(
-                "{}{}\nStart: {}\nLength: {}",
+                "{}{}\nStart: {}\nLength: {}\nController: {}",
                 label,
                 if file_hash != u32::MAX {
                     format!(" ({})", format_hashcode(&self.hashcodes, file_hash))
@@ -393,7 +485,8 @@ impl ScriptListPanel {
                     String::new()
                 },
                 c.start,
-                c.length
+                c.length,
+                c.controller_index
             ));
 
             let cmd_rect = egui::Rect::from_min_size(
@@ -402,7 +495,32 @@ impl ScriptListPanel {
             );
             let graph_paint_clipped = ui.painter_at(cmd_rect);
 
-            graph_paint_clipped.rect_filled(cmd_rect, egui::Rounding::same(2.0), color);
+            graph_paint_clipped.rect_filled(cmd_rect, egui::Rounding::same(4.0), color);
+
+            if let Some(controller) = script.controllers.get(c.controller_index as usize) {
+                let mut keyframes: Vec<f32> = controller
+                    .channels
+                    .vector_0
+                    .iter()
+                    .map(|(f, _)| *f)
+                    .chain(controller.channels.quat_0.iter().map(|(f, _)| *f))
+                    .chain(controller.channels.vector_1.iter().map(|(f, _)| *f))
+                    .collect();
+
+                keyframes.sort_by(|a, b| a.partial_cmp(b).unwrap());
+                keyframes.dedup();
+
+                for k in keyframes {
+                    graph_paint_clipped.text(
+                        rect.min
+                            + egui::vec2(k * single_frame_width, c.thread as f32 * 19.0 + 18.5),
+                        egui::Align2::CENTER_BOTTOM,
+                        "🔺",
+                        egui::FontId::proportional(6.0),
+                        egui::Color32::BLACK,
+                    );
+                }
+            }
 
             graph_paint_clipped.text(
                 rect.min

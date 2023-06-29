@@ -37,6 +37,10 @@ impl<T: BinRead, OT: BinRead + NumCast + NumSize, const OFFSET: i64> EXRelPtr<T,
             data,
         }
     }
+
+    pub fn data(self) -> T {
+        self.data
+    }
 }
 
 impl<'a, T: BinRead, OT: BinRead + NumCast + NumSize, const OFFSET: i64> BinRead

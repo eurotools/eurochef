@@ -1,9 +1,10 @@
 use std::{io::Seek, ops::Range};
 
 use eurochef_edb::{
-    binrw::{BinReaderExt, Endian},
+    binrw::{BinReaderExt, BinResult, Endian},
+    common::EXRelPtr,
     header::EXGeoAnimScriptHeader,
-    script::EXGeoAnimScript,
+    script::{EXGeoAnimScript, EXGeoAnimScriptControllerChannels, EXGeoAnimScriptControllerHeader},
 };
 
 use crate::{edb::EdbFile, error::Result, hashcodes::Hashcode};
@@ -24,6 +25,7 @@ pub struct UXGeoScriptCommand {
     pub length: u16,
     pub thread: u8,
     pub parent_thread: u8,
+    pub controller_index: u8,
 
     pub data: UXGeoScriptCommandData,
 }
@@ -42,6 +44,7 @@ pub struct UXGeoScript {
     pub num_threads: u32,
 
     pub commands: Vec<UXGeoScriptCommand>,
+    pub controllers: Vec<EXGeoAnimScriptControllerHeader>,
 }
 
 impl UXGeoScript {
@@ -91,16 +94,41 @@ impl UXGeoScript {
                 length: c.length,
                 thread: c.thread,
                 parent_thread: c.parent_thread,
+                controller_index: c.controller_index,
                 data,
             });
         }
+
+        let pos_saved = edb.stream_position()?;
+        edb.seek(std::io::SeekFrom::Start(
+            script.thread_controllers.offset_absolute(),
+        ))?;
+
+        let mut controllers = vec![];
+        for _ in 0..script.thread_controller_count {
+            let v: BinResult<EXRelPtr<EXGeoAnimScriptControllerHeader>> = edb.read_type(edb.endian);
+            if let Ok(v) = v {
+                controllers.push(v.data());
+            } else {
+                controllers.push(EXGeoAnimScriptControllerHeader {
+                    controller_count: 0,
+                    channel_count: 0,
+                    ctrl_mask: 0,
+                    ctrl_channel_mask: 0,
+                    channels: EXGeoAnimScriptControllerChannels::default(),
+                });
+            }
+        }
+
+        edb.seek(std::io::SeekFrom::Start(pos_saved))?;
 
         Ok(UXGeoScript {
             hashcode: header.hashcode,
             framerate: script.frame_rate,
             length: script.length,
-            num_threads: script.unk3c as u32,
+            num_threads: 0,
             commands,
+            controllers,
         })
     }
 }
