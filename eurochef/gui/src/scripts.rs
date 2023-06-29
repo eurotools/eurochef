@@ -29,6 +29,7 @@ pub struct ScriptListPanel {
     hashcodes: Arc<IntMap<Hashcode, String>>,
 
     current_time: f32,
+    playback_speed: f32,
     is_playing: bool,
 
     last_frame: Instant,
@@ -51,6 +52,7 @@ impl ScriptListPanel {
             hashcodes,
             entities: vec![],
             current_time: 0.0,
+            playback_speed: 1.0,
             is_playing: false,
             last_frame: Instant::now(),
         };
@@ -133,6 +135,12 @@ impl ScriptListPanel {
             ui.vertical(|ui| {
                 ui.horizontal(|ui| {
                     self.viewer.lock().unwrap().show_toolbar(ui);
+                    ui.add(
+                        egui::DragValue::new(&mut self.playback_speed)
+                            .clamp_range(0.05..=3.0)
+                            .speed(0.01),
+                    );
+                    ui.label("Speed");
                 });
 
                 egui::Frame::canvas(ui.style()).show(ui, |ui| self.show_canvas(ui));
@@ -159,7 +167,7 @@ impl ScriptListPanel {
         });
 
         if self.is_playing {
-            self.current_time += delta_time;
+            self.current_time += delta_time * self.playback_speed;
         }
         if let Some(script) = self.current_script() {
             if self.current_time > (script.length as f32 / script.framerate) {
