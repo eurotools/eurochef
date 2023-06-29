@@ -1,5 +1,3 @@
-#![feature(type_alias_impl_trait)]
-
 use anyhow::anyhow;
 
 // TODO: EDB-specific code should probably be part of eurochef-edb
