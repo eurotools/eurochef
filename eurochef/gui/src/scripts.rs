@@ -461,17 +461,11 @@ impl ScriptListPanel {
             };
 
             let start = c.start.clamp(0, i16::MAX);
-            let length_fixed = if c.start < 0 {
-                (c.length as i16 + c.start) as u16
-            } else {
-                c.length
-            };
-
             let cmd_response = ui.allocate_rect(
                 egui::Rect::from_min_size(
                     rect.min
                         + egui::vec2(start as f32 * single_frame_width, c.thread as f32 * 19.0),
-                    egui::vec2(length_fixed as f32 * single_frame_width, 18.0),
+                    egui::vec2(c.length as f32 * single_frame_width, 18.0),
                 ),
                 egui::Sense::hover(),
             );
@@ -491,7 +485,7 @@ impl ScriptListPanel {
 
             let cmd_rect = egui::Rect::from_min_size(
                 rect.min + egui::vec2(start as f32 * single_frame_width, c.thread as f32 * 19.0),
-                egui::vec2(length_fixed as f32 * single_frame_width, 18.0),
+                egui::vec2(c.length as f32 * single_frame_width, 18.0),
             );
             let graph_paint_clipped = ui.painter_at(cmd_rect);
 

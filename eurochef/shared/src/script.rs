@@ -32,7 +32,7 @@ pub struct UXGeoScriptCommand {
 
 impl UXGeoScriptCommand {
     pub fn range(&self) -> Range<isize> {
-        self.start as isize..(self.start as isize + self.length as isize)
+        self.start as isize..self.length as isize
     }
 }
 
