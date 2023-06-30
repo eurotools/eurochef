@@ -1,17 +1,24 @@
+use egui_extras::Column;
+use eurochef_shared::maps::format_hashcode;
 use font_awesome as fa;
 
-use eurochef_edb::header::EXGeoHeader;
+use eurochef_edb::{header::EXGeoHeader, Hashcode};
+use nohash_hasher::IntMap;
 
 pub struct FileInfoPanel {
     pub header: EXGeoHeader,
+    pub external_references: Vec<(Hashcode, Hashcode)>,
 }
 
 impl FileInfoPanel {
     pub fn new(header: EXGeoHeader) -> Self {
-        Self { header }
+        Self {
+            header,
+            external_references: vec![],
+        }
     }
 
-    pub fn show(&mut self, ui: &mut egui::Ui) {
+    pub fn show(&mut self, ui: &mut egui::Ui, hashcodes: &IntMap<Hashcode, String>) {
         macro_rules! quick_info {
             ($label:expr, $value:expr) => {
                 ui.horizontal(|ui| {
@@ -82,5 +89,45 @@ impl FileInfoPanel {
         quick_array!("Materials", material_list);
         quick_array!("Textures", texture_list);
         quick_array!("unk_c0", unk_c0);
+
+        ui.add_space(16.0);
+        ui.label(egui::RichText::new(format!("{} External references", fa::LINK)).heading());
+        egui::ScrollArea::vertical().show(ui, |ui| {
+            let text_height = egui::TextStyle::Body.resolve(ui.style()).size;
+            let table = egui_extras::TableBuilder::new(ui)
+                .striped(true)
+                .resizable(false)
+                .cell_layout(egui::Layout::left_to_right(egui::Align::Center))
+                .column(Column::auto())
+                .column(Column::remainder())
+                .min_scrolled_height(0.0);
+
+            table
+                .header(20.0, |mut header| {
+                    header.col(|ui| {
+                        ui.strong("File");
+                    });
+                    header.col(|ui| {
+                        ui.strong("Hashcode");
+                    });
+                })
+                .body(|body| {
+                    body.rows(
+                        text_height,
+                        self.external_references.len(),
+                        |row_index, mut row| {
+                            let (file_hashcode, object_hashcode) =
+                                &self.external_references[row_index];
+                            row.col(|ui| {
+                                ui.label(format_hashcode(hashcodes, *file_hashcode));
+                            });
+
+                            row.col(|ui| {
+                                ui.label(format_hashcode(hashcodes, *object_hashcode));
+                            });
+                        },
+                    )
+                });
+        });
     }
 }

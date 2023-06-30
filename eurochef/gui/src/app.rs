@@ -11,7 +11,6 @@ use egui::{epaint::ahash::HashMapExt, Color32, FontData, FontDefinitions, NumExt
 use eurochef_edb::{edb::EdbFile, versions::Platform};
 use eurochef_shared::{
     hashcodes::{parse_hashcodes, HashcodeUtils},
-    maps::format_hashcode,
     script::UXGeoScript,
     spreadsheets::UXGeoSpreadsheet,
     textures::UXGeoTexture,
@@ -298,6 +297,9 @@ impl EurochefApp {
             self.textures = Some(textures::TextureList::new(ctx, textures));
         }
 
+        edb.external_references.sort_by(|(a, _), (b, _)| a.cmp(b));
+        self.fileinfo.as_mut().unwrap().external_references = edb.external_references.clone();
+
         self.state = AppState::Ready;
 
         Ok(())
@@ -310,7 +312,7 @@ impl eframe::App for EurochefApp {
 
     /// Called each time the UI needs repainting, which may be many times per second.
     /// Put your widgets into a `SidePanel`, `TopPanel`, `CentralPanel`, `Window` or `Area`.
-    fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
+    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         if let Some((data, load_path)) = self.load_input.take() {
             let platform = Platform::from_path(&load_path);
             self.pending_file = Some((data, platform));
@@ -626,7 +628,7 @@ impl eframe::App for EurochefApp {
             ui.separator();
 
             match current_panel {
-                Panel::FileInfo => fileinfo.as_mut().map(|s| s.show(ui)),
+                Panel::FileInfo => fileinfo.as_mut().map(|s| s.show(ui, &self.hashcodes)),
                 Panel::Textures => textures.as_mut().map(|s| s.show(ui)),
                 Panel::Entities => entities.as_mut().map(|s| s.show(ctx, ui)),
                 Panel::Spreadsheets => spreadsheetlist.as_mut().map(|s| s.show(ui)),
