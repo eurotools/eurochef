@@ -4,6 +4,7 @@ use serde::Serialize;
 use crate::{
     array::{EXGeoHashArray, EXRelArray},
     common::{EXRelPtr, EXVector, EXVector2, EXVector3},
+    edb::DatabaseReader,
 };
 
 #[binrw]
@@ -186,6 +187,14 @@ fn parse_trigdata_engine((trig_flags,): (u32,)) -> BinResult<[Option<u32>; 8]> {
     for i in 24..32 {
         if (trig_flags & (1 << i)) != 0 {
             res[i - 24] = Some(reader.read_type(endian)?);
+        }
+    }
+
+    if let Some(edb) = reader.downcast_to_edbfile() {
+        if let Some(visual_hashcode) = res[0] {
+            if let Some(file_hashcode) = res[1] {
+                edb.add_reference(file_hashcode, visual_hashcode)
+            }
         }
     }
 

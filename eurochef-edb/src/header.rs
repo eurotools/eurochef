@@ -20,7 +20,6 @@ pub type EXGeoSwooshHeader = EXGeoCommonArrayElement;
 pub type EXGeoFontHeader = EXGeoCommonArrayElement;
 pub type EXGeoMaterialHeader = EXGeoCommonArrayElement;
 
-// TODO: This whole system might need a rework
 #[binrw]
 #[brw(magic = 0x47454F4Du32)]
 #[derive(Debug, Clone)]

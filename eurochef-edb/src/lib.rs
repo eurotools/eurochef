@@ -1,3 +1,5 @@
+#![feature(downcast_unchecked)]
+
 pub mod anim;
 pub mod array;
 pub mod common;
@@ -14,3 +16,5 @@ pub mod versions;
 
 // Re-export binrw
 pub use binrw;
+
+pub type Hashcode = u32;

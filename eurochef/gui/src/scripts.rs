@@ -1,9 +1,9 @@
 use std::sync::{Arc, Mutex};
 
 use egui::RichText;
-use eurochef_edb::{entity::EXGeoEntity, versions::Platform};
+use eurochef_edb::{entity::EXGeoEntity, versions::Platform, Hashcode};
 use eurochef_shared::{
-    hashcodes::{Hashcode, HashcodeUtils},
+    hashcodes::HashcodeUtils,
     maps::format_hashcode,
     script::{UXGeoScript, UXGeoScriptCommandData},
     IdentifiableResult,

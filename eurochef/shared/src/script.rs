@@ -7,9 +7,10 @@ use eurochef_edb::{
     error::Result,
     header::EXGeoAnimScriptHeader,
     script::{EXGeoAnimScript, EXGeoAnimScriptControllerChannels, EXGeoAnimScriptControllerHeader},
+    Hashcode,
 };
 
-use crate::hashcodes::Hashcode;
+use crate::hashcodes::HashcodeUtils;
 
 #[derive(Debug, Clone)]
 pub enum UXGeoScriptCommandData {
@@ -89,6 +90,25 @@ impl UXGeoScript {
                     cmd: i,
                     data: c.data,
                 },
+            };
+
+            match &data {
+                UXGeoScriptCommandData::Entity { hashcode, file } => {
+                    if !hashcode.is_local() {
+                        edb.add_reference(*file, *hashcode)
+                    }
+                }
+                UXGeoScriptCommandData::Particle { hashcode, file } => {
+                    if !hashcode.is_local() {
+                        edb.add_reference(*file, *hashcode)
+                    }
+                }
+                UXGeoScriptCommandData::SubScript { hashcode, file } => {
+                    if !hashcode.is_local() {
+                        edb.add_reference(*file, *hashcode)
+                    }
+                }
+                _ => {}
             };
 
             commands.push(UXGeoScriptCommand {

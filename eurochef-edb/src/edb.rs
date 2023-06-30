@@ -1,26 +1,52 @@
-use std::io::{Read, Seek};
+use std::{
+    io::{Read, Seek},
+    mem::transmute,
+};
 
 use crate::{
     binrw::{BinReaderExt, Endian},
     header::EXGeoHeader,
     versions::Platform,
+    Hashcode,
 };
 use tracing::info;
 
 use crate::error::Result;
 
-pub trait DatabaseReader: Read + Seek {}
+pub trait DatabaseReader: Read + Seek {
+    fn downcast_to_edbfile(&mut self) -> Option<&mut EdbFile>;
+}
 
-impl<R: Read + Seek + Sized> DatabaseReader for R {}
+impl<R: Read + Seek + Sized> DatabaseReader for R {
+    fn downcast_to_edbfile(&mut self) -> Option<&mut EdbFile> {
+        // Safety: as long as the safety marker is present, we are good to downcast
+        unsafe {
+            let ptr: *mut EdbFile = transmute(self as *mut _);
+
+            if (*ptr).safety_marker == EdbFile::SAFETY_MARKER {
+                Some(transmute(ptr))
+            } else {
+                None
+            }
+        }
+    }
+}
 
 pub struct EdbFile<'d> {
+    /// Using a marker to allow for safe downcasting when access to the object is needed in
+    safety_marker: u64,
+
     reader: &'d mut dyn DatabaseReader,
     pub endian: Endian,
     pub platform: Platform,
     pub header: EXGeoHeader,
+
+    pub external_references: Vec<(Hashcode, Hashcode)>,
 }
 
 impl<'d> EdbFile<'d> {
+    pub const SAFETY_MARKER: u64 = 0xDEADC0FF47654F6D;
+
     /// Resets the reader, tests endianness and reads the header
     pub fn new(reader: &'d mut dyn DatabaseReader, platform: Platform) -> Result<Self> {
         let mut reader = reader;
@@ -59,11 +85,19 @@ impl<'d> EdbFile<'d> {
         );
 
         Ok(Self {
+            safety_marker: Self::SAFETY_MARKER,
             reader,
             endian,
             platform,
             header,
+            external_references: vec![],
         })
+    }
+
+    pub fn add_reference(&mut self, file: Hashcode, reference: Hashcode) {
+        if !self.external_references.contains(&(file, reference)) {
+            self.external_references.push((file, reference))
+        }
     }
 }
 
@@ -77,4 +111,8 @@ impl<'d> Read for EdbFile<'d> {
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
         self.reader.read(buf)
     }
+}
+
+pub trait EdbReaderMethods {
+    fn add_reference(&mut self, file: Hashcode, reference: Hashcode);
 }

@@ -36,7 +36,7 @@ fn default_engine_values() -> BTreeMap<u32, TriggerValue> {
         (1, TriggerValue::new(Some("File"), TrigDataType::Hashcode)),
         (
             2,
-            TriggerValue::new(Some("Script Index"), TrigDataType::U32),
+            TriggerValue::new(Some("GameScript Index"), TrigDataType::U32),
         ),
         (
             3,

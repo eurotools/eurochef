@@ -11,6 +11,7 @@ use egui::{epaint::ahash::HashMapExt, Color32, FontData, FontDefinitions, NumExt
 use eurochef_edb::{edb::EdbFile, versions::Platform};
 use eurochef_shared::{
     hashcodes::{parse_hashcodes, HashcodeUtils},
+    maps::format_hashcode,
     script::UXGeoScript,
     spreadsheets::UXGeoSpreadsheet,
     textures::UXGeoTexture,
@@ -293,6 +294,15 @@ impl EurochefApp {
             self.textures = None;
         } else {
             self.textures = Some(textures::TextureList::new(ctx, textures));
+        }
+
+        println!("{} external references:", edb.external_references.len());
+        for (fref, href) in &edb.external_references {
+            println!(
+                "\t{}: {}",
+                format_hashcode(&self.hashcodes, *fref),
+                format_hashcode(&self.hashcodes, *href)
+            );
         }
 
         self.state = AppState::Ready;

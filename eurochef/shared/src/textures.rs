@@ -66,6 +66,7 @@ impl UXGeoTexture {
         // cohae: This is a bit of a difficult one. We might need an alternative to return these references somehow (enum with variant?), as we cannot open other files from this context.
         if let Some(external_file) = tex.external_file {
             let external_texture = tex.frame_offsets[0].offset_relative() as u32;
+            edb.add_reference(external_file, external_texture);
             return Err(anyhow::anyhow!(
                 "Texture is an external reference, skipping (texture 0x{external_texture:x} from file 0x{external_file:x})",
             ));
