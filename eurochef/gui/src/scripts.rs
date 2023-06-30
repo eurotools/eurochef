@@ -31,6 +31,7 @@ pub struct ScriptListPanel {
     current_time: f32,
     playback_speed: f32,
     is_playing: bool,
+    loop_script: bool,
 
     last_frame: Instant,
 }
@@ -54,6 +55,7 @@ impl ScriptListPanel {
             current_time: 0.0,
             playback_speed: 1.0,
             is_playing: false,
+            loop_script: false,
             last_frame: Instant::now(),
         };
 
@@ -171,7 +173,12 @@ impl ScriptListPanel {
         }
         if let Some(script) = self.current_script() {
             if self.current_time > (script.length as f32 / script.framerate) {
-                self.current_time = 0.0;
+                if self.loop_script {
+                    self.current_time = 0.0;
+                } else {
+                    self.current_time = script.length as f32 / script.framerate;
+                    self.is_playing = false;
+                }
             }
         }
     }
@@ -390,6 +397,12 @@ impl ScriptListPanel {
                 || ui.input(|i| i.key_pressed(egui::Key::Space))
             {
                 self.is_playing = !self.is_playing;
+
+                if let Some(script) = self.current_script() {
+                    if self.current_time >= (script.length as f32 / script.framerate) {
+                        self.current_time = 0.0;
+                    }
+                }
             }
 
             if ui
@@ -401,6 +414,20 @@ impl ScriptListPanel {
                     let current_frame = (self.current_time * s.framerate) as i32;
                     self.current_time = (current_frame + 1) as f32 / s.framerate;
                 }
+            }
+
+            let loop_button = ui
+                .button(
+                    RichText::new(if self.loop_script {
+                        '\u{f363}'
+                    } else {
+                        '\u{f178}'
+                    })
+                    .size(16.),
+                )
+                .on_hover_text("Loop playback");
+            if loop_button.clicked() {
+                self.loop_script = !self.loop_script;
             }
         });
     }
