@@ -61,6 +61,7 @@ pub struct EurochefApp {
     selected_platform: Platform,
 
     ps2_warning: bool,
+    about_window: bool,
 
     hashcodes: Arc<IntMap<u32, String>>,
     game: String,
@@ -122,6 +123,7 @@ impl EurochefApp {
             pending_file: None,
             selected_platform: Platform::Ps2,
             ps2_warning: false,
+            about_window: false,
             hashcodes: Arc::new(hashcodes),
             game: String::new(),
         };
@@ -296,15 +298,6 @@ impl EurochefApp {
             self.textures = Some(textures::TextureList::new(ctx, textures));
         }
 
-        println!("{} external references:", edb.external_references.len());
-        for (fref, href) in &edb.external_references {
-            println!(
-                "\t{}: {}",
-                format_hashcode(&self.hashcodes, *fref),
-                format_hashcode(&self.hashcodes, *href)
-            );
-        }
-
         self.state = AppState::Ready;
 
         Ok(())
@@ -317,7 +310,7 @@ impl eframe::App for EurochefApp {
 
     /// Called each time the UI needs repainting, which may be many times per second.
     /// Put your widgets into a `SidePanel`, `TopPanel`, `CentralPanel`, `Window` or `Area`.
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+    fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
         if let Some((data, load_path)) = self.load_input.take() {
             let platform = Platform::from_path(&load_path);
             self.pending_file = Some((data, platform));
@@ -393,6 +386,10 @@ impl eframe::App for EurochefApp {
                     }
                 });
 
+                if ui.button("About").clicked() {
+                    self.about_window = true;
+                }
+
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                     let style: egui::Style = (*ui.ctx().style()).clone();
                     let new_visuals = style.visuals.light_dark_small_toggle_button(ui);
@@ -415,6 +412,39 @@ impl eframe::App for EurochefApp {
 
         let screen_rect = ctx.screen_rect();
         let max_height = 320.0.at_most(screen_rect.height());
+
+        if self.about_window {
+            egui::Window::new("About")
+                .pivot(egui::Align2::CENTER_TOP)
+                .fixed_pos(screen_rect.center() - 0.5 * max_height * egui::Vec2::Y)
+                .frame(
+                    egui::Frame::window(&ctx.style()).inner_margin(egui::Margin {
+                        left: 16.0,
+                        right: 16.0,
+                        ..Default::default()
+                    }),
+                )
+                .resizable(false)
+                .collapsible(false)
+                .open(&mut self.about_window)
+                .show(ctx, |ui| {
+                    ui.add_space(12.0);
+                    ui.horizontal(|ui| {
+                        ui.heading(egui::RichText::new("Eurochef").color(egui::Color32::WHITE));
+                        ui.heading(format!(
+                            "- {} ({})",
+                            env!("CARGO_PKG_VERSION"),
+                            &env!("GIT_HASH")[..7]
+                        ));
+                    });
+                    ui.add_space(8.0);
+
+                    ui.label(format!("Compiler: {}", env!("RUSTC_VERSION")));
+                    ui.label(format!("Build date: {}", env!("BUILD_DATE")));
+
+                    ui.add_space(12.0);
+                });
+        }
 
         // TODO(cohae): More generic dialog (use for loading and error)
         if self.ps2_warning {

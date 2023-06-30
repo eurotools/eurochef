@@ -46,6 +46,9 @@ fxhash = "0.2.1"
 genmesh = "0.6.2"
 bitflags = "2.3.3"
 
+[build-dependencies]
+chrono = "0.4.26"
+
 # native:
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 native-dialog = "0.6.3"
