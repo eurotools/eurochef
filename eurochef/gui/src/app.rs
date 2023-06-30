@@ -8,9 +8,8 @@ use std::{
 use crossbeam::atomic::AtomicCell;
 use eframe::CreationContext;
 use egui::{epaint::ahash::HashMapExt, Color32, FontData, FontDefinitions, NumExt};
-use eurochef_edb::versions::Platform;
+use eurochef_edb::{edb::EdbFile, versions::Platform};
 use eurochef_shared::{
-    edb::EdbFile,
     hashcodes::{parse_hashcodes, HashcodeUtils},
     script::UXGeoScript,
     spreadsheets::UXGeoSpreadsheet,

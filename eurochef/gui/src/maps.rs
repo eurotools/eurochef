@@ -4,11 +4,12 @@ use anyhow::Context;
 
 use eurochef_edb::{
     binrw::BinReaderExt,
+    edb::EdbFile,
     entity::{EXGeoEntity, EXGeoMapZoneEntity},
     map::{EXGeoBaseDatum, EXGeoMap, EXGeoPlacement},
     versions::Platform,
 };
-use eurochef_shared::{edb::EdbFile, textures::UXGeoTexture, IdentifiableResult};
+use eurochef_shared::{textures::UXGeoTexture, IdentifiableResult};
 use glam::Vec3;
 use nohash_hasher::IntMap;
 

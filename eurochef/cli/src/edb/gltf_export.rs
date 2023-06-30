@@ -238,7 +238,7 @@ pub fn add_mesh_to_scene(
                     match transparency {
                         Transparency::Opaque => gjson::material::AlphaMode::Opaque,
                         Transparency::Blend => gjson::material::AlphaMode::Blend,
-                        Transparency::Additive => gjson::material::AlphaMode::Blend,
+                        Transparency::_Additive => gjson::material::AlphaMode::Blend,
                         Transparency::Cutout => gltf::material::AlphaMode::Mask,
                     }
                 } else {

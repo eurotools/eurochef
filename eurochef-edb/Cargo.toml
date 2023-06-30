@@ -7,7 +7,10 @@ rust-version = "1.65"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+anyhow = "1.0.71"
 binrw = "0.11.0"
+chrono = "0.4.26"
 num = "0.4"
 serde = { version = "1", features = ["derive"] }
 thiserror = "1.0.40"
+tracing = "0.1.37"

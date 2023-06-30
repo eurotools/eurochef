@@ -47,6 +47,7 @@ pub struct EXGeoAnimScriptControllerChannels {
 impl BinRead for EXGeoAnimScriptControllerHeader {
     type Args<'a> = ();
 
+    #[allow(unused_braces)]
     fn read_options<R: std::io::Read + std::io::Seek>(
         reader: &mut R,
         endian: binrw::Endian,

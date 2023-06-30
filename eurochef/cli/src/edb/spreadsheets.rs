@@ -1,7 +1,7 @@
 use std::{fs::File, io::BufReader};
 
-use eurochef_edb::versions::Platform;
-use eurochef_shared::{edb::EdbFile, spreadsheets::UXGeoSpreadsheet};
+use eurochef_edb::{edb::EdbFile, versions::Platform};
+use eurochef_shared::spreadsheets::UXGeoSpreadsheet;
 
 pub fn execute_command(filename: String, section: Option<u32>) -> anyhow::Result<()> {
     let mut file = File::open(filename)?;

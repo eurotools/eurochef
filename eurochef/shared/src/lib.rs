@@ -1,9 +1,6 @@
 use anyhow::anyhow;
 
-// TODO: EDB-specific code should probably be part of eurochef-edb
-pub mod edb;
 pub mod entities;
-pub mod error;
 pub mod hashcodes;
 pub mod maps;
 pub mod platform;

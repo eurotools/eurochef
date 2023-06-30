@@ -5,7 +5,7 @@ use eurochef_edb::{
     binrw::{BinReaderExt, Endian},
     common::{EXVector, EXVector2, EXVector3},
     entity::EXGeoEntity,
-    entity_mesh::EXGeoEntity_TriStrip,
+    entity_mesh::EXGeoEntityTriStrip,
     versions::Platform,
 };
 use tracing::error;
@@ -203,7 +203,7 @@ pub fn read_entity<R: Read + Seek>(
                         }
                     }
 
-                    tristrips.push(EXGeoEntity_TriStrip {
+                    tristrips.push(EXGeoEntityTriStrip {
                         tricount: index_count as u32 - 2,
                         texture_index: s.texture_index as i32,
                         min_index: start_index as u16,

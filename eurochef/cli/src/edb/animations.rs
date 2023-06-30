@@ -8,9 +8,10 @@ use std::{
 use anyhow::Context;
 use base64::Engine;
 use eurochef_edb::{
-    anim::EXGeoBaseAnimSkin, binrw::BinReaderExt, entity::EXGeoEntity, versions::Platform,
+    anim::EXGeoBaseAnimSkin, binrw::BinReaderExt, edb::EdbFile, entity::EXGeoEntity,
+    versions::Platform,
 };
-use eurochef_shared::{edb::EdbFile, entities::read_entity, textures::UXGeoTexture};
+use eurochef_shared::{entities::read_entity, textures::UXGeoTexture};
 use image::ImageOutputFormat;
 use indicatif::{ProgressBar, ProgressIterator, ProgressStyle};
 

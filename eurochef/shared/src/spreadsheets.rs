@@ -2,11 +2,10 @@ use std::io::{Seek, Write};
 
 use eurochef_edb::{
     binrw::BinReaderExt,
+    edb::EdbFile,
     text::{EXGeoSpreadSheet, EXGeoTextItem},
 };
 use tracing::warn;
-
-use crate::edb::EdbFile;
 
 #[derive(Clone)]
 pub struct UXGeoSpreadsheet(pub Vec<UXGeoTextSection>);

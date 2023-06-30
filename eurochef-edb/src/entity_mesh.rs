@@ -23,7 +23,7 @@ pub struct EXGeoMeshEntity {
     pub vertices: Vec<UXGeoMeshVertex>,
     pub vertex_colors: Vec<[u8; 4]>,
     pub indices: Vec<u16>,
-    pub tristrips: Vec<EXGeoEntity_TriStrip>,
+    pub tristrips: Vec<EXGeoEntityTriStrip>,
     pub tristrips_gx: Vec<GxTriStrip>,
     pub tristrips_ps2: Vec<Ps2TriStrip>,
 }
@@ -158,7 +158,7 @@ impl BinRead for EXGeoMeshEntity {
             }
         }
 
-        let mut tristrips: Vec<EXGeoEntity_TriStrip> = vec![];
+        let mut tristrips: Vec<EXGeoEntityTriStrip> = vec![];
         let mut tristrips_gx: Vec<GxTriStrip> = vec![];
         let mut tristrips_ps2: Vec<Ps2TriStrip> = vec![];
 
@@ -262,7 +262,7 @@ pub struct GxTriStrip {
 #[binrw]
 #[derive(Debug, Serialize, Clone)]
 #[brw(import(version: u32, platform: Platform))]
-pub struct EXGeoEntity_TriStrip {
+pub struct EXGeoEntityTriStrip {
     pub tricount: u32,
     pub texture_index: i32,
 

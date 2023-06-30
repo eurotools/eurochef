@@ -1,6 +1,6 @@
 use std::io::{Read, Seek};
 
-use eurochef_edb::{
+use crate::{
     binrw::{BinReaderExt, Endian},
     header::EXGeoHeader,
     versions::Platform,

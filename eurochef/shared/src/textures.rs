@@ -2,11 +2,10 @@ use std::io::{Read, Seek};
 
 use anyhow::Context;
 use bitflags::bitflags;
-use eurochef_edb::{binrw::BinReaderExt, texture::EXGeoTexture};
+use eurochef_edb::{binrw::BinReaderExt, edb::EdbFile, texture::EXGeoTexture};
 use image::RgbaImage;
 
 use crate::{
-    edb::EdbFile,
     platform::texture::{self, TextureDecoder},
     IdentifiableResult,
 };

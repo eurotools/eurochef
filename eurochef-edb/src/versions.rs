@@ -1,6 +1,7 @@
 use std::{fmt::Display, path::Path};
 
 use binrw::Endian;
+use tracing::error;
 
 pub const EDB_VERSION_SPYRO_DEMO: u32 = 213;
 pub const EDB_VERSION_SPYRO: u32 = 240;
@@ -51,7 +52,7 @@ impl Platform {
             "xe" => Self::Xbox360,
             "wii" => Self::Wii,
             _ => {
-                println!("Can't match shorthand ID to any known platform! ({code})");
+                error!("Can't match shorthand ID to any known platform! ({code})");
                 return None;
             }
         })

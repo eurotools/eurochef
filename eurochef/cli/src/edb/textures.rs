@@ -5,8 +5,8 @@ use std::{
 };
 
 use anyhow::Context;
-use eurochef_edb::versions::Platform;
-use eurochef_shared::{edb::EdbFile, textures::UXGeoTexture};
+use eurochef_edb::{edb::EdbFile, versions::Platform};
+use eurochef_shared::textures::UXGeoTexture;
 use indicatif::{ProgressBar, ProgressIterator, ProgressStyle};
 
 use crate::{edb::TICK_STRINGS, PlatformArg};

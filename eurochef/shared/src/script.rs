@@ -3,11 +3,13 @@ use std::{io::Seek, ops::Range};
 use eurochef_edb::{
     binrw::{BinReaderExt, BinResult, Endian},
     common::EXRelPtr,
+    edb::EdbFile,
+    error::Result,
     header::EXGeoAnimScriptHeader,
     script::{EXGeoAnimScript, EXGeoAnimScriptControllerChannels, EXGeoAnimScriptControllerHeader},
 };
 
-use crate::{edb::EdbFile, error::Result, hashcodes::Hashcode};
+use crate::hashcodes::Hashcode;
 
 #[derive(Debug, Clone)]
 pub enum UXGeoScriptCommandData {
