@@ -1,5 +1,3 @@
-#![feature(downcast_unchecked)]
-
 pub mod anim;
 pub mod array;
 pub mod common;

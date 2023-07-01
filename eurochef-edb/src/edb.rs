@@ -23,7 +23,10 @@ impl<R: Read + Seek + Sized> DatabaseReader for R {
         unsafe {
             let ptr: *mut EdbFile = transmute(self as *mut _);
 
-            if (*ptr).safety_marker == EdbFile::SAFETY_MARKER {
+            // Check alignment and safety marker
+            if (transmute::<_, usize>(ptr) & 0x7) == 0
+                && (*ptr).safety_marker == EdbFile::SAFETY_MARKER
+            {
                 Some(transmute(ptr))
             } else {
                 None
