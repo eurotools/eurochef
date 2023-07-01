@@ -10,6 +10,7 @@ pub mod map;
 pub mod script;
 pub mod text;
 pub mod texture;
+pub mod util;
 pub mod versions;
 
 // Re-export binrw

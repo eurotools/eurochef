@@ -1,10 +1,12 @@
-use binrw::{binrw, BinRead, BinReaderExt, BinResult};
+use binrw::{binrw, BinRead, BinReaderExt, BinResult, BinWrite};
 use serde::Serialize;
 
 use crate::{
     array::{EXGeoHashArray, EXRelArray},
     common::{EXRelPtr, EXVector, EXVector2, EXVector3},
     edb::DatabaseReader,
+    util::BitExtensions,
+    Hashcode,
 };
 
 #[binrw]
@@ -90,7 +92,7 @@ pub struct EXGeoPortalInfo {
 pub struct EXGeoTriggerHeader {
     pub triggers: EXRelArray<EXGeoTrigHeader>,
 
-    #[br(count = triggers.iter().map(|t| t.trigger.engine_data[2].map(|v| v+1).unwrap_or(0)).max().unwrap_or(0))]
+    #[br(count = triggers.iter().map(|t| t.trigger.engine_options.gamescript_index.map(|v| v+1).unwrap_or(0)).max().unwrap_or(0))]
     pub trigger_scripts: EXRelPtr<Vec<(EXRelPtr, u32)>>,
 
     #[br(count = triggers.iter().map(|v| v.trigger.type_index+1).max().unwrap_or(0))]
@@ -153,15 +155,29 @@ pub struct EXGeoTrigger {
     pub data: [Option<u32>; 16],
     #[br(parse_with = parse_trigdata_link, args(trig_flags))]
     pub links: [i32; 8],
-    #[br(parse_with = parse_trigdata_engine, args(trig_flags))]
-    pub engine_data: [Option<u32>; 8],
+
+    #[br(args(trig_flags))]
+    pub engine_options: EXGeoTriggerEngineOptions,
+}
+
+#[derive(Debug, Clone, Serialize, Default)]
+pub struct EXGeoTriggerEngineOptions {
+    pub visual_object: Option<Hashcode>,
+    pub visual_object_file: Option<Hashcode>,
+    pub gamescript_index: Option<u32>,
+    pub collision_index: Option<u32>,
+
+    pub trigger_color: Option<[u8; 4]>,
+    pub _unk5: Option<u32>,
+    pub _unk6: Option<u32>,
+    pub _unk7: Option<u32>,
 }
 
 #[binrw::parser(reader, endian)]
 fn parse_trigdata_values((trig_flags,): (u32,)) -> BinResult<[Option<u32>; 16]> {
     let mut res = [None; 16];
     for i in 0..16 {
-        if (trig_flags & (1 << i)) != 0 {
+        if trig_flags.is_set(i) {
             res[i] = Some(reader.read_type(endian)?);
         }
     }
@@ -173,7 +189,7 @@ fn parse_trigdata_values((trig_flags,): (u32,)) -> BinResult<[Option<u32>; 16]> 
 fn parse_trigdata_link((trig_flags,): (u32,)) -> BinResult<[i32; 8]> {
     let mut res = [-1; 8];
     for i in 16..24 {
-        if (trig_flags & (1 << i)) != 0 {
+        if trig_flags.is_set(i) {
             res[i - 16] = reader.read_type(endian)?;
         }
     }
@@ -181,24 +197,65 @@ fn parse_trigdata_link((trig_flags,): (u32,)) -> BinResult<[i32; 8]> {
     Ok(res)
 }
 
-#[binrw::parser(reader, endian)]
-fn parse_trigdata_engine((trig_flags,): (u32,)) -> BinResult<[Option<u32>; 8]> {
-    let mut res = [None; 8];
-    for i in 24..32 {
-        if (trig_flags & (1 << i)) != 0 {
-            res[i - 24] = Some(reader.read_type(endian)?);
-        }
-    }
+impl BinRead for EXGeoTriggerEngineOptions {
+    type Args<'a> = (u32,);
 
-    if let Some(edb) = reader.downcast_to_edbfile() {
-        if let Some(visual_hashcode) = res[0] {
-            if let Some(file_hashcode) = res[1] {
-                edb.add_reference(file_hashcode, visual_hashcode)
+    fn read_options<R: std::io::Read + std::io::Seek>(
+        reader: &mut R,
+        endian: binrw::Endian,
+        (trig_flags,): Self::Args<'_>,
+    ) -> BinResult<Self> {
+        let mut res: EXGeoTriggerEngineOptions = Default::default();
+
+        const FLAG_BASE: usize = 24;
+        if trig_flags.is_set(FLAG_BASE + 0) {
+            res.visual_object = Some(reader.read_type(endian)?);
+        }
+        if trig_flags.is_set(FLAG_BASE + 1) {
+            res.visual_object_file = Some(reader.read_type(endian)?);
+        }
+        if trig_flags.is_set(FLAG_BASE + 2) {
+            res.gamescript_index = Some(reader.read_type(endian)?);
+        }
+        if trig_flags.is_set(FLAG_BASE + 3) {
+            res.collision_index = Some(reader.read_type(endian)?);
+        }
+        if trig_flags.is_set(FLAG_BASE + 4) {
+            res.trigger_color = Some(reader.read_type(endian)?);
+        }
+        if trig_flags.is_set(FLAG_BASE + 5) {
+            res._unk5 = Some(reader.read_type(endian)?);
+        }
+        if trig_flags.is_set(FLAG_BASE + 6) {
+            res._unk6 = Some(reader.read_type(endian)?);
+        }
+        if trig_flags.is_set(FLAG_BASE + 7) {
+            res._unk7 = Some(reader.read_type(endian)?);
+        }
+
+        if let Some(edb) = reader.downcast_to_edbfile() {
+            if let Some(visual_hashcode) = res.visual_object {
+                if let Some(file_hashcode) = res.visual_object_file {
+                    edb.add_reference(file_hashcode, visual_hashcode)
+                }
             }
         }
-    }
 
-    Ok(res)
+        Ok(res)
+    }
+}
+
+impl BinWrite for EXGeoTriggerEngineOptions {
+    type Args<'a> = ();
+
+    fn write_options<W: std::io::Write + std::io::Seek>(
+        &self,
+        _writer: &mut W,
+        _endian: binrw::Endian,
+        _args: Self::Args<'_>,
+    ) -> BinResult<()> {
+        todo!()
+    }
 }
 
 #[binrw]

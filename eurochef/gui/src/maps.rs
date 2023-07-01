@@ -6,7 +6,7 @@ use eurochef_edb::{
     binrw::BinReaderExt,
     edb::EdbFile,
     entity::{EXGeoEntity, EXGeoMapZoneEntity},
-    map::{EXGeoBaseDatum, EXGeoMap, EXGeoPlacement},
+    map::{EXGeoBaseDatum, EXGeoMap, EXGeoPlacement, EXGeoTriggerEngineOptions},
     versions::Platform,
 };
 use eurochef_shared::{textures::UXGeoTexture, IdentifiableResult};
@@ -57,7 +57,7 @@ pub struct ProcessedTrigger {
 
     pub data: Vec<Option<u32>>,
     pub links: Vec<i32>,
-    pub engine_data: Vec<Option<u32>>,
+    pub engine_options: EXGeoTriggerEngineOptions,
 
     /// Every trigger that links to this one
     pub incoming_links: Vec<i32>,
@@ -214,7 +214,7 @@ pub fn read_from_file(edb: &mut EdbFile) -> Vec<ProcessedMap> {
                 position: trig.position.into(),
                 rotation: trig.rotation.into(),
                 scale: trig.scale.into(),
-                engine_data: trig.engine_data.to_vec(),
+                engine_options: trig.engine_options.clone(),
                 data: trig.data.to_vec(),
                 links: trig.links.to_vec(),
                 incoming_links: vec![],

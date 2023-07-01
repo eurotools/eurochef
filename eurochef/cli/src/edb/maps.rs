@@ -6,9 +6,9 @@ use std::{
 
 use anyhow::Context;
 use eurochef_edb::{
-    binrw::{BinReaderExt, Endian},
+    binrw::BinReaderExt,
+    edb::EdbFile,
     entity::{EXGeoEntity, EXGeoMapZoneEntity},
-    header::EXGeoHeader,
     map::{EXGeoLight, EXGeoMap, EXGeoPath, EXGeoPlacement},
     versions::Platform,
 };
@@ -20,7 +20,7 @@ use crate::PlatformArg;
 
 pub fn execute_command(
     filename: String,
-    platform: Option<PlatformArg>,
+    platform_arg: Option<PlatformArg>,
     output_folder: Option<String>,
     trigger_defs_file: Option<String>,
 ) -> anyhow::Result<()> {
@@ -39,17 +39,16 @@ pub fn execute_command(
         None
     };
 
-    let mut file = File::open(&filename)?;
-    let endian = if file.read_ne::<u8>().unwrap() == 0x47 {
-        Endian::Big
-    } else {
-        Endian::Little
-    };
-    file.seek(std::io::SeekFrom::Start(0))?;
+    let platform = platform_arg
+        .clone()
+        .map(|p| p.into())
+        .or(Platform::from_path(&filename))
+        .expect("Failed to detect platform");
 
-    let header = file
-        .read_type::<EXGeoHeader>(endian)
-        .expect("Failed to read header");
+    let mut file = File::open(&filename)?;
+    let mut reader = BufReader::new(&mut file);
+    let mut edb = EdbFile::new(&mut reader, platform)?;
+    let header = edb.header.clone();
 
     if header.map_list.len() == 0 {
         warn!("File does not contain any maps!");
@@ -59,25 +58,20 @@ pub fn execute_command(
     // * Almost as hacky as calling eurochef through a subprocess
     crate::edb::entities::execute_command(
         filename.clone(),
-        platform.clone(),
+        platform_arg.clone(),
         Some(output_folder.clone()),
         false,
         false,
     )?;
 
-    let platform = platform
-        .map(|p| p.into())
-        .or(Platform::from_path(&filename))
-        .expect("Failed to detect platform");
-
     let output_folder = Path::new(&output_folder);
     std::fs::create_dir_all(output_folder)?;
 
     for m in &header.map_list {
-        file.seek(std::io::SeekFrom::Start(m.address as u64))?;
+        edb.seek(std::io::SeekFrom::Start(m.address as u64))?;
 
-        let map = file
-            .read_type_args::<EXGeoMap>(endian, (header.version,))
+        let map = edb
+            .read_type_args::<EXGeoMap>(edb.endian, (header.version,))
             .context("Failed to read map")?;
 
         let mut export = EurochefMapExport {
@@ -90,10 +84,10 @@ pub fn execute_command(
 
         for z in &map.zones {
             let entity_offset = header.refpointer_list[z.entity_refptr as usize].address;
-            file.seek(std::io::SeekFrom::Start(entity_offset as u64))
+            edb.seek(std::io::SeekFrom::Start(entity_offset as u64))
                 .context("Mapzone refptr pointer to a non-entity object!")?;
 
-            let ent = file.read_type_args::<EXGeoEntity>(endian, (header.version, platform))?;
+            let ent = edb.read_type_args::<EXGeoEntity>(edb.endian, (header.version, platform))?;
 
             if let EXGeoEntity::MapZone(mapzone) = ent {
                 export.mapzone_entities.push(mapzone);
@@ -124,11 +118,8 @@ pub fn execute_command(
                 position: trig.position,
                 rotation: trig.rotation,
                 scale: trig.scale,
-                extra_data: trig
-                    .engine_data
-                    .iter()
-                    .map(|v| v.unwrap_or(u32::MAX))
-                    .collect(),
+                // TODO(cohae): Fix engine options for export
+                extra_data: vec![],
                 data: trig.data.to_vec(),
                 links: trig.links.to_vec(),
             };

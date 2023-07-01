@@ -9,7 +9,7 @@ use crate::{
     versions::Platform,
     Hashcode,
 };
-use tracing::info;
+use tracing::{info, warn};
 
 use crate::error::Result;
 
@@ -29,6 +29,10 @@ impl<R: Read + Seek + Sized> DatabaseReader for R {
             {
                 Some(transmute(ptr))
             } else {
+                if cfg!(debug_assertions) {
+                    warn!("Couldn't verify EdbFile marker and alignment!");
+                }
+
                 None
             }
         }

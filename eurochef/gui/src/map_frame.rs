@@ -553,11 +553,11 @@ impl MapFrame {
 
             if render_filter.contains(RenderFilter::Triggers) {
                 for t in map.triggers.iter() {
-                    if let Some(Some(v)) = t.engine_data.get(0) {
+                    if let Some(v) = t.engine_options.visual_object {
                         // Render if it's a local entity
-                        if (*v & 0xff000000) == 0x82000000 {
+                        if (v & 0xff000000) == 0x82000000 {
                             if let Some(renderer) =
-                                &placement_renderers.get((*v & 0x0000ffff) as usize)
+                                &placement_renderers.get((v & 0x0000ffff) as usize)
                             {
                                 let rotation: Quat = Quat::from_euler(
                                     glam::EulerRot::ZXY,
@@ -698,10 +698,10 @@ impl MapFrame {
                 set_blending_mode(painter.gl(), BlendMode::Blend);
                 // for t in map.triggers.iter() {
                 if let Some(t) = selected_trigger.and_then(|t| map.triggers.get(t)) {
-                    if let Some(Some(coll)) = t
-                        .engine_data
-                        .get(3)
-                        .map(|c| c.map(|c| map.trigger_collisions.get(c as usize)))
+                    if let Some(coll) = t
+                        .engine_options
+                        .collision_index
+                        .map(|c| map.trigger_collisions.get(c as usize))
                         .flatten()
                     {
                         if coll.dtype == 0 || coll.dtype == 3 {
@@ -842,10 +842,10 @@ impl MapFrame {
                                 });
                                 ui.end_row();
 
-                                if let Some(Some(coll)) = trig
-                                    .engine_data
-                                    .get(3)
-                                    .map(|c| c.map(|c| map.trigger_collisions.get(c as usize)))
+                                if let Some(coll) = trig
+                                    .engine_options
+                                    .collision_index
+                                    .map(|c| map.trigger_collisions.get(c as usize))
                                     .flatten()
                                 {
                                     ui.label("Collision");
@@ -890,28 +890,85 @@ impl MapFrame {
                                 });
                             }
 
-                            if trig.engine_data.iter().any(|v| v.is_some()) {
+                            let any_engine_options = {
+                                let e = &trig.engine_options;
+                                e.visual_object.is_some()
+                                    || e.visual_object_file.is_some()
+                                    || e.gamescript_index.is_some()
+                                    || e.collision_index.is_some()
+                                    || e.trigger_color.is_some()
+                                    || e._unk5.is_some()
+                                    || e._unk6.is_some()
+                                    || e._unk7.is_some()
+                            };
+
+                            if any_engine_options {
                                 ui.separator();
                                 ui.strong("Engine values");
                                 quick_grid!(ui, "t_extravalues", |ui| {
-                                    for (i, v) in trig
-                                        .engine_data
-                                        .iter()
-                                        .enumerate()
-                                        .filter_map(|(i, v)| v.as_ref().map(|v| (i, v)))
-                                    {
-                                        let (name, dtype) = if let Some(ti) =
-                                            self.trigger_info.extra_values.get(&(i as u32))
-                                        {
-                                            (ti.name.clone(), ti.dtype)
-                                        } else {
-                                            (None, TrigDataType::default())
-                                        };
-
+                                    if let Some(v) = trig.engine_options.visual_object {
                                         readonly_input!(
                                             ui,
-                                            name.unwrap_or(format!("#{i} ")),
-                                            dtype.to_string(&self.hashcodes, *v)
+                                            "Visual Object",
+                                            TrigDataType::Hashcode.to_string(&self.hashcodes, v)
+                                        );
+                                        ui.end_row();
+                                    }
+                                    if let Some(v) = trig.engine_options.visual_object_file {
+                                        readonly_input!(
+                                            ui,
+                                            "Visual Object File",
+                                            TrigDataType::Hashcode.to_string(&self.hashcodes, v)
+                                        );
+                                        ui.end_row();
+                                    }
+                                    if let Some(v) = trig.engine_options.gamescript_index {
+                                        readonly_input!(
+                                            ui,
+                                            "GameScript Index",
+                                            TrigDataType::U32.to_string(&self.hashcodes, v)
+                                        );
+                                        ui.end_row();
+                                    }
+                                    if let Some(v) = trig.engine_options.collision_index {
+                                        readonly_input!(
+                                            ui,
+                                            "Collision Index",
+                                            TrigDataType::U32.to_string(&self.hashcodes, v)
+                                        );
+                                        ui.end_row();
+                                    }
+                                    if let Some(v) = trig.engine_options.trigger_color {
+                                        ui.label("Trigger Color");
+                                        ui.horizontal(|ui| {
+                                            let (_, color_rect) = ui.allocate_painter(egui::vec2(16.0, 16.0), egui::Sense::hover());
+                                            color_rect.rect_filled(color_rect.clip_rect(), 2.0, egui::Color32::from_rgba_premultiplied(v[0], v[1], v[2], v[3]));
+
+                                            ui.label(format!("rgba({0}, {1}, {2}, {3}) / #{0:02x}{1:02x}{2:02x}{3:02x}", v[0], v[1], v[2], v[3]));
+                                        });
+                                        ui.end_row();
+                                    }
+                                    if let Some(v) = trig.engine_options._unk5 {
+                                        readonly_input!(
+                                            ui,
+                                            "Unk5",
+                                            TrigDataType::Unknown.to_string(&self.hashcodes, v)
+                                        );
+                                        ui.end_row();
+                                    }
+                                    if let Some(v) = trig.engine_options._unk6 {
+                                        readonly_input!(
+                                            ui,
+                                            "Unk6",
+                                            TrigDataType::Unknown.to_string(&self.hashcodes, v)
+                                        );
+                                        ui.end_row();
+                                    }
+                                    if let Some(v) = trig.engine_options._unk7 {
+                                        readonly_input!(
+                                            ui,
+                                            "Unk7",
+                                            TrigDataType::Unknown.to_string(&self.hashcodes, v)
                                         );
                                         ui.end_row();
                                     }
