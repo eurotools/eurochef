@@ -17,7 +17,7 @@ pub enum UXGeoScriptCommandData {
     Entity { hashcode: Hashcode, file: Hashcode },
     Sound { hashcode: Hashcode },
     Particle { hashcode: Hashcode, file: Hashcode },
-    EventType { event_type: Hashcode },
+    Event { event_type: Hashcode, data: Vec<u8> },
     SubScript { hashcode: Hashcode, file: Hashcode },
     Unknown { cmd: u8, data: Vec<u8> },
 }
@@ -83,8 +83,9 @@ impl UXGeoScript {
                     hashcode: u32_from_index(&c.data, edb.endian, 8)?,
                     file: u32_from_index(&c.data, edb.endian, 4)?,
                 },
-                11 => UXGeoScriptCommandData::EventType {
+                11 => UXGeoScriptCommandData::Event {
                     event_type: u32_from_index(&c.data, edb.endian, 0)?,
+                    data: c.data[4..].to_vec(),
                 },
                 i => UXGeoScriptCommandData::Unknown {
                     cmd: i,

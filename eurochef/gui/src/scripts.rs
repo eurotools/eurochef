@@ -478,7 +478,7 @@ impl ScriptListPanel {
                     format!("Particle {}", format_hashcode(&self.hashcodes, *hashcode)),
                     *file,
                 ),
-                UXGeoScriptCommandData::EventType { event_type } => (
+                UXGeoScriptCommandData::Event { event_type, .. } => (
                     Self::COMMAND_COLOR_EVENT,
                     format!("Event {}", format_hashcode(&self.hashcodes, *event_type)),
                     u32::MAX,

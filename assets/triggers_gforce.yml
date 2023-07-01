@@ -317,6 +317,7 @@ triggers:
     name: TR_ObjectiveMarker
     values:
       4: { name: Icon, type: hashcode }
+      5: { name: Text, type: hashcode }
   164:
     name: AI_SquadAlarmClock
   165:
