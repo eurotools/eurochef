@@ -5,6 +5,7 @@ use super::gl_helper;
 pub struct Shaders {
     pub entity_simple: Program,
     pub entity_simple_unlit: Program,
+    pub entity_simple_matcap: Program,
 
     pub grid: Program,
     pub pickbuffer: Program,
@@ -42,6 +43,7 @@ impl Shaders {
         Shaders {
             entity_simple: compile_shader!("entity"),
             entity_simple_unlit: compile_shader!("entity", &["#define EC_NO_VERTEX_LIGHTING"]),
+            entity_simple_matcap: compile_shader!("entity", &["#define EC_MATCAP"]),
             grid: compile_shader!("grid"),
             pickbuffer: compile_shader!("pickbuffer"),
             sprite3d: compile_shader!("sprite3d"),
