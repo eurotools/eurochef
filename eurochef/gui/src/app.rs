@@ -278,6 +278,28 @@ impl EurochefApp {
             rs_lock.insert_entity(header.hashcode, e.hashcode, i, r);
         }
 
+        drop(rs_lock);
+
+        self.resolve_references(platform, &edb.external_references)?;
+
+        Ok(())
+    }
+
+    pub fn resolve_references(
+        &mut self,
+        platform: Platform,
+        references: &Vec<(Hashcode, Hashcode)>,
+    ) -> anyhow::Result<()> {
+        for (ref_file, _) in references {
+            if !self.render_store.read().is_file_loaded(*ref_file) {
+                if let Some(path) = self.path_cache.get(ref_file) {
+                    let file = File::open(&path)?;
+                    let mut reader = BufReader::new(file);
+                    self.load_into_render_store(platform, &mut reader)?;
+                }
+            }
+        }
+
         Ok(())
     }
 
@@ -404,15 +426,7 @@ impl EurochefApp {
         edb.external_references.sort_by(|(a, _), (b, _)| a.cmp(b));
         self.fileinfo.as_mut().unwrap().external_references = edb.external_references.clone();
 
-        for (ref_file, _) in &edb.external_references {
-            if !self.render_store.read().is_file_loaded(*ref_file) {
-                if let Some(path) = self.path_cache.get(ref_file) {
-                    let file = File::open(&path)?;
-                    let mut reader = BufReader::new(file);
-                    self.load_into_render_store(platform, &mut reader)?;
-                }
-            }
-        }
+        self.resolve_references(platform, &edb.external_references)?;
 
         self.state = AppState::Ready;
 

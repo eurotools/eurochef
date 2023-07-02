@@ -350,8 +350,6 @@ impl EntityRenderer {
             // Environment texture
             if (tex.flags & 0x30000) != 0 {
                 shader = context.shaders.entity_simple_matcap;
-                // } else {
-                //     return;
             }
         } else {
             gl.bind_texture(glow::TEXTURE_2D, None);
