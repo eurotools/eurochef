@@ -1,7 +1,11 @@
+use eurochef_edb::Hashcode;
 use glam::{Mat4, Quat};
 use glow::HasContext;
+use nohash_hasher::IntMap;
 
-use self::camera::Camera3D;
+use crate::entity_frame::RenderableTexture;
+
+use self::{camera::Camera3D, entity::EntityRenderer};
 
 pub mod billboard;
 pub mod blend;
@@ -60,4 +64,87 @@ pub unsafe fn start_render(gl: &glow::Context) {
     gl.cull_face(glow::FRONT);
     gl.enable(glow::DEPTH_TEST);
     gl.depth_func(glow::LEQUAL);
+}
+
+pub struct RenderStore {
+    files: IntMap<
+        Hashcode,
+        (
+            IntMap<Hashcode, EntityRenderer>,
+            IntMap<Hashcode, RenderableTexture>,
+        ),
+    >,
+}
+
+impl RenderStore {
+    pub fn new() -> Self {
+        Self {
+            files: Default::default(),
+        }
+    }
+
+    pub fn purge(&mut self, purge_memory: bool) {
+        self.files.clear();
+        if purge_memory {
+            self.files.shrink_to_fit()
+        }
+    }
+
+    pub fn get_entity(
+        &mut self,
+        file: Hashcode,
+        entity_hashcode: Hashcode,
+    ) -> Option<&EntityRenderer> {
+        self.files
+            .get(&file)
+            .and_then(|v| v.0.get(&entity_hashcode))
+    }
+
+    pub fn get_texture(
+        &mut self,
+        file: Hashcode,
+        texture_hashcode: Hashcode,
+    ) -> Option<&RenderableTexture> {
+        self.files
+            .get(&file)
+            .and_then(|v| v.1.get(&texture_hashcode))
+    }
+
+    pub fn get_texture_by_index(
+        &mut self,
+        file: Hashcode,
+        texture_index: usize,
+    ) -> Option<&RenderableTexture> {
+        self.files
+            .get(&file)
+            .and_then(|v| v.1.values().nth(texture_index))
+    }
+
+    pub fn insert_entity(
+        &mut self,
+        file: Hashcode,
+        entity_hashcode: Hashcode,
+        entity: EntityRenderer,
+    ) {
+        let file_entry = match self.files.entry(file) {
+            std::collections::hash_map::Entry::Occupied(o) => &mut o.into_mut().0,
+            std::collections::hash_map::Entry::Vacant(v) => &mut v.insert(Default::default()).0,
+        };
+
+        file_entry.insert(entity_hashcode, entity);
+    }
+
+    pub fn insert_texture(
+        &mut self,
+        file: Hashcode,
+        texture_hashcode: Hashcode,
+        texture: RenderableTexture,
+    ) {
+        let file_entry = match self.files.entry(file) {
+            std::collections::hash_map::Entry::Occupied(o) => &mut o.into_mut().1,
+            std::collections::hash_map::Entry::Vacant(v) => &mut v.insert(Default::default()).1,
+        };
+
+        file_entry.insert(texture_hashcode, texture);
+    }
 }

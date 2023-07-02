@@ -134,13 +134,12 @@ impl MapViewerPanel {
             hashcodes,
             game,
         );
-        ef.viewer
-            .lock()
-            .map(|mut v| {
-                v.selected_camera = CameraType::Fly;
-                v.show_grid = false;
-            })
-            .unwrap();
+
+        {
+            let mut e = ef.viewer.lock();
+            e.selected_camera = CameraType::Fly;
+            e.show_grid = false;
+        }
 
         ef
     }

@@ -1,4 +1,5 @@
-use std::sync::{Arc, Mutex};
+use egui::mutex::Mutex;
+use std::sync::Arc;
 
 use eurochef_edb::versions::Platform;
 use glam::{Quat, Vec2, Vec3};
@@ -50,12 +51,12 @@ impl EntityFrame {
             if meshes.len() > 1 {
                 for m in meshes {
                     let r = Arc::new(Mutex::new(EntityRenderer::new(gl, platform)));
-                    r.lock().unwrap().load_mesh(gl, m);
+                    r.lock().load_mesh(gl, m);
                     s.renderers.push(r);
                 }
             } else {
                 let r = Arc::new(Mutex::new(EntityRenderer::new(gl, platform)));
-                s.mesh_center = r.lock().unwrap().load_mesh(gl, meshes[0]);
+                s.mesh_center = r.lock().load_mesh(gl, meshes[0]);
                 s.renderers.push(r);
             }
         }
@@ -65,7 +66,7 @@ impl EntityFrame {
 
     pub fn show(&mut self, ui: &mut egui::Ui) {
         ui.horizontal(|ui| {
-            self.viewer.lock().unwrap().show_toolbar(ui);
+            self.viewer.lock().show_toolbar(ui);
 
             if ui
                 .checkbox(&mut self.vertex_lighting, "Vertex Lighting")
@@ -73,7 +74,7 @@ impl EntityFrame {
             {
                 // TODO(cohae): Global shaders will make this less painful
                 for r in self.renderers.iter() {
-                    r.lock().unwrap().vertex_lighting = self.vertex_lighting;
+                    r.lock().vertex_lighting = self.vertex_lighting;
                 }
             }
         });
@@ -89,19 +90,19 @@ impl EntityFrame {
         let time = ui.input(|t| t.time);
 
         let viewer = self.viewer.clone();
-        viewer.lock().unwrap().update(ui, &response);
+        viewer.lock().update(ui, &response);
 
         // TODO(cohae): How do we get out of this situation
         let textures = self.textures.clone(); // FIXME: UUUUGH.
 
         let renderers = self.renderers.clone();
         let cb = egui_glow::CallbackFn::new(move |info, painter| unsafe {
-            let mut v = viewer.lock().unwrap();
+            let mut v = viewer.lock();
             v.start_render(painter.gl(), info.viewport.aspect_ratio(), time as f32);
             let render_context = v.render_context();
 
             for r in &renderers {
-                let renderer_lock = r.lock().unwrap();
+                let renderer_lock = r.lock();
                 renderer_lock.draw_opaque(
                     painter.gl(),
                     &render_context,
@@ -116,7 +117,7 @@ impl EntityFrame {
             painter.gl().depth_mask(false);
 
             for r in &renderers {
-                let renderer_lock = r.lock().unwrap();
+                let renderer_lock = r.lock();
                 renderer_lock.draw_transparent(
                     painter.gl(),
                     &render_context,

@@ -1,11 +1,7 @@
-use std::{
-    fs::File,
-    io::Cursor,
-    sync::{Arc, Mutex},
-};
+use std::{fs::File, io::Cursor, sync::Arc};
 
 use anyhow::Context;
-use egui::{emath, Pos2, Rect, Vec2};
+use egui::{emath, mutex::Mutex, Pos2, Rect, Vec2};
 use eurochef_edb::{
     entity::{EXGeoBaseEntity, EXGeoEntity},
     versions::Platform,
@@ -225,7 +221,7 @@ impl MapFrame {
         unsafe {
             for (i, m) in meshes {
                 let r = Arc::new(Mutex::new(EntityRenderer::new(&gl, platform)));
-                r.lock().unwrap().load_mesh(&gl, m);
+                r.lock().load_mesh(&gl, m);
                 s.ref_renderers.push((*i, r));
             }
 
@@ -238,7 +234,7 @@ impl MapFrame {
 
                 match e {
                     EXGeoEntity::Mesh(_) | EXGeoEntity::Split(_) => {
-                        r.lock().unwrap().load_mesh(&gl, m);
+                        r.lock().load_mesh(&gl, m);
                     }
                     _ => {
                         warn!("Creating dud EntityRenderer for EXGeoEntity::0x{:x} with hashcode {:08x}", e.type_code(), hashcode);
@@ -298,7 +294,7 @@ impl MapFrame {
                     }
                 });
 
-            self.viewer.lock().unwrap().show_toolbar(ui);
+            self.viewer.lock().show_toolbar(ui);
 
             ui.label("  |  ");
 
@@ -339,7 +335,7 @@ impl MapFrame {
                     .map(|(_, v)| v)
                     .chain(self.placement_renderers.iter().map(|r| &r.2))
                 {
-                    r.lock().unwrap().vertex_lighting = self.vertex_lighting;
+                    r.lock().vertex_lighting = self.vertex_lighting;
                 }
             }
 
@@ -392,7 +388,7 @@ impl MapFrame {
         egui::Frame::canvas(ui.style()).show(ui, |ui| self.show_canvas(ui, context, map));
 
         ui.horizontal(|ui| {
-            self.viewer.lock().unwrap().show_statusbar(ui);
+            self.viewer.lock().show_statusbar(ui);
             if let Some(trig_id) = self.selected_trigger {
                 ui.strong("Selected trigger:");
                 ui.label(format!("{}", trig_id));
@@ -453,7 +449,7 @@ impl MapFrame {
 
         let viewer = self.viewer.clone();
         let camera_pos = {
-            let mut v = viewer.lock().unwrap();
+            let mut v = viewer.lock();
             if !self.textfield_focused {
                 v.update(ui, &response);
             }
@@ -493,7 +489,7 @@ impl MapFrame {
         let placement_renderers = self.placement_renderers.clone();
         let renderers = self.ref_renderers.clone();
         let cb = egui_glow::CallbackFn::new(move |info, painter| unsafe {
-            let mut v = viewer.lock().unwrap();
+            let mut v = viewer.lock();
             v.start_render(painter.gl(), info.viewport.aspect_ratio(), time as f32);
             let render_context = v.render_context();
 
@@ -503,7 +499,7 @@ impl MapFrame {
             {
                 painter.gl().depth_mask(false);
 
-                sky_renderer.lock().unwrap().draw_both(
+                sky_renderer.lock().draw_both(
                     painter.gl(),
                     &render_context,
                     camera_pos,
@@ -580,17 +576,15 @@ impl MapFrame {
 
             if render_filter.contains(RenderFilter::Opaque) {
                 for r in render_queue.iter() {
-                    if let Ok(e) = r.entity.try_lock() {
-                        e.draw_opaque(
-                            painter.gl(),
-                            &render_context,
-                            r.position,
-                            r.rotation,
-                            r.scale,
-                            time,
-                            &textures,
-                        )
-                    }
+                    r.entity.lock().draw_opaque(
+                        painter.gl(),
+                        &render_context,
+                        r.position,
+                        r.rotation,
+                        r.scale,
+                        time,
+                        &textures,
+                    )
                 }
             }
 
@@ -598,17 +592,15 @@ impl MapFrame {
 
             if render_filter.contains(RenderFilter::Transparent) {
                 for r in render_queue.iter() {
-                    if let Ok(e) = r.entity.try_lock() {
-                        e.draw_transparent(
-                            painter.gl(),
-                            &render_context,
-                            r.position,
-                            r.rotation,
-                            r.scale,
-                            time,
-                            &textures,
-                        )
-                    }
+                    r.entity.lock().draw_transparent(
+                        painter.gl(),
+                        &render_context,
+                        r.position,
+                        r.rotation,
+                        r.scale,
+                        time,
+                        &textures,
+                    )
                 }
             }
 
@@ -736,7 +728,7 @@ impl MapFrame {
         for (i, t) in map.triggers.iter().enumerate() {
             self.billboard_renderer.render_pickbuffer(
                 &self.gl,
-                &self.viewer.lock().unwrap().render_context(),
+                &self.viewer.lock().render_context(),
                 t.position,
                 self.trigger_scale,
                 (PickBufferType::Trigger, i as u32),
@@ -1045,7 +1037,7 @@ impl MapFrame {
     fn go_to_trigger(&mut self, index: usize, trig: &ProcessedTrigger) {
         self.selected_trigger = Some(index);
 
-        let mut v = self.viewer.lock().unwrap();
+        let mut v = self.viewer.lock();
         let camera = v.camera_mut();
 
         self.trigger_focus_tween = Some(Tweeny3D::new(

@@ -1,6 +1,6 @@
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
-use egui::RichText;
+use egui::{mutex::Mutex, RichText};
 use eurochef_edb::{entity::EXGeoEntity, versions::Platform, Hashcode};
 use eurochef_shared::{
     hashcodes::HashcodeUtils,
@@ -69,7 +69,7 @@ impl ScriptListPanel {
 
                 match e {
                     EXGeoEntity::Mesh(_) | EXGeoEntity::Split(_) => {
-                        r.lock().unwrap().load_mesh(&gl, m);
+                        r.lock().load_mesh(&gl, m);
                     }
                     _ => {
                         warn!("Creating dud EntityRenderer for EXGeoEntity::0x{:x} with hashcode {:08x}", e.type_code(), hashcode);
@@ -136,7 +136,7 @@ impl ScriptListPanel {
 
             ui.vertical(|ui| {
                 ui.horizontal(|ui| {
-                    self.viewer.lock().unwrap().show_toolbar(ui);
+                    self.viewer.lock().show_toolbar(ui);
                     ui.add(
                         egui::DragValue::new(&mut self.playback_speed)
                             .clamp_range(0.05..=3.0)
@@ -303,10 +303,10 @@ impl ScriptListPanel {
             transforms.push((pos, rot, scale));
         }
 
-        self.viewer.lock().unwrap().update(ui, &response);
+        self.viewer.lock().update(ui, &response);
         let viewer = self.viewer.clone();
         let cb = egui_glow::CallbackFn::new(move |info, painter| unsafe {
-            let mut v = viewer.lock().unwrap();
+            let mut v = viewer.lock();
             v.start_render(painter.gl(), info.viewport.aspect_ratio(), time as f32);
             let render_context = v.render_context();
 
@@ -332,33 +332,29 @@ impl ScriptListPanel {
             }
 
             for r in render_queue.iter() {
-                if let Ok(e) = r.entity.try_lock() {
-                    e.draw_opaque(
-                        painter.gl(),
-                        &render_context,
-                        r.position,
-                        r.rotation,
-                        r.scale,
-                        time,
-                        &textures,
-                    )
-                }
+                r.entity.lock().draw_opaque(
+                    painter.gl(),
+                    &render_context,
+                    r.position,
+                    r.rotation,
+                    r.scale,
+                    time,
+                    &textures,
+                )
             }
 
             painter.gl().depth_mask(false);
 
             for r in render_queue.iter() {
-                if let Ok(e) = r.entity.try_lock() {
-                    e.draw_transparent(
-                        painter.gl(),
-                        &render_context,
-                        r.position,
-                        r.rotation,
-                        r.scale,
-                        time,
-                        &textures,
-                    )
-                }
+                r.entity.lock().draw_transparent(
+                    painter.gl(),
+                    &render_context,
+                    r.position,
+                    r.rotation,
+                    r.scale,
+                    time,
+                    &textures,
+                )
             }
         });
 
