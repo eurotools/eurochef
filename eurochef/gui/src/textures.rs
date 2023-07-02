@@ -99,8 +99,8 @@ impl TextureList {
                             continue;
                         }
 
-                        match &it.data {
-                            Ok(t) => {
+                        match (&it.data, it.data.as_ref().map(|d| d.external_texture).ok().flatten()) {
+                            (Ok(t), None) => {
                                 if self.filter_animated && t.frame_count <= 1 {
                                     continue;
                                 }
@@ -158,7 +158,36 @@ impl TextureList {
                                     self.enlarged_texture = Some((i, it.hashcode));
                                 }
                             }
-                            Err(e) => {
+                            (_, Some((ext_file, ext_texture))) => {
+                                // We don't know anything about linked textures, skip if filtered
+                                if self.filter_animated {
+                                    continue;
+                                }
+
+                                let (rect, response) =
+                                ui.allocate_exact_size(egui::vec2(128., 128.) * self.zoom, egui::Sense::click());
+    
+                                ui.painter().rect_filled( 
+                                    rect,
+                                    egui::Rounding::none(),
+                                    Color32::BLACK,
+                                );
+        
+                                ui.painter().text(
+                                    rect.left_top() + egui::vec2(24., 24.),
+                                    egui::Align2::CENTER_CENTER,
+                                    font_awesome::LINK,
+                                    egui::FontId::proportional(24.),
+                                    Color32::RED,
+                                );
+                                response.on_hover_ui(|ui| {
+                                    ui.colored_label(Color32::LIGHT_RED, format!(
+                                        "Texture {:08x} is a reference to texture {:08x} in file {:08x}",
+                                        it.hashcode, ext_texture, ext_file
+                                    ));
+                                });
+                            }
+                            (Err(e), _) => {
                                 // We don't know anything about failed textures, skip if filtered
                                 if self.filter_animated {
                                     continue;
@@ -181,13 +210,13 @@ impl TextureList {
                                     Color32::RED,
                                 );
         
-                                response.on_hover_ui(|ui| {
-                                    ui.label(format!(
-                                        "Texture {:x} failed:",
-                                        it.hashcode
-                                    ));
-                                    ui.colored_label(Color32::LIGHT_RED, cutoff_string(strip_ansi_codes(&format!("{e:?}")), 1024));
-                                });
+                                    response.on_hover_ui(|ui| {
+                                        ui.label(format!(
+                                            "Texture {:08x} failed:",
+                                            it.hashcode
+                                        ));
+                                        ui.colored_label(Color32::LIGHT_RED, cutoff_string(strip_ansi_codes(&format!("{e:?}")), 1024));
+                                    });
                             },
                         }
                     }

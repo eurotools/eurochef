@@ -2,7 +2,7 @@ use std::io::{Read, Seek};
 
 use anyhow::Context;
 use bitflags::bitflags;
-use eurochef_edb::{binrw::BinReaderExt, edb::EdbFile, texture::EXGeoTexture};
+use eurochef_edb::{binrw::BinReaderExt, edb::EdbFile, texture::EXGeoTexture, Hashcode};
 use image::RgbaImage;
 
 use crate::{
@@ -34,6 +34,8 @@ pub struct UXGeoTexture {
 
     pub color: [u8; 4],
 
+    pub external_texture: Option<(Hashcode, Hashcode)>,
+
     pub diagnostics: UXTextureDiagnostics,
 }
 
@@ -63,13 +65,24 @@ impl UXGeoTexture {
             .read_type_args::<EXGeoTexture>(edb.endian, (edb.header.version, edb.platform))
             .context("Failed to read texture")?;
 
-        // cohae: This is a bit of a difficult one. We might need an alternative to return these references somehow (enum with variant?), as we cannot open other files from this context.
         if let Some(external_file) = tex.external_file {
             let external_texture = tex.frame_offsets[0].offset_relative() as u32;
             edb.add_reference(external_file, external_texture);
-            return Err(anyhow::anyhow!(
-                "Texture is an external reference, skipping (texture 0x{external_texture:x} from file 0x{external_file:x})",
-            ));
+            return Ok(UXGeoTexture {
+                width: tex.width,
+                height: tex.height,
+                depth: tex.depth,
+                format_internal: tex.format,
+                flags,
+                game_flags: tex.game_flags,
+                framerate: tex.frame_rate,
+                frame_count: 0,
+                scroll: [tex.scroll_u, tex.scroll_v],
+                frames: vec![],
+                color: tex.color,
+                diagnostics: Default::default(),
+                external_texture: Some((external_file, external_texture)),
+            });
         }
 
         let calculated_size = texture_decoder
@@ -106,6 +119,7 @@ impl UXGeoTexture {
             frames: Vec::with_capacity(tex.frame_count as usize),
             color: tex.color,
             diagnostics: Default::default(),
+            external_texture: None,
         };
 
         let mut clut = vec![];

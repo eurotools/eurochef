@@ -141,6 +141,7 @@ impl EntityListPanel {
                     }
 
                     RenderableTexture {
+                        external_reference: t.external_texture,
                         frames,
                         framerate: t.framerate as usize,
                         frame_count: t.frame_count as usize,
@@ -162,6 +163,7 @@ impl EntityListPanel {
                     );
 
                     RenderableTexture {
+                        external_reference: None,
                         frames: vec![handle],
                         framerate: 0,
                         frame_count: 0,

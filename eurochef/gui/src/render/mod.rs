@@ -137,15 +137,15 @@ impl RenderStore {
     //     self.files.get(&file).map(|v| v.0.iter())
     // }
 
-    // pub fn get_texture(
-    //     &self,
-    //     file: Hashcode,
-    //     texture_hashcode: Hashcode,
-    // ) -> Option<&RenderableTexture> {
-    //     self.files
-    //         .get(&file)
-    //         .and_then(|v| v.1.get(&texture_hashcode).map(|(_, v)| v))
-    // }
+    pub fn get_texture(
+        &self,
+        file: Hashcode,
+        texture_hashcode: Hashcode,
+    ) -> Option<&RenderableTexture> {
+        self.files
+            .get(&file)
+            .and_then(|v| v.1.get(&texture_hashcode).map(|(_, v)| v))
+    }
 
     pub fn get_texture_by_index(
         &self,

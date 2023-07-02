@@ -330,6 +330,13 @@ impl EntityRenderer {
         if let Some((_, tex)) =
             render_store.get_texture_by_index(self.file_hashcode, t.texture_index as usize)
         {
+            let mut tex = tex;
+            if let Some((external_file, external_texture)) = tex.external_reference {
+                if let Some(resolved) = render_store.get_texture(external_file, external_texture) {
+                    tex = resolved;
+                }
+            }
+
             let frametime_scale = tex.frame_count as f32 / tex.frames.len() as f32;
             let frame_time = (1. / tex.framerate as f32) * frametime_scale;
 

@@ -23,6 +23,8 @@ pub struct EntityFrame {
 
 #[derive(Clone)]
 pub struct RenderableTexture {
+    pub external_reference: Option<(Hashcode, Hashcode)>,
+
     pub frames: Vec<glow::Texture>,
     pub framerate: usize,
     pub frame_count: usize,
