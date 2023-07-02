@@ -128,7 +128,7 @@ pub fn render_script<F>(
             UXGeoScriptCommandData::Entity { hashcode, file } => render(QueuedEntityRender {
                 entity: (if file == u32::MAX { current_file } else { file }, hashcode),
                 entity_alt: None,
-                position: position + transform.0,
+                position: position + (rotation.mul_vec3(transform.0)),
                 rotation: rotation * transform.1,
                 scale: scale * transform.2,
             }),

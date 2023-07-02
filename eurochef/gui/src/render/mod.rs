@@ -94,14 +94,6 @@ impl RenderStore {
     }
 
     pub fn purge_file(&mut self, file: Hashcode) {
-        println!("Before purge:");
-        for (v, k) in &self.files {
-            println!(" - File {:08x}", v);
-            println!("    - {} entities", k.0.len());
-            println!("    - {} textures", k.1.len());
-            println!("    - {} scripts", k.2.len());
-        }
-
         self.files.remove(&file);
     }
 

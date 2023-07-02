@@ -217,9 +217,9 @@ impl EurochefApp {
             self.ps2_warning = true;
         }
 
+        self.render_store.write().purge(true);
         let mut edb = EdbFile::new(reader, platform)?;
         let header = edb.header.clone();
-        self.render_store.write().purge_file(header.hashcode);
 
         self.current_panel = Panel::FileInfo;
         self.spreadsheetlist = None;

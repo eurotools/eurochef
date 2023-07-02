@@ -24,6 +24,7 @@ use crate::{
         entity::EntityRenderer,
         gl_helper,
         pickbuffer::{PickBuffer, PickBufferType},
+        script::render_script,
         trigger::{CollisionDatumRenderer, LinkLineRenderer, SelectCubeRenderer},
         tweeny::{self, Tweeny3D},
         viewer::BaseViewer,
@@ -515,15 +516,15 @@ impl MapFrame {
             if render_filter.contains(RenderFilter::Triggers) {
                 for t in map.triggers.iter() {
                     if let Some(v) = t.engine_options.visual_object {
-                        if v.base() == 0x02000000 {
-                            let rotation: Quat = Quat::from_euler(
-                                glam::EulerRot::ZXY,
-                                t.rotation[2],
-                                t.rotation[0],
-                                t.rotation[1],
-                            );
+                        let rotation: Quat = Quat::from_euler(
+                            glam::EulerRot::ZXY,
+                            t.rotation[2],
+                            t.rotation[0],
+                            t.rotation[1],
+                        );
 
-                            render_queue.push(QueuedEntityRender {
+                        match v.base() {
+                            0x02000000 => render_queue.push(QueuedEntityRender {
                                 entity: (
                                     t.engine_options.visual_object_file.unwrap_or(current_file),
                                     v,
@@ -532,7 +533,31 @@ impl MapFrame {
                                 position: t.position,
                                 rotation,
                                 scale: t.scale,
-                            })
+                            }),
+                            0x04000000 => {
+                                // TODO(cohae): Hack for scripts with fucked starting frames
+                                let framerate = render_store
+                                    .read()
+                                    .get_script(
+                                        t.engine_options.visual_object_file.unwrap_or(current_file),
+                                        v,
+                                    )
+                                    .map(|s| s.framerate)
+                                    .unwrap_or(30.0);
+
+                                render_script(
+                                    current_file,
+                                    t.position,
+                                    rotation,
+                                    t.scale,
+                                    t.engine_options.visual_object_file.unwrap_or(current_file),
+                                    v,
+                                    1. / framerate,
+                                    &render_store.read(),
+                                    |q| render_queue.push(q),
+                                )
+                            }
+                            _ => {}
                         }
                     }
                 }
