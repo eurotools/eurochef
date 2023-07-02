@@ -75,6 +75,7 @@ pub struct RenderStore {
             IntMap<Hashcode, (usize, EntityRenderer)>,
             IntMap<Hashcode, (usize, RenderableTexture)>,
             Vec<UXGeoScript>,
+            Vec<Hashcode>, // All loaded hashcodes, used for analysis
         ),
     >,
 }
@@ -136,15 +137,15 @@ impl RenderStore {
     //     self.files.get(&file).map(|v| v.0.iter())
     // }
 
-    pub fn get_texture(
-        &self,
-        file: Hashcode,
-        texture_hashcode: Hashcode,
-    ) -> Option<&RenderableTexture> {
-        self.files
-            .get(&file)
-            .and_then(|v| v.1.get(&texture_hashcode).map(|(_, v)| v))
-    }
+    // pub fn get_texture(
+    //     &self,
+    //     file: Hashcode,
+    //     texture_hashcode: Hashcode,
+    // ) -> Option<&RenderableTexture> {
+    //     self.files
+    //         .get(&file)
+    //         .and_then(|v| v.1.get(&texture_hashcode).map(|(_, v)| v))
+    // }
 
     pub fn get_texture_by_index(
         &self,
@@ -156,6 +157,23 @@ impl RenderStore {
                 .find(|(_, (v, _))| *v == index)
                 .map(|(hc, (_, v))| (*hc, v))
         })
+    }
+
+    fn insert_hashcode(&mut self, file: Hashcode, hashcode: Hashcode) {
+        if let Some(v) = self.files.get_mut(&file) {
+            v.3.push(hashcode);
+        }
+    }
+
+    pub fn is_file_loaded(&self, file: Hashcode) -> bool {
+        self.files.contains_key(&file)
+    }
+
+    pub fn is_object_loaded(&self, file: Hashcode, hashcode: Hashcode) -> bool {
+        self.files
+            .get(&file)
+            .map(|f| f.3.contains(&hashcode))
+            .unwrap_or(false)
     }
 
     pub fn insert_entity(
@@ -171,6 +189,7 @@ impl RenderStore {
         };
 
         file_entry.insert(entity_hashcode, (index, entity));
+        self.insert_hashcode(file, entity_hashcode);
     }
 
     pub fn insert_texture(
@@ -186,6 +205,7 @@ impl RenderStore {
         };
 
         file_entry.insert(texture_hashcode, (index, texture));
+        self.insert_hashcode(file, texture_hashcode);
     }
 
     pub fn insert_script(&mut self, file: Hashcode, script: UXGeoScript) {
@@ -194,6 +214,8 @@ impl RenderStore {
             std::collections::hash_map::Entry::Vacant(v) => &mut v.insert(Default::default()).2,
         };
 
+        let script_hashcode = script.hashcode;
         file_entry.push(script);
+        self.insert_hashcode(file, script_hashcode);
     }
 }

@@ -16,7 +16,7 @@ use nohash_hasher::IntMap;
 
 use crate::{
     map_frame::QueuedEntityRender,
-    render::{script::render_script, tweeny::ease_in_out_sine, viewer::BaseViewer, RenderStore},
+    render::{script::render_script, viewer::BaseViewer, RenderStore},
 };
 
 pub struct ScriptListPanel {
@@ -194,7 +194,6 @@ impl ScriptListPanel {
             let mut render_queue: Vec<QueuedEntityRender> = vec![];
 
             render_script(
-                current_file,
                 Vec3::ZERO,
                 Quat::IDENTITY,
                 Vec3::ONE,

@@ -54,4 +54,25 @@ impl DissectedFilelistPath {
             .iter()
             .collect()
     }
+
+    pub fn dir_relative(&self) -> PathBuf {
+        [
+            &self.game,
+            &self.category,
+            &format!("_bin_{}", self.platform.shorthand()),
+        ]
+        .iter()
+        .collect()
+    }
+
+    pub fn dir_absolute(&self) -> PathBuf {
+        [
+            &self.root,
+            &self.game,
+            &self.category,
+            &format!("_bin_{}", self.platform.shorthand()),
+        ]
+        .iter()
+        .collect()
+    }
 }

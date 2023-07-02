@@ -7,11 +7,10 @@ use crate::{map_frame::QueuedEntityRender, render::tweeny::ease_in_out_sine};
 use super::RenderStore;
 
 pub fn render_script<F>(
-    current_file: Hashcode,
     position: Vec3,
     rotation: Quat,
     scale: Vec3,
-    file: Hashcode,
+    current_file: Hashcode,
     script_hashcode: Hashcode,
     current_time: f32,
     render_store: &RenderStore,
@@ -19,7 +18,7 @@ pub fn render_script<F>(
 ) where
     F: FnMut(QueuedEntityRender),
 {
-    let script = render_store.get_script(file, script_hashcode);
+    let script = render_store.get_script(current_file, script_hashcode);
     if script.is_none() {
         return;
     }
@@ -125,8 +124,18 @@ pub fn render_script<F>(
 
     for (c, transform) in current_frame_commands.iter().zip(&transforms) {
         match c.data {
-            UXGeoScriptCommandData::Entity { hashcode, file } => render(QueuedEntityRender {
-                entity: (if file == u32::MAX { current_file } else { file }, hashcode),
+            UXGeoScriptCommandData::Entity {
+                hashcode,
+                file: entity_file,
+            } => render(QueuedEntityRender {
+                entity: (
+                    if entity_file == u32::MAX {
+                        current_file
+                    } else {
+                        entity_file
+                    },
+                    hashcode,
+                ),
                 entity_alt: None,
                 position: position + (rotation.mul_vec3(transform.0)),
                 rotation: rotation * transform.1,

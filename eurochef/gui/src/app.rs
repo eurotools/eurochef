@@ -1,6 +1,6 @@
 use std::{
     fs::File,
-    io::{Cursor, Read, Seek},
+    io::{BufReader, Cursor, Read, Seek},
     path::PathBuf,
     sync::Arc,
 };
@@ -8,7 +8,12 @@ use std::{
 use crossbeam::atomic::AtomicCell;
 use eframe::CreationContext;
 use egui::{epaint::ahash::HashMapExt, mutex::RwLock, Color32, FontData, FontDefinitions, NumExt};
-use eurochef_edb::{edb::EdbFile, versions::Platform};
+use eurochef_edb::{
+    binrw::{BinReaderExt, Endian},
+    edb::EdbFile,
+    versions::Platform,
+    Hashcode,
+};
 use eurochef_shared::{
     hashcodes::{parse_hashcodes, HashcodeUtils},
     script::UXGeoScript,
@@ -65,6 +70,7 @@ pub struct EurochefApp {
     about_window: bool,
 
     hashcodes: Arc<IntMap<u32, String>>,
+    path_cache: IntMap<Hashcode, String>,
     render_store: Arc<RwLock<RenderStore>>,
     game: String,
 }
@@ -126,6 +132,7 @@ impl EurochefApp {
             selected_platform: Platform::Ps2,
             ps2_warning: false,
             about_window: false,
+            path_cache: Default::default(),
             render_store: Arc::new(RwLock::new(RenderStore::new())),
             hashcodes: Arc::new(hashcodes),
             game: String::new(),
@@ -197,12 +204,79 @@ impl EurochefApp {
             }
 
             self.hashcodes = Arc::new(hashcodes);
+
+            // Index the folder and load it into the path cache
+            info!(
+                "Indexing game folder {}",
+                dissected_path.dir_relative().to_string_lossy()
+            );
+            self.path_cache.clear();
+
+            for entry in glob::glob(&format!(
+                "{}/*.edb",
+                dissected_path.dir_absolute().to_string_lossy()
+            ))? {
+                match entry {
+                    Ok(path) => {
+                        let file = File::open(&path)?;
+                        let mut reader = BufReader::new(file);
+                        let endian = if reader.read_ne::<u8>()? == 0x47 {
+                            Endian::Big
+                        } else {
+                            Endian::Little
+                        };
+                        reader.seek(std::io::SeekFrom::Start(4))?;
+                        let hashcode: Hashcode = reader.read_type(endian)?;
+                        self.path_cache
+                            .insert(hashcode, path.to_string_lossy().to_string());
+                    }
+                    Err(e) => println!("{:?}", e),
+                }
+            }
+
+            info!("Indexed {} EDBs", self.path_cache.len());
         }
 
         let mut f = File::open(path)?;
         let mut data = vec![];
         f.read_to_end(&mut data)?;
         self.pending_file = Some((data, platform));
+
+        Ok(())
+    }
+
+    pub fn load_into_render_store<R: Read + Seek>(
+        &mut self,
+        platform: Platform,
+        reader: &mut R,
+    ) -> anyhow::Result<()> {
+        let mut edb = EdbFile::new(reader, platform)?;
+        let header = edb.header.clone();
+
+        let mut rs_lock = self.render_store.write();
+        let scripts = UXGeoScript::read_all(&mut edb)?;
+        for s in &scripts {
+            rs_lock.insert_script(header.hashcode, s.clone());
+        }
+
+        let textures = UXGeoTexture::read_all(&mut edb);
+        for (i, t) in entities::EntityListPanel::load_textures(&self.gl, &textures)
+            .into_iter()
+            .enumerate()
+        {
+            rs_lock.insert_texture(header.hashcode, t.hashcode, i, t);
+        }
+
+        let (entities, _skins, _ref_entities) = entities::read_from_file(&mut edb)?;
+        for (i, e) in entities.iter().enumerate() {
+            let mut r = EntityRenderer::new(header.hashcode, platform);
+            if let Ok((_, m)) = &e.data {
+                unsafe {
+                    r.load_mesh(&self.gl, m);
+                }
+            }
+            rs_lock.insert_entity(header.hashcode, e.hashcode, i, r);
+        }
 
         Ok(())
     }
@@ -245,7 +319,7 @@ impl EurochefApp {
         ]
         .contains(&platform)
         {
-            let (entities, skins, ref_entities, _textures) = entities::read_from_file(&mut edb)?;
+            let (entities, skins, ref_entities) = entities::read_from_file(&mut edb)?;
 
             for (i, e) in entities.iter().enumerate() {
                 if e.hashcode.is_local() {
@@ -311,12 +385,14 @@ impl EurochefApp {
         }
 
         let textures = UXGeoTexture::read_all(&mut edb);
-        let mut rs_lock = self.render_store.write();
-        for (i, t) in entities::EntityListPanel::load_textures(&self.gl, &textures)
-            .into_iter()
-            .enumerate()
         {
-            rs_lock.insert_texture(header.hashcode, t.hashcode, i, t);
+            let mut rs_lock = self.render_store.write();
+            for (i, t) in entities::EntityListPanel::load_textures(&self.gl, &textures)
+                .into_iter()
+                .enumerate()
+            {
+                rs_lock.insert_texture(header.hashcode, t.hashcode, i, t);
+            }
         }
 
         if textures.len() == 1 && textures[0].hashcode == 0x06000000 {
@@ -327,6 +403,16 @@ impl EurochefApp {
 
         edb.external_references.sort_by(|(a, _), (b, _)| a.cmp(b));
         self.fileinfo.as_mut().unwrap().external_references = edb.external_references.clone();
+
+        for (ref_file, _) in &edb.external_references {
+            if !self.render_store.read().is_file_loaded(*ref_file) {
+                if let Some(path) = self.path_cache.get(ref_file) {
+                    let file = File::open(&path)?;
+                    let mut reader = BufReader::new(file);
+                    self.load_into_render_store(platform, &mut reader)?;
+                }
+            }
+        }
 
         self.state = AppState::Ready;
 
@@ -656,7 +742,9 @@ impl eframe::App for EurochefApp {
             ui.separator();
 
             match current_panel {
-                Panel::FileInfo => fileinfo.as_mut().map(|s| s.show(ui, &self.hashcodes)),
+                Panel::FileInfo => fileinfo
+                    .as_mut()
+                    .map(|s| s.show(ui, &self.hashcodes, &self.render_store.read())),
                 Panel::Textures => textures.as_mut().map(|s| s.show(ui)),
                 Panel::Entities => entities.as_mut().map(|s| s.show(ctx, ui)),
                 Panel::Spreadsheets => spreadsheetlist.as_mut().map(|s| s.show(ui)),

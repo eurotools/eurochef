@@ -1,9 +1,12 @@
+use egui::RichText;
 use egui_extras::Column;
 use eurochef_shared::maps::format_hashcode;
 use font_awesome as fa;
 
 use eurochef_edb::{header::EXGeoHeader, Hashcode};
 use nohash_hasher::IntMap;
+
+use crate::render::RenderStore;
 
 pub struct FileInfoPanel {
     pub header: EXGeoHeader,
@@ -18,7 +21,12 @@ impl FileInfoPanel {
         }
     }
 
-    pub fn show(&mut self, ui: &mut egui::Ui, hashcodes: &IntMap<Hashcode, String>) {
+    pub fn show(
+        &mut self,
+        ui: &mut egui::Ui,
+        hashcodes: &IntMap<Hashcode, String>,
+        render_store: &RenderStore,
+    ) {
         macro_rules! quick_info {
             ($label:expr, $value:expr) => {
                 ui.horizontal(|ui| {
@@ -99,7 +107,8 @@ impl FileInfoPanel {
                 .resizable(false)
                 .cell_layout(egui::Layout::left_to_right(egui::Align::Center))
                 .column(Column::auto())
-                .column(Column::remainder())
+                .column(Column::auto())
+                .column(Column::initial(16.0).at_most(32.0))
                 .min_scrolled_height(0.0);
 
             table
@@ -109,6 +118,9 @@ impl FileInfoPanel {
                     });
                     header.col(|ui| {
                         ui.strong("Hashcode");
+                    });
+                    header.col(|ui| {
+                        ui.strong("Loaded");
                     });
                 })
                 .body(|body| {
@@ -124,6 +136,34 @@ impl FileInfoPanel {
 
                             row.col(|ui| {
                                 ui.label(format_hashcode(hashcodes, *object_hashcode));
+                            });
+
+                            row.col(|ui| {
+                                if format_hashcode(hashcodes, *object_hashcode)
+                                    .starts_with("HT_Animation")
+                                {
+                                    ui.label(
+                                        RichText::new(font_awesome::MINUS)
+                                            .color(egui::Color32::GOLD),
+                                    );
+                                } else {
+                                    let loaded = render_store
+                                        .is_object_loaded(*file_hashcode, *object_hashcode);
+                                    ui.label(
+                                        RichText::new(if loaded {
+                                            font_awesome::CHECK
+                                        } else {
+                                            '\u{f00d}'
+                                        })
+                                        .color(
+                                            if loaded {
+                                                egui::Color32::GREEN
+                                            } else {
+                                                egui::Color32::RED
+                                            },
+                                        ),
+                                    );
+                                }
                             });
                         },
                     )

@@ -1121,6 +1121,7 @@ dependencies = [
  "fxhash",
  "genmesh",
  "glam",
+ "glob",
  "glow",
  "instant",
  "native-dialog",

@@ -546,7 +546,6 @@ impl MapFrame {
                                     .unwrap_or(30.0);
 
                                 render_script(
-                                    current_file,
                                     t.position,
                                     rotation,
                                     t.scale,

@@ -717,7 +717,6 @@ pub fn read_from_file(
     Vec<IdentifiableResult<(EXGeoEntity, ProcessedEntityMesh)>>,
     Vec<IdentifiableResult<EXGeoBaseAnimSkin>>,
     Vec<IdentifiableResult<(EXGeoEntity, ProcessedEntityMesh)>>,
-    Vec<IdentifiableResult<UXGeoTexture>>,
 )> {
     let header = edb.header.clone();
 
@@ -754,9 +753,7 @@ pub fn read_from_file(
         ));
     }
 
-    let textures = UXGeoTexture::read_all(edb);
-
-    Ok((entities, skins, refents, textures))
+    Ok((entities, skins, refents))
 }
 
 fn read_entity_identifiable(

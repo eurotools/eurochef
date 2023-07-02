@@ -1,6 +1,6 @@
 use binrw::{binread, BinRead, BinReaderExt, BinResult, VecArgs};
 use serde::Serialize;
-use tracing::warn;
+use tracing::debug;
 
 use crate::common::{EXRelPtr, EXVector, EXVector3};
 
@@ -159,7 +159,7 @@ impl BinRead for EXGeoAnimScriptControllerHeader {
 
         for i in 5..32 {
             if (ctrl_mask & (1 << i)) != 0 {
-                warn!("Unknown anim script controller channel 0x{:x}", 1 << i);
+                debug!("Unknown anim script controller channel 0x{:x}", 1 << i);
             }
         }
 
