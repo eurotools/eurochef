@@ -16,7 +16,7 @@ use nohash_hasher::IntMap;
 
 use crate::{
     map_frame::QueuedEntityRender,
-    render::{tweeny::ease_in_out_sine, viewer::BaseViewer, RenderStore},
+    render::{script::render_script, tweeny::ease_in_out_sine, viewer::BaseViewer, RenderStore},
 };
 
 pub struct ScriptListPanel {
@@ -181,111 +181,9 @@ impl ScriptListPanel {
         let time: f64 = ui.input(|t| t.time);
         let render_store = self.render_store.clone();
 
-        let current_frame_commands = if let Some(c) = self.current_script() {
-            let current_frame = (self.current_time * c.framerate).floor() as isize;
-            c.commands
-                .iter()
-                .filter(|c| c.range().contains(&current_frame))
-                .cloned()
-                .collect()
-        } else {
-            vec![]
-        };
-
-        let mut transforms = vec![];
-        for cf in &current_frame_commands {
-            let script = self.current_script().unwrap();
-            let (pos, rot, scale) = if let Some(c) =
-                script.controllers.get(cf.controller_index as usize)
-            {
-                macro_rules! get_interp_pos {
-                    ($v:expr, $default:expr) => {{
-                        let mut previous_frame = -1;
-                        let mut next_frame = -1;
-                        let current_frame = self.current_time * script.framerate;
-
-                        for (i, (start, _)) in $v.iter().enumerate() {
-                            if *start > current_frame {
-                                break;
-                            }
-
-                            previous_frame = i as isize;
-                        }
-
-                        if previous_frame != -1 {
-                            next_frame = previous_frame + 1;
-                        }
-
-                        if next_frame == -1 || next_frame > $v.len() as isize {
-                            next_frame = 0;
-                        }
-
-                        let (start, start_value) =
-                            if let Some((k, fvalue)) = $v.get(previous_frame as usize) {
-                                (*k, *fvalue)
-                            } else {
-                                (cf.start as f32, $default)
-                            };
-
-                        let (end, end_value) =
-                            if let Some((k, fvalue)) = $v.get(next_frame as usize) {
-                                (*k, *fvalue)
-                            } else {
-                                (start, start_value)
-                            };
-
-                        (start, start_value, end, end_value)
-                    }};
-                }
-
-                let rot = {
-                    let (start, start_rot, end, end_rot) =
-                        get_interp_pos!(c.channels.quat_0, Quat::IDENTITY.to_array());
-
-                    let length = end - start;
-                    let offset = ((self.current_time * script.framerate) - start) / length;
-                    if start == end {
-                        Quat::from_array(start_rot)
-                    } else {
-                        Quat::from_array(start_rot).lerp(Quat::from_array(end_rot), offset)
-                    }
-                };
-
-                let pos = {
-                    let (start, start_pos, end, end_pos) =
-                        get_interp_pos!(c.channels.vector_0, Vec3::ZERO.to_array());
-
-                    let length = end - start;
-                    let offset = ((self.current_time * script.framerate) - start) / length;
-                    if start == end {
-                        start_pos.into()
-                    } else {
-                        Vec3::from(start_pos).lerp(Vec3::from(end_pos), ease_in_out_sine(offset))
-                    }
-                };
-
-                let scale = {
-                    let (start, start_scale, end, end_scale) =
-                        get_interp_pos!(c.channels.vector_1, Vec3::ONE.to_array());
-
-                    let length = end - start;
-                    let offset = ((self.current_time * script.framerate) - start) / length;
-                    if start == end {
-                        start_scale.into()
-                    } else {
-                        Vec3::from(start_scale).lerp(Vec3::from(end_scale), offset)
-                    }
-                };
-
-                (pos, rot, scale)
-            } else {
-                (Vec3::ZERO, Quat::IDENTITY, Vec3::ONE)
-            };
-
-            transforms.push((pos, rot, scale));
-        }
-
         let current_file = self.file;
+        let current_script = self.selected_script;
+        let current_time = self.current_time;
         self.viewer.lock().update(ui, &response);
         let viewer = self.viewer.clone();
         let cb = egui_glow::CallbackFn::new(move |info, painter| unsafe {
@@ -294,20 +192,18 @@ impl ScriptListPanel {
             let render_context = v.render_context();
 
             let mut render_queue: Vec<QueuedEntityRender> = vec![];
-            for (c, transform) in current_frame_commands.iter().zip(&transforms) {
-                match c.data {
-                    UXGeoScriptCommandData::Entity { hashcode, file } => {
-                        render_queue.push(QueuedEntityRender {
-                            entity: (if file == u32::MAX { current_file } else { file }, hashcode),
-                            entity_alt: None,
-                            position: transform.0,
-                            rotation: transform.1,
-                            scale: transform.2,
-                        })
-                    }
-                    _ => {}
-                }
-            }
+
+            render_script(
+                current_file,
+                Vec3::ZERO,
+                Quat::IDENTITY,
+                Vec3::ONE,
+                current_file,
+                current_script,
+                current_time,
+                &render_store.read(),
+                |q| render_queue.push(q),
+            );
 
             for r in render_queue.iter() {
                 if let Some(e) = render_store.read().get_entity(r.entity.0, r.entity.1) {
