@@ -21,7 +21,7 @@ use crate::{
 
 pub struct ScriptListPanel {
     file: Hashcode,
-    scripts: IntMap<Hashcode, UXGeoScript>,
+    scripts: IntMap<Hashcode, (usize, UXGeoScript)>,
     selected_script: Hashcode,
     viewer: Arc<Mutex<BaseViewer>>,
     hashcodes: Arc<IntMap<Hashcode, String>>,
@@ -46,7 +46,11 @@ impl ScriptListPanel {
         Self {
             file,
             selected_script: scripts.first().map(|s| s.hashcode).unwrap_or(u32::MAX),
-            scripts: scripts.into_iter().map(|s| (s.hashcode, s)).collect(),
+            scripts: scripts
+                .into_iter()
+                .enumerate()
+                .map(|(i, s)| (s.hashcode, (i, s)))
+                .collect(),
             viewer: Arc::new(Mutex::new(BaseViewer::new(gl))),
             render_store,
             hashcodes,
@@ -59,7 +63,7 @@ impl ScriptListPanel {
     }
 
     fn current_script(&self) -> Option<&UXGeoScript> {
-        self.scripts.get(&self.selected_script)
+        self.scripts.get(&self.selected_script).map(|(_, v)| v)
     }
 
     fn thread_count(&self) -> isize {
@@ -94,16 +98,20 @@ impl ScriptListPanel {
                     .id_source("script_scroll_area")
                     .always_show_scroll(true)
                     .show(ui, |ui| {
-                        for (i, hc) in self.scripts.keys().enumerate() {
-                            if ui
-                                .selectable_value(
-                                    &mut self.selected_script,
-                                    *hc,
-                                    format!("{hc:08x} (0x{i:x})"),
-                                )
-                                .clicked()
+                        for i in 0..self.scripts.len() {
+                            if let Some((hc, (_, _))) =
+                                self.scripts.iter().find(|(_, (idx, _))| *idx == i)
                             {
-                                self.current_time = 0.0;
+                                if ui
+                                    .selectable_value(
+                                        &mut self.selected_script,
+                                        *hc,
+                                        format!("{hc:08x} (0x{i:x})"),
+                                    )
+                                    .clicked()
+                                {
+                                    self.current_time = 0.0;
+                                }
                             }
                         }
                     });
