@@ -1,10 +1,10 @@
 use std::{io::Seek, sync::Arc};
 
 use anyhow::anyhow;
-use egui::{Color32, RichText, Widget};
+use egui::{mutex::RwLock, Color32, RichText, Widget};
 use eurochef_edb::{
     anim::EXGeoBaseAnimSkin, binrw::BinReaderExt, edb::EdbFile, entity::EXGeoEntity,
-    versions::Platform,
+    versions::Platform, Hashcode,
 };
 use eurochef_shared::{
     entities::{read_entity, TriStrip, UXVertex},
@@ -20,13 +20,15 @@ use crate::{
     entity_frame::{EntityFrame, RenderableTexture},
     render::{
         self, camera::ArcBallCamera, entity::EntityRenderer, gl_helper, shaders::Shaders,
-        viewer::RenderContext, RenderUniforms,
+        viewer::RenderContext, RenderStore, RenderUniforms,
     },
     strip_ansi_codes,
     textures::cutoff_string,
 };
 
 pub struct EntityListPanel {
+    file: Hashcode,
+    render_store: Arc<RwLock<RenderStore>>,
     gl: Arc<glow::Context>,
     entity_renderer: Option<EntityFrame>,
     entity_label: String,
@@ -40,7 +42,6 @@ pub struct EntityListPanel {
     ref_entities: Vec<IdentifiableResult<(EXGeoEntity, ProcessedEntityMesh)>>,
     framebuffer: (glow::Framebuffer, glow::Texture),
     framebuffer_msaa: (glow::Framebuffer, glow::Texture),
-    textures: Vec<RenderableTexture>,
 
     /// Preview thumbnail width, in pixels
     preview_size: i32,
@@ -71,12 +72,13 @@ impl ProcessedEntityMesh {
 
 impl EntityListPanel {
     pub fn new(
+        file: Hashcode,
+        render_store: Arc<RwLock<RenderStore>>,
         ctx: &egui::Context,
         gl: Arc<glow::Context>,
         entities: Vec<IdentifiableResult<(EXGeoEntity, ProcessedEntityMesh)>>,
         skins: Vec<IdentifiableResult<EXGeoBaseAnimSkin>>,
         ref_entities: Vec<IdentifiableResult<(EXGeoEntity, ProcessedEntityMesh)>>,
-        textures: &[IdentifiableResult<UXGeoTexture>],
         platform: Platform,
     ) -> Self {
         let mut entity_previews = FnvHashMap::default();
@@ -99,9 +101,10 @@ impl EntityListPanel {
             unsafe { Self::create_preview_framebuffer(&gl, false, preview_size) };
 
         EntityListPanel {
+            file,
+            render_store,
             framebuffer_msaa,
             framebuffer: unsafe { Self::create_preview_framebuffer(&gl, false, preview_size) },
-            textures: Self::load_textures(&gl, textures),
             shaders: Shaders::load_shaders(&gl),
             gl,
             entity_renderer: None,
@@ -341,6 +344,8 @@ impl EntityListPanel {
 
                             if ty != 2 {
                                 self.entity_renderer = Some(EntityFrame::new(
+                                    self.file,
+                                    self.render_store.clone(),
                                     &self.gl,
                                     &[if ty == 0 {
                                         &self
@@ -365,7 +370,6 @@ impl EntityListPanel {
                                             .unwrap()
                                             .1
                                     }],
-                                    &self.textures,
                                     self.platform,
                                 ));
                             } else {
@@ -393,9 +397,10 @@ impl EntityListPanel {
                                 }
 
                                 self.entity_renderer = Some(EntityFrame::new(
+                                    self.file,
+                                    self.render_store.clone(),
                                     &self.gl,
                                     &combined_entities,
-                                    &self.textures,
                                     self.platform,
                                 ));
                             }
@@ -517,7 +522,7 @@ impl EntityListPanel {
                     };
 
                     if meshes.len() == 1 {
-                        let mut er = EntityRenderer::new(&self.gl, self.platform);
+                        let mut er = EntityRenderer::new(self.file, self.platform);
                         er.load_mesh(&self.gl, meshes[0]);
                         er.draw_both(
                             &self.gl,
@@ -526,13 +531,13 @@ impl EntityListPanel {
                             Quat::IDENTITY,
                             Vec3::ONE,
                             0.0, // Thumbnails are static so we don't need time
-                            &self.textures,
+                            &self.render_store.read(),
                         );
                     } else {
                         let renderers: Vec<EntityRenderer> = meshes
                             .iter()
                             .map(|m| {
-                                let mut er = EntityRenderer::new(&self.gl, self.platform);
+                                let mut er = EntityRenderer::new(self.file, self.platform);
                                 er.load_mesh(&self.gl, m);
                                 er
                             })
@@ -546,7 +551,7 @@ impl EntityListPanel {
                                 Quat::IDENTITY,
                                 Vec3::ONE,
                                 0.0,
-                                &self.textures,
+                                &self.render_store.read(),
                             );
                         }
 
@@ -560,7 +565,7 @@ impl EntityListPanel {
                                 Quat::IDENTITY,
                                 Vec3::ONE,
                                 0.0,
-                                &self.textures,
+                                &self.render_store.read(),
                             );
                         }
                     }

@@ -70,8 +70,8 @@ pub struct RenderStore {
     files: IntMap<
         Hashcode,
         (
-            IntMap<Hashcode, EntityRenderer>,
-            IntMap<Hashcode, RenderableTexture>,
+            IntMap<Hashcode, (usize, EntityRenderer)>,
+            IntMap<Hashcode, (usize, RenderableTexture)>,
         ),
     >,
 }
@@ -90,40 +90,55 @@ impl RenderStore {
         }
     }
 
-    pub fn get_entity(
-        &mut self,
-        file: Hashcode,
-        entity_hashcode: Hashcode,
-    ) -> Option<&EntityRenderer> {
+    pub fn get_entity(&self, file: Hashcode, entity_hashcode: Hashcode) -> Option<&EntityRenderer> {
         self.files
             .get(&file)
-            .and_then(|v| v.0.get(&entity_hashcode))
+            .and_then(|v| v.0.get(&entity_hashcode).map(|(_, v)| v))
     }
 
+    pub fn get_entity_by_index(
+        &self,
+        file: Hashcode,
+        index: usize,
+    ) -> Option<(Hashcode, &EntityRenderer)> {
+        self.files.get(&file).and_then(|v| {
+            v.0.iter()
+                .find(|(_, (v, _))| *v == index)
+                .map(|(hc, (_, v))| (*hc, v))
+        })
+    }
+
+    // pub fn iter_entities(&self, file: Hashcode) -> Option<Iter<u32, EntityRenderer>> {
+    //     self.files.get(&file).map(|v| v.0.iter())
+    // }
+
     pub fn get_texture(
-        &mut self,
+        &self,
         file: Hashcode,
         texture_hashcode: Hashcode,
     ) -> Option<&RenderableTexture> {
         self.files
             .get(&file)
-            .and_then(|v| v.1.get(&texture_hashcode))
+            .and_then(|v| v.1.get(&texture_hashcode).map(|(_, v)| v))
     }
 
     pub fn get_texture_by_index(
-        &mut self,
+        &self,
         file: Hashcode,
-        texture_index: usize,
-    ) -> Option<&RenderableTexture> {
-        self.files
-            .get(&file)
-            .and_then(|v| v.1.values().nth(texture_index))
+        index: usize,
+    ) -> Option<(u32, &RenderableTexture)> {
+        self.files.get(&file).and_then(|v| {
+            v.1.iter()
+                .find(|(_, (v, _))| *v == index)
+                .map(|(hc, (_, v))| (*hc, v))
+        })
     }
 
     pub fn insert_entity(
         &mut self,
         file: Hashcode,
         entity_hashcode: Hashcode,
+        index: usize,
         entity: EntityRenderer,
     ) {
         let file_entry = match self.files.entry(file) {
@@ -131,13 +146,14 @@ impl RenderStore {
             std::collections::hash_map::Entry::Vacant(v) => &mut v.insert(Default::default()).0,
         };
 
-        file_entry.insert(entity_hashcode, entity);
+        file_entry.insert(entity_hashcode, (index, entity));
     }
 
     pub fn insert_texture(
         &mut self,
         file: Hashcode,
         texture_hashcode: Hashcode,
+        index: usize,
         texture: RenderableTexture,
     ) {
         let file_entry = match self.files.entry(file) {
@@ -145,6 +161,6 @@ impl RenderStore {
             std::collections::hash_map::Entry::Vacant(v) => &mut v.insert(Default::default()).1,
         };
 
-        file_entry.insert(texture_hashcode, texture);
+        file_entry.insert(texture_hashcode, (index, texture));
     }
 }

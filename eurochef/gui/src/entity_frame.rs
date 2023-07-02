@@ -1,17 +1,18 @@
-use egui::mutex::Mutex;
+use egui::mutex::{Mutex, RwLock};
 use std::sync::Arc;
 
-use eurochef_edb::versions::Platform;
+use eurochef_edb::{versions::Platform, Hashcode};
 use glam::{Quat, Vec2, Vec3};
 use glow::HasContext;
 
 use crate::{
     entities::ProcessedEntityMesh,
-    render::{entity::EntityRenderer, viewer::BaseViewer},
+    render::{entity::EntityRenderer, viewer::BaseViewer, RenderStore},
 };
 
 pub struct EntityFrame {
-    pub textures: Vec<RenderableTexture>,
+    _file: Hashcode,
+    render_store: Arc<RwLock<RenderStore>>,
     pub renderers: Vec<Arc<Mutex<EntityRenderer>>>,
 
     pub viewer: Arc<Mutex<BaseViewer>>,
@@ -32,15 +33,15 @@ pub struct RenderableTexture {
 
 impl EntityFrame {
     pub fn new(
+        file: Hashcode,
+        render_store: Arc<RwLock<RenderStore>>,
         gl: &glow::Context,
         meshes: &[&ProcessedEntityMesh],
-        textures: &[RenderableTexture],
         platform: Platform,
     ) -> Self {
-        assert!(textures.len() != 0);
-
         let mut s = Self {
-            textures: textures.to_vec(),
+            _file: file,
+            render_store,
             renderers: vec![],
             mesh_center: Vec3::ZERO,
             viewer: Arc::new(Mutex::new(BaseViewer::new(gl))),
@@ -50,12 +51,12 @@ impl EntityFrame {
         unsafe {
             if meshes.len() > 1 {
                 for m in meshes {
-                    let r = Arc::new(Mutex::new(EntityRenderer::new(gl, platform)));
+                    let r = Arc::new(Mutex::new(EntityRenderer::new(file, platform)));
                     r.lock().load_mesh(gl, m);
                     s.renderers.push(r);
                 }
             } else {
-                let r = Arc::new(Mutex::new(EntityRenderer::new(gl, platform)));
+                let r = Arc::new(Mutex::new(EntityRenderer::new(file, platform)));
                 s.mesh_center = r.lock().load_mesh(gl, meshes[0]);
                 s.renderers.push(r);
             }
@@ -92,8 +93,7 @@ impl EntityFrame {
         let viewer = self.viewer.clone();
         viewer.lock().update(ui, &response);
 
-        // TODO(cohae): How do we get out of this situation
-        let textures = self.textures.clone(); // FIXME: UUUUGH.
+        let render_store = self.render_store.clone();
 
         let renderers = self.renderers.clone();
         let cb = egui_glow::CallbackFn::new(move |info, painter| unsafe {
@@ -110,7 +110,7 @@ impl EntityFrame {
                     Quat::IDENTITY,
                     Vec3::ONE,
                     time,
-                    &textures,
+                    &render_store.read(),
                 );
             }
 
@@ -125,7 +125,7 @@ impl EntityFrame {
                     Quat::IDENTITY,
                     Vec3::ONE,
                     time,
-                    &textures,
+                    &render_store.read(),
                 );
             }
         });

@@ -7,7 +7,7 @@ use std::{
 
 use crossbeam::atomic::AtomicCell;
 use eframe::CreationContext;
-use egui::{epaint::ahash::HashMapExt, Color32, FontData, FontDefinitions, NumExt};
+use egui::{epaint::ahash::HashMapExt, mutex::RwLock, Color32, FontData, FontDefinitions, NumExt};
 use eurochef_edb::{edb::EdbFile, versions::Platform};
 use eurochef_shared::{
     hashcodes::{parse_hashcodes, HashcodeUtils},
@@ -18,10 +18,12 @@ use eurochef_shared::{
 use nohash_hasher::IntMap;
 
 use crate::{
-    entities::{self, EntityListPanel},
+    entities::{self},
     fileinfo,
     filesystem::path::DissectedFilelistPath,
-    maps, scripts, spreadsheet, textures,
+    maps,
+    render::{entity::EntityRenderer, RenderStore},
+    scripts, spreadsheet, textures,
 };
 
 /// Basic app tracking state
@@ -63,6 +65,7 @@ pub struct EurochefApp {
     about_window: bool,
 
     hashcodes: Arc<IntMap<u32, String>>,
+    render_store: Arc<RwLock<RenderStore>>,
     game: String,
 }
 
@@ -123,6 +126,7 @@ impl EurochefApp {
             selected_platform: Platform::Ps2,
             ps2_warning: false,
             about_window: false,
+            render_store: Arc::new(RwLock::new(RenderStore::new())),
             hashcodes: Arc::new(hashcodes),
             game: String::new(),
         };
@@ -213,7 +217,9 @@ impl EurochefApp {
             self.ps2_warning = true;
         }
 
+        self.render_store.write().purge(true);
         let mut edb = EdbFile::new(reader, platform)?;
+        let header = edb.header.clone();
 
         self.current_panel = Panel::FileInfo;
         self.spreadsheetlist = None;
@@ -239,7 +245,7 @@ impl EurochefApp {
         ]
         .contains(&platform)
         {
-            let (entities, skins, ref_entities, textures) = entities::read_from_file(&mut edb)?;
+            let (entities, skins, ref_entities, _textures) = entities::read_from_file(&mut edb)?;
 
             for (i, e) in entities.iter().enumerate() {
                 if e.hashcode.is_local() {
@@ -250,13 +256,23 @@ impl EurochefApp {
             let scripts = UXGeoScript::read_all(&mut edb)?;
             if scripts.len() > 0 {
                 self.scripts = Some(scripts::ScriptListPanel::new(
+                    header.hashcode,
                     &self.gl,
                     scripts,
-                    &EntityListPanel::load_textures(&self.gl, &textures),
-                    &entities,
+                    self.render_store.clone(),
                     self.hashcodes.clone(),
-                    platform,
                 ));
+            }
+
+            let mut rs_lock = self.render_store.write();
+            for (i, e) in entities.iter().enumerate() {
+                let mut r = EntityRenderer::new(header.hashcode, platform);
+                if let Ok((_, m)) = &e.data {
+                    unsafe {
+                        r.load_mesh(&self.gl, m);
+                    }
+                }
+                rs_lock.insert_entity(header.hashcode, e.hashcode, i, r);
             }
 
             if entities.len() + skins.len() + ref_entities.len() > 0 {
@@ -264,12 +280,11 @@ impl EurochefApp {
                     let map = maps::read_from_file(&mut edb);
 
                     self.maps = Some(maps::MapViewerPanel::new(
-                        ctx,
+                        header.hashcode,
                         self.gl.clone(),
                         map,
-                        entities.clone(),
                         ref_entities.clone(),
-                        &textures,
+                        self.render_store.clone(),
                         platform,
                         self.hashcodes.clone(),
                         &self.game,
@@ -277,12 +292,13 @@ impl EurochefApp {
                 }
 
                 self.entities = Some(entities::EntityListPanel::new(
+                    header.hashcode,
+                    self.render_store.clone(),
                     ctx,
                     self.gl.clone(),
                     entities,
                     skins,
                     ref_entities,
-                    &textures,
                     platform,
                 ));
             }
@@ -291,6 +307,14 @@ impl EurochefApp {
         }
 
         let textures = UXGeoTexture::read_all(&mut edb);
+        let mut rs_lock = self.render_store.write();
+        for (i, t) in entities::EntityListPanel::load_textures(&self.gl, &textures)
+            .into_iter()
+            .enumerate()
+        {
+            rs_lock.insert_texture(header.hashcode, t.hashcode, i, t);
+        }
+
         if textures.len() == 1 && textures[0].hashcode == 0x06000000 {
             self.textures = None;
         } else {

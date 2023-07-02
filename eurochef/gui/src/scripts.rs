@@ -1,12 +1,14 @@
 use std::sync::Arc;
 
-use egui::{mutex::Mutex, RichText};
-use eurochef_edb::{entity::EXGeoEntity, versions::Platform, Hashcode};
+use egui::{
+    mutex::{Mutex, RwLock},
+    RichText,
+};
+use eurochef_edb::Hashcode;
 use eurochef_shared::{
     hashcodes::HashcodeUtils,
     maps::format_hashcode,
     script::{UXGeoScript, UXGeoScriptCommandData},
-    IdentifiableResult,
 };
 use glam::{Quat, Vec3};
 use glow::HasContext;
@@ -14,19 +16,17 @@ use instant::Instant;
 use nohash_hasher::IntMap;
 
 use crate::{
-    entities::ProcessedEntityMesh,
-    entity_frame::RenderableTexture,
     map_frame::QueuedEntityRender,
-    render::{entity::EntityRenderer, tweeny::ease_in_out_sine, viewer::BaseViewer},
+    render::{tweeny::ease_in_out_sine, viewer::BaseViewer, RenderStore},
 };
 
 pub struct ScriptListPanel {
+    file: Hashcode,
     scripts: IntMap<Hashcode, UXGeoScript>,
     selected_script: Hashcode,
     viewer: Arc<Mutex<BaseViewer>>,
-    textures: Vec<RenderableTexture>,
-    entities: Vec<(Hashcode, Arc<Mutex<EntityRenderer>>)>,
     hashcodes: Arc<IntMap<Hashcode, String>>,
+    render_store: Arc<RwLock<RenderStore>>,
 
     current_time: f32,
     playback_speed: f32,
@@ -38,49 +38,25 @@ pub struct ScriptListPanel {
 
 impl ScriptListPanel {
     pub fn new(
+        file: Hashcode,
         gl: &glow::Context,
         scripts: Vec<UXGeoScript>,
-        textures: &[RenderableTexture],
-        entities: &Vec<IdentifiableResult<(EXGeoEntity, ProcessedEntityMesh)>>,
+        render_store: Arc<RwLock<RenderStore>>,
         hashcodes: Arc<IntMap<Hashcode, String>>,
-        platform: Platform,
     ) -> Self {
-        let mut s = Self {
+        Self {
+            file,
             selected_script: scripts.first().map(|s| s.hashcode).unwrap_or(u32::MAX),
             scripts: scripts.into_iter().map(|s| (s.hashcode, s)).collect(),
             viewer: Arc::new(Mutex::new(BaseViewer::new(gl))),
-            textures: textures.to_vec(),
+            render_store,
             hashcodes,
-            entities: vec![],
             current_time: 0.0,
             playback_speed: 1.0,
             is_playing: false,
             loop_script: false,
             last_frame: Instant::now(),
-        };
-
-        unsafe {
-            for (hashcode, (e, m)) in entities
-                .iter()
-                .filter(|v| v.data.is_ok())
-                .map(|v| (v.hashcode, v.data.as_ref().unwrap()))
-            {
-                let r = Arc::new(Mutex::new(EntityRenderer::new(&gl, platform)));
-
-                match e {
-                    EXGeoEntity::Mesh(_) | EXGeoEntity::Split(_) => {
-                        r.lock().load_mesh(&gl, m);
-                    }
-                    _ => {
-                        warn!("Creating dud EntityRenderer for EXGeoEntity::0x{:x} with hashcode {:08x}", e.type_code(), hashcode);
-                    }
-                };
-
-                s.entities.push((hashcode, r));
-            }
         }
-
-        s
     }
 
     fn current_script(&self) -> Option<&UXGeoScript> {
@@ -196,8 +172,7 @@ impl ScriptListPanel {
         );
 
         let time: f64 = ui.input(|t| t.time);
-        let textures = self.textures.clone(); // FIXME: UUUUGH.
-        let entities = self.entities.clone();
+        let render_store = self.render_store.clone();
 
         let current_frame_commands = if let Some(c) = self.current_script() {
             let current_frame = (self.current_time * c.framerate).floor() as isize;
@@ -303,6 +278,7 @@ impl ScriptListPanel {
             transforms.push((pos, rot, scale));
         }
 
+        let current_file = self.file;
         self.viewer.lock().update(ui, &response);
         let viewer = self.viewer.clone();
         let cb = egui_glow::CallbackFn::new(move |info, painter| unsafe {
@@ -318,9 +294,13 @@ impl ScriptListPanel {
                             continue;
                         }
 
-                        if let Some((_, renderer)) = entities.get(hashcode.index() as usize) {
+                        if let Some((hashcode, _)) = render_store
+                            .read()
+                            .get_entity_by_index(current_file, hashcode.index() as usize)
+                        {
                             render_queue.push(QueuedEntityRender {
-                                entity: renderer.clone(),
+                                entity: (current_file, hashcode),
+                                entity_alt: None,
                                 position: transform.0,
                                 rotation: transform.1,
                                 scale: transform.2,
@@ -332,29 +312,33 @@ impl ScriptListPanel {
             }
 
             for r in render_queue.iter() {
-                r.entity.lock().draw_opaque(
-                    painter.gl(),
-                    &render_context,
-                    r.position,
-                    r.rotation,
-                    r.scale,
-                    time,
-                    &textures,
-                )
+                if let Some(e) = render_store.read().get_entity(r.entity.0, r.entity.1) {
+                    e.draw_opaque(
+                        painter.gl(),
+                        &render_context,
+                        r.position,
+                        r.rotation,
+                        r.scale,
+                        time,
+                        &render_store.read(),
+                    )
+                }
             }
 
             painter.gl().depth_mask(false);
 
             for r in render_queue.iter() {
-                r.entity.lock().draw_transparent(
-                    painter.gl(),
-                    &render_context,
-                    r.position,
-                    r.rotation,
-                    r.scale,
-                    time,
-                    &textures,
-                )
+                if let Some(e) = render_store.read().get_entity(r.entity.0, r.entity.1) {
+                    e.draw_transparent(
+                        painter.gl(),
+                        &render_context,
+                        r.position,
+                        r.rotation,
+                        r.scale,
+                        time,
+                        &render_store.read(),
+                    )
+                }
             }
         });
 

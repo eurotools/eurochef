@@ -2,31 +2,27 @@ use std::{io::Seek, sync::Arc};
 
 use anyhow::Context;
 
+use egui::mutex::{Mutex, RwLock};
 use eurochef_edb::{
     binrw::BinReaderExt,
     edb::EdbFile,
     entity::{EXGeoEntity, EXGeoMapZoneEntity},
     map::{EXGeoBaseDatum, EXGeoMap, EXGeoPlacement, EXGeoTriggerEngineOptions},
     versions::Platform,
+    Hashcode,
 };
-use eurochef_shared::{textures::UXGeoTexture, IdentifiableResult};
+use eurochef_shared::IdentifiableResult;
 use glam::Vec3;
 use nohash_hasher::IntMap;
 
 use crate::{
-    entities::{EntityListPanel, ProcessedEntityMesh},
-    entity_frame::RenderableTexture,
+    entities::ProcessedEntityMesh,
     map_frame::MapFrame,
-    render::viewer::CameraType,
+    render::{entity::EntityRenderer, viewer::CameraType, RenderStore},
 };
 
 pub struct MapViewerPanel {
-    _gl: Arc<glow::Context>,
-
     maps: Vec<ProcessedMap>,
-    _entities: Vec<IdentifiableResult<(EXGeoEntity, ProcessedEntityMesh)>>,
-    _ref_entities: Vec<IdentifiableResult<(EXGeoEntity, ProcessedEntityMesh)>>,
-    _textures: Vec<RenderableTexture>,
 
     // TODO(cohae): Replace so we can do funky stuff
     frame: MapFrame,
@@ -65,47 +61,46 @@ pub struct ProcessedTrigger {
 
 impl MapViewerPanel {
     pub fn new(
-        _ctx: &egui::Context,
+        file: Hashcode,
         gl: Arc<glow::Context>,
         maps: Vec<ProcessedMap>,
-        entities: Vec<IdentifiableResult<(EXGeoEntity, ProcessedEntityMesh)>>,
         ref_entities: Vec<IdentifiableResult<(EXGeoEntity, ProcessedEntityMesh)>>,
-        textures: &[IdentifiableResult<UXGeoTexture>],
+        render_store: Arc<RwLock<RenderStore>>,
         platform: Platform,
         hashcodes: Arc<IntMap<u32, String>>,
         game: &str,
     ) -> Self {
-        let textures = EntityListPanel::load_textures(&gl, textures);
         MapViewerPanel {
-            frame: Self::load_map_meshes(
-                gl.clone(),
-                &maps,
-                &ref_entities,
-                &entities,
-                &textures,
-                platform,
-                hashcodes.clone(),
-                game,
-            ),
-            _textures: textures,
-            _gl: gl,
+            frame: {
+                let ef = MapFrame::new(
+                    file,
+                    Self::load_map_meshes(file, &gl, &maps, &ref_entities, platform),
+                    gl,
+                    render_store,
+                    hashcodes,
+                    game,
+                );
+
+                {
+                    let mut e = ef.viewer.lock();
+                    e.selected_camera = CameraType::Fly;
+                    e.show_grid = false;
+                }
+
+                ef
+            },
             maps,
-            _entities: entities,
-            _ref_entities: ref_entities,
         }
     }
 
     fn load_map_meshes(
-        gl: Arc<glow::Context>,
+        file: Hashcode,
+        gl: &glow::Context,
         maps: &[ProcessedMap],
         ref_entities: &Vec<IdentifiableResult<(EXGeoEntity, ProcessedEntityMesh)>>,
-        entities: &Vec<IdentifiableResult<(EXGeoEntity, ProcessedEntityMesh)>>,
-        textures: &[RenderableTexture],
         platform: Platform,
-        hashcodes: Arc<IntMap<u32, String>>,
-        game: &str,
-    ) -> MapFrame {
-        let mut map_entities = vec![];
+    ) -> Vec<(u32, Arc<Mutex<EntityRenderer>>)> {
+        let mut ref_renderers = vec![];
 
         // FIXME(cohae): Map picking is a bit dirty at the moment
         for map in maps.iter() {
@@ -115,7 +110,11 @@ impl MapViewerPanel {
                     .find(|ir| ir.hashcode == v.entity_refptr)
                     .map(|v| v.data.as_ref())
                 {
-                    map_entities.push((map.hashcode, e));
+                    let r = Arc::new(Mutex::new(EntityRenderer::new(file, platform)));
+                    unsafe {
+                        r.lock().load_mesh(gl, e);
+                    }
+                    ref_renderers.push((map.hashcode, r));
                 } else {
                     error!(
                         "Couldn't find ref entity #{} for mapzone entity!",
@@ -125,23 +124,7 @@ impl MapViewerPanel {
             }
         }
 
-        let ef = MapFrame::new(
-            gl,
-            &map_entities,
-            textures,
-            entities,
-            platform,
-            hashcodes,
-            game,
-        );
-
-        {
-            let mut e = ef.viewer.lock();
-            e.selected_camera = CameraType::Fly;
-            e.show_grid = false;
-        }
-
-        ef
+        ref_renderers
     }
 
     pub fn show(&mut self, context: &egui::Context, ui: &mut egui::Ui) -> anyhow::Result<()> {

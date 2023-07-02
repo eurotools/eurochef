@@ -1,29 +1,33 @@
-use eurochef_edb::versions::Platform;
+use eurochef_edb::{versions::Platform, Hashcode};
 use eurochef_shared::entities::{TriStrip, UXVertex};
 use glam::{Mat4, Quat, Vec2, Vec3};
 use glow::HasContext;
 
-use crate::{entities::ProcessedEntityMesh, entity_frame::RenderableTexture};
+use crate::entities::ProcessedEntityMesh;
 
 use super::{
     blend::{set_blending_mode, BlendMode},
     viewer::RenderContext,
+    RenderStore,
 };
 
+#[derive(Clone)]
 pub struct EntityRenderer {
     mesh: Option<(usize, glow::VertexArray, glow::Buffer, Vec<TriStrip>)>,
     platform: Platform,
     flags: u32,
+    pub file_hashcode: Hashcode,
     pub vertex_lighting: bool,
 }
 
 impl EntityRenderer {
-    pub fn new(_gl: &glow::Context, platform: Platform) -> Self {
+    pub fn new(file_hashcode: Hashcode, platform: Platform) -> Self {
         Self {
             mesh: None,
             platform,
             flags: 0,
             vertex_lighting: true,
+            file_hashcode,
         }
     }
 
@@ -165,11 +169,11 @@ impl EntityRenderer {
         rotation: Quat,
         scale: Vec3,
         time: f64,
-        textures: &[RenderableTexture],
+        render_store: &RenderStore,
     ) {
-        self.draw_opaque(gl, context, position, rotation, scale, time, textures);
+        self.draw_opaque(gl, context, position, rotation, scale, time, render_store);
         gl.depth_mask(false);
-        self.draw_transparent(gl, context, position, rotation, scale, time, textures);
+        self.draw_transparent(gl, context, position, rotation, scale, time, render_store);
     }
 
     pub unsafe fn draw_opaque(
@@ -180,7 +184,7 @@ impl EntityRenderer {
         rotation: Quat,
         scale: Vec3,
         time: f64,
-        textures: &[RenderableTexture],
+        render_store: &RenderStore,
     ) {
         if let Some((_index_count, vertex_array, index_buffer, strips)) = self.mesh.as_ref() {
             // self.init_draw(
@@ -203,7 +207,7 @@ impl EntityRenderer {
                     self.get_shader(context),
                     t,
                     time,
-                    textures,
+                    render_store,
                     position,
                     rotation,
                     scale,
@@ -221,7 +225,7 @@ impl EntityRenderer {
         rotation: Quat,
         scale: Vec3,
         time: f64,
-        textures: &[RenderableTexture],
+        render_store: &RenderStore,
     ) {
         if let Some((_index_count, vertex_array, index_buffer, strips)) = self.mesh.as_ref() {
             // self.init_draw(
@@ -245,7 +249,15 @@ impl EntityRenderer {
                 .filter(|t| t.transparency != 0 || (t.flags & 0x8) != 0)
             {
                 self.draw_strip(
-                    gl, shader, t, time, textures, position, rotation, scale, context,
+                    gl,
+                    shader,
+                    t,
+                    time,
+                    render_store,
+                    position,
+                    rotation,
+                    scale,
+                    context,
                 );
             }
         }
@@ -257,7 +269,7 @@ impl EntityRenderer {
         shader: glow::Program,
         t: &TriStrip,
         time: f64,
-        textures: &[RenderableTexture],
+        render_store: &RenderStore,
         position: Vec3,
         rotation: Quat,
         scale: Vec3,
@@ -315,9 +327,9 @@ impl EntityRenderer {
         let mut scroll = Vec2::ZERO;
 
         gl.active_texture(glow::TEXTURE0);
-        if (t.texture_index as usize) < textures.len() {
-            let tex = &textures[t.texture_index as usize];
-
+        if let Some((_, tex)) =
+            render_store.get_texture_by_index(self.file_hashcode, t.texture_index as usize)
+        {
             let frametime_scale = tex.frame_count as f32 / tex.frames.len() as f32;
             let frame_time = (1. / tex.framerate as f32) * frametime_scale;
 

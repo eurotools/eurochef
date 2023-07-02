@@ -1,23 +1,19 @@
 use std::{fs::File, io::Cursor, sync::Arc};
 
 use anyhow::Context;
-use egui::{emath, mutex::Mutex, Pos2, Rect, Vec2};
-use eurochef_edb::{
-    entity::{EXGeoBaseEntity, EXGeoEntity},
-    versions::Platform,
+use egui::{
+    emath,
+    mutex::{Mutex, RwLock},
+    Pos2, Rect, Vec2,
 };
-use eurochef_shared::{
-    maps::{TrigDataType, TriggerInformation},
-    IdentifiableResult,
-};
+use eurochef_edb::Hashcode;
+use eurochef_shared::maps::{TrigDataType, TriggerInformation};
 use fxhash::FxHashMap;
 use glam::{Quat, Vec3};
 use glow::HasContext;
 use nohash_hasher::IntMap;
 
 use crate::{
-    entities::ProcessedEntityMesh,
-    entity_frame::RenderableTexture,
     maps::{ProcessedMap, ProcessedTrigger},
     render::{
         billboard::BillboardRenderer,
@@ -28,6 +24,7 @@ use crate::{
         trigger::{CollisionDatumRenderer, LinkLineRenderer, SelectCubeRenderer},
         tweeny::{self, Tweeny3D},
         viewer::BaseViewer,
+        RenderStore,
     },
 };
 
@@ -43,10 +40,11 @@ bitflags::bitflags! {
 }
 
 pub struct MapFrame {
+    file: Hashcode,
     gl: Arc<glow::Context>,
-    pub textures: Vec<RenderableTexture>,
     pub ref_renderers: Vec<(u32, Arc<Mutex<EntityRenderer>>)>,
-    pub placement_renderers: Vec<(u32, EXGeoBaseEntity, Arc<Mutex<EntityRenderer>>)>,
+    render_store: Arc<RwLock<RenderStore>>,
+
     billboard_renderer: Arc<BillboardRenderer>,
     collision_renderer: Arc<CollisionDatumRenderer>,
     default_trigger_icon: glow::Texture,
@@ -91,7 +89,8 @@ fn load_png_frame(data: &[u8]) -> (Vec<u8>, png::OutputInfo) {
 }
 
 pub struct QueuedEntityRender {
-    pub entity: Arc<Mutex<EntityRenderer>>,
+    pub entity: (Hashcode, Hashcode),
+    pub entity_alt: Option<Arc<Mutex<EntityRenderer>>>,
     pub position: Vec3,
     pub rotation: Quat,
     pub scale: Vec3,
@@ -99,16 +98,13 @@ pub struct QueuedEntityRender {
 
 impl MapFrame {
     pub fn new(
+        file: Hashcode,
+        ref_renderers: Vec<(u32, Arc<Mutex<EntityRenderer>>)>,
         gl: Arc<glow::Context>,
-        meshes: &[(u32, &ProcessedEntityMesh)],
-        textures: &[RenderableTexture],
-        entities: &Vec<IdentifiableResult<(EXGeoEntity, ProcessedEntityMesh)>>,
-        platform: Platform,
+        render_store: Arc<RwLock<RenderStore>>,
         hashcodes: Arc<IntMap<u32, String>>,
         game: &str,
     ) -> Self {
-        assert!(textures.len() != 0);
-
         let (default_icon_data, default_icon_info) = load_png_frame(DEFAULT_ICON_DATA);
 
         let mut available_triginfo_paths = vec![];
@@ -174,9 +170,9 @@ impl MapFrame {
         }
 
         let mut s = Self {
-            textures: textures.to_vec(),
-            ref_renderers: vec![],
-            placement_renderers: vec![],
+            file,
+            ref_renderers,
+            render_store,
             viewer: Arc::new(Mutex::new(BaseViewer::new(&gl))),
             sky_ent: String::new(),
             textfield_focused: false,
@@ -209,45 +205,11 @@ impl MapFrame {
             hashcodes,
             trigger_icons: Arc::new(trigger_icons),
             render_filter: RenderFilter::all(),
-            // render_filter: RenderFilter::Triggers
-            //     | RenderFilter::Opaque
-            //     | RenderFilter::Transparent,
         };
 
         if s.reload_trigger_defs().is_err() {
             s.selected_triginfo_path = "None".to_string();
         }
-
-        unsafe {
-            for (i, m) in meshes {
-                let r = Arc::new(Mutex::new(EntityRenderer::new(&gl, platform)));
-                r.lock().load_mesh(&gl, m);
-                s.ref_renderers.push((*i, r));
-            }
-
-            for (hashcode, (e, m)) in entities
-                .iter()
-                .filter(|v| v.data.is_ok())
-                .map(|v| (v.hashcode, v.data.as_ref().unwrap()))
-            {
-                let r = Arc::new(Mutex::new(EntityRenderer::new(&gl, platform)));
-
-                match e {
-                    EXGeoEntity::Mesh(_) | EXGeoEntity::Split(_) => {
-                        r.lock().load_mesh(&gl, m);
-                    }
-                    _ => {
-                        warn!("Creating dud EntityRenderer for EXGeoEntity::0x{:x} with hashcode {:08x}", e.type_code(), hashcode);
-                    }
-                };
-
-                let base = e.base().unwrap().clone();
-                s.placement_renderers.push((hashcode, base, r));
-            }
-        }
-
-        // s.placement_renderers
-        //     .sort_by(|(_, e, _), (_, e2, _)| e.sort_value.cmp(&e2.sort_value));
 
         s
     }
@@ -307,9 +269,9 @@ impl MapFrame {
 
             if let Ok(hashcode) = u32::from_str_radix(&self.sky_ent, 16) {
                 if !self
-                    .placement_renderers
-                    .iter()
-                    .find(|(hc, _, _)| *hc == hashcode)
+                    .render_store
+                    .read()
+                    .get_entity(self.file, hashcode)
                     .is_some()
                 {
                     ui.strong(font_awesome::EXCLAMATION_TRIANGLE.to_string())
@@ -325,19 +287,23 @@ impl MapFrame {
             }
             ui.label("Sky ent");
 
-            if ui
-                .checkbox(&mut self.vertex_lighting, "Vertex Lighting")
-                .changed()
-            {
-                for r in self
-                    .ref_renderers
-                    .iter()
-                    .map(|(_, v)| v)
-                    .chain(self.placement_renderers.iter().map(|r| &r.2))
-                {
-                    r.lock().vertex_lighting = self.vertex_lighting;
-                }
-            }
+            ui.add_enabled(
+                false,
+                egui::Checkbox::new(&mut self.vertex_lighting, "Vertex Lighting"),
+            );
+            // if ui
+            //     .checkbox(&mut self.vertex_lighting, "Vertex Lighting")
+            //     .changed()
+            // {
+            //     for r in self
+            //         .ref_renderers
+            //         .iter()
+            //         .map(|(_, v)| v)
+            //         .chain(self.placement_renderers.iter().map(|r| &r.2))
+            //     {
+            //         r.lock().vertex_lighting = self.vertex_lighting;
+            //     }
+            // }
 
             ui.checkbox(&mut self.show_triggers, "Show Triggers");
 
@@ -470,7 +436,6 @@ impl MapFrame {
         };
 
         // TODO(cohae): How do we get out of this situation
-        let textures = self.textures.clone(); // FIXME: UUUUGH.
         let map = map.clone(); // FIXME(cohae): ugh.
         let sky_ent = u32::from_str_radix(&self.sky_ent, 16).unwrap_or(u32::MAX);
         let default_trigger_icon = self.default_trigger_icon.clone();
@@ -485,8 +450,10 @@ impl MapFrame {
         let trigger_icons = self.trigger_icons.clone();
         let render_filter = self.render_filter;
 
+        let render_store = self.render_store.clone();
+        let current_file = self.file;
+
         let collision_renderer = self.collision_renderer.clone();
-        let placement_renderers = self.placement_renderers.clone();
         let renderers = self.ref_renderers.clone();
         let cb = egui_glow::CallbackFn::new(move |info, painter| unsafe {
             let mut v = viewer.lock();
@@ -494,19 +461,17 @@ impl MapFrame {
             let render_context = v.render_context();
 
             let mut render_queue = Vec::<QueuedEntityRender>::new();
-            if let Some((_, _, sky_renderer)) =
-                placement_renderers.iter().find(|(hc, _, _)| *hc == sky_ent)
-            {
+            if let Some(sky_renderer) = render_store.read().get_entity(current_file, sky_ent) {
                 painter.gl().depth_mask(false);
 
-                sky_renderer.lock().draw_both(
+                sky_renderer.draw_both(
                     painter.gl(),
                     &render_context,
                     camera_pos,
                     Quat::IDENTITY,
                     Vec3::ONE,
                     time,
-                    &textures,
+                    &render_store.read(),
                 );
 
                 painter.gl().depth_mask(true);
@@ -516,7 +481,8 @@ impl MapFrame {
             if render_filter.contains(RenderFilter::MapZone) {
                 for (_, r) in renderers.iter().filter(|(i, _)| *i == map.hashcode) {
                     render_queue.push(QueuedEntityRender {
-                        entity: r.clone(),
+                        entity: (current_file, 0),
+                        entity_alt: Some(r.clone()), // TODO(cohae): Find an alternative for rendering ref-entities with the new system
                         position: Vec3::ZERO,
                         rotation: Quat::IDENTITY,
                         scale: Vec3::ONE,
@@ -526,24 +492,20 @@ impl MapFrame {
 
             if render_filter.contains(RenderFilter::Placements) {
                 for p in &map.placements {
-                    if let Some((_, _, r)) = placement_renderers
-                        .iter()
-                        .find(|(i, _, _)| *i == p.object_ref)
-                    {
-                        let rotation: Quat = Quat::from_euler(
-                            glam::EulerRot::ZXY,
-                            p.rotation[2],
-                            p.rotation[0],
-                            p.rotation[1],
-                        );
+                    let rotation: Quat = Quat::from_euler(
+                        glam::EulerRot::ZXY,
+                        p.rotation[2],
+                        p.rotation[0],
+                        p.rotation[1],
+                    );
 
-                        render_queue.push(QueuedEntityRender {
-                            entity: r.clone(),
-                            position: p.position.into(),
-                            rotation,
-                            scale: p.scale.into(),
-                        })
-                    }
+                    render_queue.push(QueuedEntityRender {
+                        entity: (current_file, p.object_ref),
+                        entity_alt: None,
+                        position: p.position.into(),
+                        rotation,
+                        scale: p.scale.into(),
+                    })
                 }
             }
 
@@ -552,8 +514,9 @@ impl MapFrame {
                     if let Some(v) = t.engine_options.visual_object {
                         // Render if it's a local entity
                         if (v & 0xff000000) == 0x82000000 {
-                            if let Some(renderer) =
-                                &placement_renderers.get((v & 0x0000ffff) as usize)
+                            if let Some((hc, _)) = &render_store
+                                .read()
+                                .get_entity_by_index(current_file, (v & 0x0000ffff) as usize)
                             {
                                 let rotation: Quat = Quat::from_euler(
                                     glam::EulerRot::ZXY,
@@ -563,7 +526,8 @@ impl MapFrame {
                                 );
 
                                 render_queue.push(QueuedEntityRender {
-                                    entity: renderer.2.clone(),
+                                    entity: (current_file, *hc),
+                                    entity_alt: None,
                                     position: t.position,
                                     rotation,
                                     scale: t.scale,
@@ -576,15 +540,29 @@ impl MapFrame {
 
             if render_filter.contains(RenderFilter::Opaque) {
                 for r in render_queue.iter() {
-                    r.entity.lock().draw_opaque(
-                        painter.gl(),
-                        &render_context,
-                        r.position,
-                        r.rotation,
-                        r.scale,
-                        time,
-                        &textures,
-                    )
+                    if let Some(e) = r.entity_alt.as_ref().map(|v| v.lock()) {
+                        e.draw_opaque(
+                            painter.gl(),
+                            &render_context,
+                            r.position,
+                            r.rotation,
+                            r.scale,
+                            time,
+                            &render_store.read(),
+                        );
+                        continue;
+                    }
+                    if let Some(e) = render_store.read().get_entity(r.entity.0, r.entity.1) {
+                        e.draw_opaque(
+                            painter.gl(),
+                            &render_context,
+                            r.position,
+                            r.rotation,
+                            r.scale,
+                            time,
+                            &render_store.read(),
+                        )
+                    }
                 }
             }
 
@@ -592,15 +570,30 @@ impl MapFrame {
 
             if render_filter.contains(RenderFilter::Transparent) {
                 for r in render_queue.iter() {
-                    r.entity.lock().draw_transparent(
-                        painter.gl(),
-                        &render_context,
-                        r.position,
-                        r.rotation,
-                        r.scale,
-                        time,
-                        &textures,
-                    )
+                    if let Some(e) = r.entity_alt.as_ref().map(|v| v.lock()) {
+                        e.draw_transparent(
+                            painter.gl(),
+                            &render_context,
+                            r.position,
+                            r.rotation,
+                            r.scale,
+                            time,
+                            &render_store.read(),
+                        );
+                        continue;
+                    }
+
+                    if let Some(e) = render_store.read().get_entity(r.entity.0, r.entity.1) {
+                        e.draw_transparent(
+                            painter.gl(),
+                            &render_context,
+                            r.position,
+                            r.rotation,
+                            r.scale,
+                            time,
+                            &render_store.read(),
+                        )
+                    }
                 }
             }
 
