@@ -217,9 +217,9 @@ impl EurochefApp {
             self.ps2_warning = true;
         }
 
-        self.render_store.write().purge(true);
         let mut edb = EdbFile::new(reader, platform)?;
         let header = edb.header.clone();
+        self.render_store.write().purge_file(header.hashcode);
 
         self.current_panel = Panel::FileInfo;
         self.spreadsheetlist = None;
@@ -253,7 +253,12 @@ impl EurochefApp {
                 }
             }
 
+            let mut rs_lock = self.render_store.write();
             let scripts = UXGeoScript::read_all(&mut edb)?;
+            for s in &scripts {
+                rs_lock.insert_script(header.hashcode, s.clone());
+            }
+
             if scripts.len() > 0 {
                 self.scripts = Some(scripts::ScriptListPanel::new(
                     header.hashcode,
@@ -264,7 +269,6 @@ impl EurochefApp {
                 ));
             }
 
-            let mut rs_lock = self.render_store.write();
             for (i, e) in entities.iter().enumerate() {
                 let mut r = EntityRenderer::new(header.hashcode, platform);
                 if let Ok((_, m)) = &e.data {

@@ -7,7 +7,10 @@ use egui::{
     Pos2, Rect, Vec2,
 };
 use eurochef_edb::Hashcode;
-use eurochef_shared::maps::{TrigDataType, TriggerInformation};
+use eurochef_shared::{
+    hashcodes::HashcodeUtils,
+    maps::{TrigDataType, TriggerInformation},
+};
 use fxhash::FxHashMap;
 use glam::{Quat, Vec3};
 use glow::HasContext;
@@ -512,27 +515,24 @@ impl MapFrame {
             if render_filter.contains(RenderFilter::Triggers) {
                 for t in map.triggers.iter() {
                     if let Some(v) = t.engine_options.visual_object {
-                        // Render if it's a local entity
-                        if (v & 0xff000000) == 0x82000000 {
-                            if let Some((hc, _)) = &render_store
-                                .read()
-                                .get_entity_by_index(current_file, (v & 0x0000ffff) as usize)
-                            {
-                                let rotation: Quat = Quat::from_euler(
-                                    glam::EulerRot::ZXY,
-                                    t.rotation[2],
-                                    t.rotation[0],
-                                    t.rotation[1],
-                                );
+                        if v.base() == 0x02000000 {
+                            let rotation: Quat = Quat::from_euler(
+                                glam::EulerRot::ZXY,
+                                t.rotation[2],
+                                t.rotation[0],
+                                t.rotation[1],
+                            );
 
-                                render_queue.push(QueuedEntityRender {
-                                    entity: (current_file, *hc),
-                                    entity_alt: None,
-                                    position: t.position,
-                                    rotation,
-                                    scale: t.scale,
-                                })
-                            }
+                            render_queue.push(QueuedEntityRender {
+                                entity: (
+                                    t.engine_options.visual_object_file.unwrap_or(current_file),
+                                    v,
+                                ),
+                                entity_alt: None,
+                                position: t.position,
+                                rotation,
+                                scale: t.scale,
+                            })
                         }
                     }
                 }

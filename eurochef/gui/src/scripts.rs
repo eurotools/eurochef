@@ -6,7 +6,6 @@ use egui::{
 };
 use eurochef_edb::Hashcode;
 use eurochef_shared::{
-    hashcodes::HashcodeUtils,
     maps::format_hashcode,
     script::{UXGeoScript, UXGeoScriptCommandData},
 };
@@ -290,22 +289,13 @@ impl ScriptListPanel {
             for (c, transform) in current_frame_commands.iter().zip(&transforms) {
                 match c.data {
                     UXGeoScriptCommandData::Entity { hashcode, file } => {
-                        if file != u32::MAX {
-                            continue;
-                        }
-
-                        if let Some((hashcode, _)) = render_store
-                            .read()
-                            .get_entity_by_index(current_file, hashcode.index() as usize)
-                        {
-                            render_queue.push(QueuedEntityRender {
-                                entity: (current_file, hashcode),
-                                entity_alt: None,
-                                position: transform.0,
-                                rotation: transform.1,
-                                scale: transform.2,
-                            })
-                        }
+                        render_queue.push(QueuedEntityRender {
+                            entity: (if file == u32::MAX { current_file } else { file }, hashcode),
+                            entity_alt: None,
+                            position: transform.0,
+                            rotation: transform.1,
+                            scale: transform.2,
+                        })
                     }
                     _ => {}
                 }

@@ -1,4 +1,5 @@
 use eurochef_edb::Hashcode;
+use eurochef_shared::{hashcodes::HashcodeUtils, script::UXGeoScript};
 use glam::{Mat4, Quat};
 use glow::HasContext;
 use nohash_hasher::IntMap;
@@ -72,6 +73,7 @@ pub struct RenderStore {
         (
             IntMap<Hashcode, (usize, EntityRenderer)>,
             IntMap<Hashcode, (usize, RenderableTexture)>,
+            Vec<UXGeoScript>,
         ),
     >,
 }
@@ -90,21 +92,50 @@ impl RenderStore {
         }
     }
 
-    pub fn get_entity(&self, file: Hashcode, entity_hashcode: Hashcode) -> Option<&EntityRenderer> {
-        self.files
-            .get(&file)
-            .and_then(|v| v.0.get(&entity_hashcode).map(|(_, v)| v))
+    pub fn purge_file(&mut self, file: Hashcode) {
+        println!("Before purge:");
+        for (v, k) in &self.files {
+            println!(" - File {:08x}", v);
+            println!("    - {} entities", k.0.len());
+            println!("    - {} textures", k.1.len());
+            println!("    - {} scripts", k.2.len());
+        }
+
+        self.files.remove(&file);
     }
 
-    pub fn get_entity_by_index(
-        &self,
-        file: Hashcode,
-        index: usize,
-    ) -> Option<(Hashcode, &EntityRenderer)> {
+    pub fn get_entity(&self, file: Hashcode, entity_hashcode: Hashcode) -> Option<&EntityRenderer> {
         self.files.get(&file).and_then(|v| {
-            v.0.iter()
-                .find(|(_, (v, _))| *v == index)
-                .map(|(hc, (_, v))| (*hc, v))
+            if entity_hashcode.is_local() {
+                v.0.iter()
+                    .find(|(_, (v, _))| *v == entity_hashcode.index() as usize)
+                    .map(|(_, (_, v))| v)
+            } else {
+                v.0.get(&entity_hashcode).map(|(_, v)| v)
+            }
+        })
+    }
+
+    // pub fn get_entity_by_index(
+    //     &self,
+    //     file: Hashcode,
+    //     index: usize,
+    // ) -> Option<(Hashcode, &EntityRenderer)> {
+    //     self.files.get(&file).and_then(|v| {
+    //         v.0.iter()
+    //             .find(|(_, (v, _))| *v == index)
+    //             .map(|(hc, (_, v))| (*hc, v))
+    //     })
+    // }
+
+    pub fn get_script(&self, file: Hashcode, script_hashcode: Hashcode) -> Option<&UXGeoScript> {
+        self.files.get(&file).and_then(|v| {
+            if script_hashcode.is_local() {
+                // v.2.get(script_hashcode.index() as usize)
+                v.2.iter().find(|v| v.hashcode == script_hashcode)
+            } else {
+                v.2.iter().find(|v| v.hashcode == script_hashcode)
+            }
         })
     }
 
@@ -162,5 +193,14 @@ impl RenderStore {
         };
 
         file_entry.insert(texture_hashcode, (index, texture));
+    }
+
+    pub fn insert_script(&mut self, file: Hashcode, script: UXGeoScript) {
+        let file_entry = match self.files.entry(file) {
+            std::collections::hash_map::Entry::Occupied(o) => &mut o.into_mut().2,
+            std::collections::hash_map::Entry::Vacant(v) => &mut v.insert(Default::default()).2,
+        };
+
+        file_entry.push(script);
     }
 }
