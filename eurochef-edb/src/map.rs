@@ -25,7 +25,8 @@ pub struct EXGeoMap {
     #[brw(if(version.eq(&177) || version.eq(&213) || version.eq(&221)))]
     pub unk34: EXGeoHashArray<()>,
     pub portals: EXRelArray<EXGeoPortal>, // EXGeoPortal, 0x38
-    pub skies: EXRelArray<EXGeoSky>,      // 0x40
+    #[br(dbg)]
+    pub skies: EXRelArray<EXGeoSky>, // 0x40
     pub placements: EXRelArray<EXGeoPlacement>, // 0x48
     pub placement_groups: EXRelArray<()>, // EXGeoPlacementGroup, 0x50
     pub trigger_header: EXRelPtr<EXGeoTriggerHeader>, // 0x58

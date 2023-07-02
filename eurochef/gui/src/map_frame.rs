@@ -514,7 +514,7 @@ impl MapFrame {
             }
 
             if render_filter.contains(RenderFilter::Triggers) {
-                for t in map.triggers.iter() {
+                for (i, t) in map.triggers.iter().enumerate() {
                     if let Some(v) = t.engine_options.visual_object {
                         let rotation: Quat = Quat::from_euler(
                             glam::EulerRot::ZXY,
@@ -536,14 +536,14 @@ impl MapFrame {
                             }),
                             0x04000000 => {
                                 // TODO(cohae): Hack for scripts with fucked starting frames
-                                let framerate = render_store
+                                let (framerate, length) = render_store
                                     .read()
                                     .get_script(
                                         t.engine_options.visual_object_file.unwrap_or(current_file),
                                         v,
                                     )
-                                    .map(|s| s.framerate)
-                                    .unwrap_or(30.0);
+                                    .map(|s| (s.framerate, s.length))
+                                    .unwrap_or((30.0, 1));
 
                                 render_script(
                                     t.position,
@@ -551,7 +551,12 @@ impl MapFrame {
                                     t.scale,
                                     t.engine_options.visual_object_file.unwrap_or(current_file),
                                     v,
-                                    1. / framerate,
+                                    // Animate if the trigger is selected
+                                    if Some(i) == selected_trigger {
+                                        time as f32 % (length as f32 / framerate)
+                                    } else {
+                                        1. / framerate
+                                    },
                                     &render_store.read(),
                                     |q| render_queue.push(q),
                                 )
