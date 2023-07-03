@@ -1,3 +1,4 @@
+use anyhow::ensure;
 use enumn::N;
 use image::RgbaImage;
 
@@ -153,6 +154,7 @@ impl TextureDecoder for GxTextureDecoder {
                     }
                 }
 
+                ensure!(output.len() == buffer.len());
                 output.copy_from_slice(&buffer);
             }
             InternalFormat::CMPR => {
@@ -164,29 +166,33 @@ impl TextureDecoder for GxTextureDecoder {
                 let mut buffer = vec![0u8; output.len()];
                 for y in (0..height as usize).step_by(8) {
                     for x in (0..width as usize).step_by(8) {
+                        ensure!((y * width as usize + x) * 4 < buffer.len());
                         decode_dxt_block(
                             &mut buffer[(y * width as usize + x) * 4..],
                             &input[index..],
                             width,
-                        );
+                        )?;
                         index += 8;
+                        ensure!((y * width as usize + x + 4) * 4 < buffer.len());
                         decode_dxt_block(
                             &mut buffer[(y * width as usize + x + 4) * 4..],
                             &input[index..],
                             width,
-                        );
+                        )?;
                         index += 8;
+                        ensure!(((y + 4) * width as usize + x) * 4 < buffer.len());
                         decode_dxt_block(
                             &mut buffer[((y + 4) * width as usize + x) * 4..],
                             &input[index..],
                             width,
-                        );
+                        )?;
                         index += 8;
+                        ensure!(((y + 4) * width as usize + x + 4) * 4 < buffer.len());
                         decode_dxt_block(
                             &mut buffer[((y + 4) * width as usize + x + 4) * 4..],
                             &input[index..],
                             width,
-                        );
+                        )?;
                         index += 8;
                     }
                 }
@@ -291,7 +297,7 @@ impl InternalFormat {
 }
 
 // https://github.com/dolphin-emu/dolphin/blob/5d4e4aa561dc7de12cd54f35a98adcccd85bb5d3/Source/Core/VideoCommon/TextureDecoder_Generic.cpp#L155
-fn decode_dxt_block(dst: &mut [u8], src: &[u8], pitch: u32) {
+fn decode_dxt_block(dst: &mut [u8], src: &[u8], pitch: u32) -> anyhow::Result<()> {
     let c1 = u16::from_be_bytes([src[0], src[1]]);
     let c2 = u16::from_be_bytes([src[2], src[3]]);
     let lines = &src[4..8];
@@ -338,11 +344,18 @@ fn decode_dxt_block(dst: &mut [u8], src: &[u8], pitch: u32) {
         let mut val = lines[y];
         for x in 0..4 {
             let offset = (y as usize * pitch as usize + x) * 4;
-            dst[offset..offset + 4]
-                .copy_from_slice(&colours[((val >> 6) & 3) as usize].to_le_bytes());
-            val <<= 2;
+
+            // ensure!(offset + 4 < dst.len());
+
+            if offset + 4 < dst.len() {
+                dst[offset..offset + 4]
+                    .copy_from_slice(&colours[((val >> 6) & 3) as usize].to_le_bytes());
+                val <<= 2;
+            }
         }
     }
+
+    Ok(())
 }
 
 fn convert_3_to_8(x: u8) -> u8 {
