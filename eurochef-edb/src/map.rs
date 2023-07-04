@@ -25,8 +25,7 @@ pub struct EXGeoMap {
     #[brw(if(version.eq(&177) || version.eq(&213) || version.eq(&221)))]
     pub unk34: EXGeoHashArray<()>,
     pub portals: EXRelArray<EXGeoPortal>, // EXGeoPortal, 0x38
-    #[br(dbg)]
-    pub skies: EXRelArray<EXGeoSky>, // 0x40
+    pub skies: EXRelArray<EXGeoSky>,      // 0x40
     pub placements: EXRelArray<EXGeoPlacement>, // 0x48
     pub placement_groups: EXRelArray<()>, // EXGeoPlacementGroup, 0x50
     pub trigger_header: EXRelPtr<EXGeoTriggerHeader>, // 0x58
@@ -52,8 +51,8 @@ pub struct EXGeoMap {
 #[br(import(version: u32))]
 // TODO(cohae): Struct is not accurate below version 248 yet
 pub struct EXGeoMapZone {
-    pub entity_refptr: u32,       // 0x0
-    pub identifier: EXRelPtr<()>, // 0x4
+    pub entity_refptr: u32,                    // 0x0
+    pub identifier: EXRelPtr<EXGeoIdentifier>, // 0x4
     // TODO(cohae): Inaccurate big time
     pub light_array: EXGeoHashArray<()>, // 0x8
     pub sound_array: EXGeoHashArray<()>, // 0x10
@@ -67,14 +66,35 @@ pub struct EXGeoMapZone {
     pub hash_ref: u32,                   // 0x30
     pub section: u32,                    // 0x34
     pub unk38: [u32; 10],                // 0x38
-    #[br(if(version.ne(&213) && version.ne(&221) && version.ne(&177)))]
+    #[br(if(version.ne(&213) && version.ne(&221) && version.ne(&177) && version.ne(&240)))]
     pub unk60: [u32; 2],
+    #[br(dbg)]
     pub bounds_box: [EXVector3; 2], // 0x60
-    pub unk80: u32,                 // 0x80
+    pub unk80: u32, // 0x80
 
     // Robots has 8 less bytes
-    #[br(if(!version.le(&248) || (version.eq(&213) || version.eq(&221) || version.eq(&177))))]
+    #[br(if(!version.le(&248) || (version.eq(&213) || version.eq(&221) || version.eq(&177) || version.eq(&240))))]
     pub unk84: [u32; 2], // 0x84
+}
+
+#[binrw]
+#[derive(Debug, Serialize, Clone)]
+pub struct EXGeoIdentifier {
+    pub fog_near: f32,
+    pub fog_far: f32,
+    pub fog_min: f32,
+    pub fog_max: f32,
+    pub fog_method: u32,
+    pub ambience: f32,
+    pub camera_distance: f32,
+    pub camera_elevation: f32,
+    pub flags: u32,
+    pub effect_flags: u32,
+    pub rgba_back_ground: [u8; 4],
+    pub rgba_fog: [u8; 4],
+    pub rgba_above_water: [u8; 4],
+    pub rgba_below_water: [u8; 4],
+    pub sky_index: i32,
 }
 
 // TODO(cohae): A lot of these structures might need to be split up into separate files
