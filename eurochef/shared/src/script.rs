@@ -7,10 +7,8 @@ use eurochef_edb::{
     error::Result,
     header::EXGeoAnimScriptHeader,
     script::{EXGeoAnimScript, EXGeoAnimScriptControllerChannels, EXGeoAnimScriptControllerHeader},
-    Hashcode,
+    Hashcode, HashcodeUtils,
 };
-
-use crate::hashcodes::HashcodeUtils;
 
 #[derive(Debug, Clone)]
 pub enum UXGeoScriptCommandData {

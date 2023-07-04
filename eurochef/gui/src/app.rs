@@ -12,12 +12,10 @@ use eurochef_edb::{
     binrw::{BinReaderExt, Endian},
     edb::EdbFile,
     versions::Platform,
-    Hashcode,
+    Hashcode, HashcodeUtils,
 };
 use eurochef_shared::{
-    hashcodes::{parse_hashcodes, HashcodeUtils},
-    script::UXGeoScript,
-    spreadsheets::UXGeoSpreadsheet,
+    hashcodes::parse_hashcodes, script::UXGeoScript, spreadsheets::UXGeoSpreadsheet,
     textures::UXGeoTexture,
 };
 use nohash_hasher::IntMap;

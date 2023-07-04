@@ -17,3 +17,23 @@ pub mod versions;
 pub use binrw;
 
 pub type Hashcode = u32;
+
+pub trait HashcodeUtils {
+    fn is_local(&self) -> bool;
+    fn base(&self) -> u32;
+    fn index(&self) -> u32;
+}
+
+impl HashcodeUtils for Hashcode {
+    fn is_local(&self) -> bool {
+        (*self & 0x80000000) != 0
+    }
+
+    fn base(&self) -> u32 {
+        *self & 0x7fff0000
+    }
+
+    fn index(&self) -> u32 {
+        *self & 0x0000ffff
+    }
+}

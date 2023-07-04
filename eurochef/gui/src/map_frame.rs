@@ -6,11 +6,8 @@ use egui::{
     mutex::{Mutex, RwLock},
     Pos2, Rect, Vec2,
 };
-use eurochef_edb::Hashcode;
-use eurochef_shared::{
-    hashcodes::HashcodeUtils,
-    maps::{TrigDataType, TriggerInformation},
-};
+use eurochef_edb::{Hashcode, HashcodeUtils};
+use eurochef_shared::maps::{TrigDataType, TriggerInformation};
 use fxhash::FxHashMap;
 use glam::{Quat, Vec3};
 use glow::HasContext;

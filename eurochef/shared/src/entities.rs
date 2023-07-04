@@ -4,6 +4,7 @@ use bytemuck::{Pod, Zeroable};
 use eurochef_edb::{
     binrw::{BinReaderExt, Endian},
     common::{EXVector, EXVector2, EXVector3},
+    edb::DatabaseReader,
     entity::EXGeoEntity,
     entity_mesh::EXGeoEntityTriStrip,
     versions::Platform,
@@ -65,6 +66,14 @@ pub fn read_entity<R: Read + Seek>(
             }
         }
         EXGeoEntity::Mesh(mesh) => {
+            if let Some(edb) = data.downcast_to_edbfile() {
+                for v in &mesh.texture_list {
+                    edb.add_reference_internal(
+                        edb.header.texture_list[*v as usize].common.hashcode,
+                    );
+                }
+            }
+
             if platform == Platform::Ps2 {
                 panic!("PS2 support is disabled");
             }

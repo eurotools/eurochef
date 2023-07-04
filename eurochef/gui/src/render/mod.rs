@@ -1,5 +1,5 @@
-use eurochef_edb::Hashcode;
-use eurochef_shared::{hashcodes::HashcodeUtils, script::UXGeoScript};
+use eurochef_edb::{Hashcode, HashcodeUtils};
+use eurochef_shared::script::UXGeoScript;
 use glam::{Mat4, Quat};
 use glow::HasContext;
 use nohash_hasher::IntMap;
@@ -109,18 +109,6 @@ impl RenderStore {
             }
         })
     }
-
-    // pub fn get_entity_by_index(
-    //     &self,
-    //     file: Hashcode,
-    //     index: usize,
-    // ) -> Option<(Hashcode, &EntityRenderer)> {
-    //     self.files.get(&file).and_then(|v| {
-    //         v.0.iter()
-    //             .find(|(_, (v, _))| *v == index)
-    //             .map(|(hc, (_, v))| (*hc, v))
-    //     })
-    // }
 
     pub fn get_script(&self, file: Hashcode, script_hashcode: Hashcode) -> Option<&UXGeoScript> {
         self.files.get(&file).and_then(|v| {

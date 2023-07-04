@@ -72,94 +72,66 @@ impl BinRead for EXGeoAnimScriptControllerHeader {
         }
 
         macro_rules! with_offset {
-            ($offset:expr, $inner:tt) => {
+            ($offset:expr, $inner:tt) => {{
                 let pos_saved = reader.stream_position()?;
                 reader.seek(std::io::SeekFrom::Start($offset))?;
 
-                $inner
+                let res = $inner;
 
                 reader.seek(std::io::SeekFrom::Start(pos_saved))?;
-            };
+
+                res
+            }};
+        }
+
+        macro_rules! read_channel {
+            () => {{
+                let num_keyframes: i16 = reader.read_type(endian)?;
+                let _unk1: u16 = reader.read_type(endian)?;
+                let data_ptr: EXRelPtr = reader.read_type(endian)?;
+                with_offset!(data_ptr.offset_absolute(), {
+                    reader.read_type_args(
+                        endian,
+                        VecArgs {
+                            count: num_keyframes.abs() as usize,
+                            inner: (),
+                        },
+                    )?
+                })
+            }};
         }
 
         if (ctrl_mask & 0x1) != 0 {
-            let num_keyframes: i16 = reader.read_type(endian)?;
-            let _unk1: u16 = reader.read_type(endian)?;
-            let data_ptr: EXRelPtr = reader.read_type(endian)?;
-            with_offset!(data_ptr.offset_absolute(), {
-                channels.time_0 = reader.read_type_args(
-                    endian,
-                    VecArgs {
-                        count: num_keyframes.abs() as usize,
-                        inner: (),
-                    },
-                )?
-            });
+            channels.time_0 = read_channel!();
         }
 
         if (ctrl_mask & 0x2) != 0 {
-            let num_keyframes: i16 = reader.read_type(endian)?;
-            let _unk1: u16 = reader.read_type(endian)?;
-            let data_ptr: EXRelPtr = reader.read_type(endian)?;
-            with_offset!(data_ptr.offset_absolute(), {
-                channels.time_1 = reader.read_type_args(
-                    endian,
-                    VecArgs {
-                        count: num_keyframes.abs() as usize,
-                        inner: (),
-                    },
-                )?;
-            });
+            channels.time_1 = read_channel!();
         }
 
         if (ctrl_mask & 0x4) != 0 {
-            let num_keyframes: i16 = reader.read_type(endian)?;
-            let _unk1: u16 = reader.read_type(endian)?;
-            let data_ptr: EXRelPtr = reader.read_type(endian)?;
-            with_offset!(data_ptr.offset_absolute(), {
-                channels.vector_0 = reader.read_type_args(
-                    endian,
-                    VecArgs {
-                        count: num_keyframes.abs() as usize,
-                        inner: (),
-                    },
-                )?;
-            });
+            channels.vector_0 = read_channel!();
         }
 
         if (ctrl_mask & 0x8) != 0 {
-            let num_keyframes: i16 = reader.read_type(endian)?;
-            let _unk1: u16 = reader.read_type(endian)?;
-            let data_ptr: EXRelPtr = reader.read_type(endian)?;
-            with_offset!(data_ptr.offset_absolute(), {
-                channels.quat_0 = reader.read_type_args(
-                    endian,
-                    VecArgs {
-                        count: num_keyframes.abs() as usize,
-                        inner: (),
-                    },
-                )?;
-            });
+            channels.quat_0 = read_channel!();
         }
 
         if (ctrl_mask & 0x10) != 0 {
-            let num_keyframes: i16 = reader.read_type(endian)?;
-            let _unk1: u16 = reader.read_type(endian)?;
-            let data_ptr: EXRelPtr = reader.read_type(endian)?;
-            with_offset!(data_ptr.offset_absolute(), {
-                channels.vector_1 = reader.read_type_args(
-                    endian,
-                    VecArgs {
-                        count: num_keyframes.abs() as usize,
-                        inner: (),
-                    },
-                )?;
-            });
+            channels.vector_1 = read_channel!();
         }
 
         for i in 5..32 {
             if (ctrl_mask & (1 << i)) != 0 {
-                debug!("Unknown anim script controller channel 0x{:x}", 1 << i);
+                let num_keyframes: i16 = reader.read_type(endian)?;
+                let _unk1: u16 = reader.read_type(endian)?;
+                let data_ptr: EXRelPtr = reader.read_type(endian)?;
+                debug!(
+                    "Unknown anim script controller channel 0x{:x} (addr=0x{:x}, keyframes={})",
+                    1 << i,
+                    data_ptr.offset_absolute(),
+                    num_keyframes
+                );
             }
         }
 

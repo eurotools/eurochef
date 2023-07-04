@@ -7,7 +7,7 @@ use crate::{
     binrw::{BinReaderExt, Endian},
     header::EXGeoHeader,
     versions::Platform,
-    Hashcode,
+    Hashcode, HashcodeUtils,
 };
 use tracing::{info, warn};
 
@@ -48,7 +48,11 @@ pub struct EdbFile<'d> {
     pub platform: Platform,
     pub header: EXGeoHeader,
 
+    /// External hashcodes used by loaded objects
     pub external_references: Vec<(Hashcode, Hashcode)>,
+
+    /// Hashcodes used by loaded objects that are located in this file
+    pub internal_references: Vec<Hashcode>,
 }
 
 impl<'d> EdbFile<'d> {
@@ -98,12 +102,23 @@ impl<'d> EdbFile<'d> {
             platform,
             header,
             external_references: vec![],
+            internal_references: vec![],
         })
     }
 
     pub fn add_reference(&mut self, file: Hashcode, reference: Hashcode) {
-        if !self.external_references.contains(&(file, reference)) {
-            self.external_references.push((file, reference))
+        if file == u32::MAX && reference.is_local() {
+            self.add_reference_internal(reference);
+        } else {
+            if !self.external_references.contains(&(file, reference)) {
+                self.external_references.push((file, reference))
+            }
+        }
+    }
+
+    pub fn add_reference_internal(&mut self, reference: u32) {
+        if !self.internal_references.contains(&reference) {
+            self.internal_references.push(reference);
         }
     }
 }

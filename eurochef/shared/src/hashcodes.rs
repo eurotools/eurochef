@@ -31,23 +31,3 @@ fn parse_hashcode(line: &str) -> Option<(Hashcode, String)> {
 
     Some((parse_int::parse(parts[1]).ok()?, parts[0].to_string()))
 }
-
-pub trait HashcodeUtils {
-    fn is_local(&self) -> bool;
-    fn base(&self) -> u32;
-    fn index(&self) -> u32;
-}
-
-impl HashcodeUtils for Hashcode {
-    fn is_local(&self) -> bool {
-        (*self & 0x80000000) != 0
-    }
-
-    fn base(&self) -> u32 {
-        *self & 0x7fff0000
-    }
-
-    fn index(&self) -> u32 {
-        *self & 0x0000ffff
-    }
-}

@@ -13,6 +13,7 @@ use glam::{Quat, Vec3};
 use glow::HasContext;
 use instant::Instant;
 use nohash_hasher::IntMap;
+use std::fmt::Write;
 
 use crate::{
     map_frame::QueuedEntityRender,
@@ -330,6 +331,7 @@ impl ScriptListPanel {
         );
 
         for c in &script.commands {
+            let mut extra_info = String::new();
             let (color, label, file_hash) = match &c.data {
                 UXGeoScriptCommandData::Entity { hashcode, file } => (
                     Self::COMMAND_COLOR_ENTITY,
@@ -351,16 +353,20 @@ impl ScriptListPanel {
                     format!("Particle {}", format_hashcode(&self.hashcodes, *hashcode)),
                     *file,
                 ),
-                UXGeoScriptCommandData::Event { event_type, .. } => (
-                    Self::COMMAND_COLOR_EVENT,
-                    format!("Event {}", format_hashcode(&self.hashcodes, *event_type)),
-                    u32::MAX,
-                ),
-                UXGeoScriptCommandData::Unknown { cmd, .. } => {
+                UXGeoScriptCommandData::Event { event_type, data } => {
+                    extra_info = hex::encode(&data);
+                    (
+                        Self::COMMAND_COLOR_EVENT,
+                        format!("Event {}", format_hashcode(&self.hashcodes, *event_type)),
+                        u32::MAX,
+                    )
+                }
+                UXGeoScriptCommandData::Unknown { cmd, data } => {
                     if *cmd == 0x10 || *cmd == 0x11 || *cmd == 0x12 {
                         continue;
                     }
 
+                    extra_info = hex::encode(&data);
                     (
                         Self::COMMAND_COLOR_UNKNOWN,
                         format!("Unknown 0x{cmd:x}"),
@@ -379,18 +385,35 @@ impl ScriptListPanel {
                 egui::Sense::hover(),
             );
 
-            cmd_response.on_hover_text_at_pointer(format!(
-                "{}{}\nStart: {}\nLength: {}\nController: {}",
-                label,
-                if file_hash != u32::MAX {
-                    format!(" ({})", format_hashcode(&self.hashcodes, file_hash))
-                } else {
-                    String::new()
-                },
-                c.start,
-                c.length,
-                c.controller_index
-            ));
+            let mut extra_info_split = String::new();
+            writeln!(extra_info_split).ok();
+            for (i, v) in extra_info
+                .chars()
+                .collect::<Vec<char>>()
+                .chunks(8)
+                .enumerate()
+            {
+                write!(extra_info_split, "{} ", v.iter().collect::<String>()).ok();
+
+                if (i % 4) == 3 {
+                    writeln!(extra_info_split).ok();
+                }
+            }
+            cmd_response.on_hover_ui_at_pointer(|ui| {
+                ui.label(format!(
+                    "{}{}\nStart: {}\nLength: {}\nController: {}\n",
+                    label,
+                    if file_hash != u32::MAX {
+                        format!(" ({})", format_hashcode(&self.hashcodes, file_hash))
+                    } else {
+                        String::new()
+                    },
+                    c.start,
+                    c.length,
+                    c.controller_index,
+                ));
+                ui.monospace(extra_info_split);
+            });
 
             let cmd_rect = egui::Rect::from_min_size(
                 rect.min + egui::vec2(start as f32 * single_frame_width, c.thread as f32 * 19.0),
