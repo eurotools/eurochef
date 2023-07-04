@@ -40,14 +40,45 @@ pub struct UXGeoTexture {
 }
 
 impl UXGeoTexture {
-    pub fn read_all(edb: &mut EdbFile) -> Vec<IdentifiableResult<Self>> {
+    pub fn read_all(edb: &mut EdbFile) -> Vec<(usize, IdentifiableResult<Self>)> {
         // ? can this be implemented on-trait???
         let texture_decoder = texture::create_for_platform(edb.platform);
         let mut textures = vec![];
-        for t in edb.header.texture_list.clone().iter() {
-            textures.push(IdentifiableResult::new(
-                t.common.hashcode,
-                Self::read(t.common.address, edb, &texture_decoder, t.flags),
+        for (i, t) in edb.header.texture_list.clone().iter().enumerate() {
+            textures.push((
+                i,
+                IdentifiableResult::new(
+                    t.common.hashcode,
+                    Self::read(t.common.address, edb, &texture_decoder, t.flags),
+                ),
+            ))
+        }
+
+        textures
+    }
+
+    /// Read specific hashcodes
+    /// Returns an index to enable fast indexing
+    pub fn read_hashcodes(
+        edb: &mut EdbFile,
+        hashcodes: &[Hashcode],
+    ) -> Vec<(usize, IdentifiableResult<Self>)> {
+        let texture_decoder = texture::create_for_platform(edb.platform);
+        let mut textures = vec![];
+        for (i, t) in edb
+            .header
+            .texture_list
+            .clone()
+            .iter()
+            .enumerate()
+            .filter(|(_, c)| hashcodes.contains(&c.common.hashcode))
+        {
+            textures.push((
+                i,
+                IdentifiableResult::new(
+                    t.common.hashcode,
+                    Self::read(t.common.address, edb, &texture_decoder, t.flags),
+                ),
             ))
         }
 

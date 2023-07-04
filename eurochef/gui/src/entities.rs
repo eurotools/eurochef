@@ -118,13 +118,14 @@ impl EntityListPanel {
         }
     }
 
+    // TODO(cohae): Move
     pub fn load_textures(
         gl: &glow::Context,
-        textures: &[IdentifiableResult<UXGeoTexture>],
-    ) -> Vec<RenderableTexture> {
+        textures: &[(usize, IdentifiableResult<UXGeoTexture>)],
+    ) -> Vec<(usize, RenderableTexture)> {
         textures
             .iter()
-            .map(|it| unsafe {
+            .map(|(i, it)| unsafe {
                 if let Ok(t) = &it.data {
                     let mut frames = vec![];
 
@@ -140,16 +141,22 @@ impl EntityListPanel {
                         frames.push(handle);
                     }
 
-                    RenderableTexture {
-                        external_reference: t.external_texture,
-                        frames,
-                        framerate: t.framerate as usize,
-                        frame_count: t.frame_count as usize,
-                        flags: t.flags,
-                        // EngineX(T) calculates these as step per frame by dividing each axis by 30000. We're calculating this with seconds instead of frames
-                        scroll: Vec2::new(t.scroll[0] as f32 / 500.0, t.scroll[1] as f32 / 500.0),
-                        hashcode: it.hashcode,
-                    }
+                    (
+                        *i,
+                        RenderableTexture {
+                            external_reference: t.external_texture,
+                            frames,
+                            framerate: t.framerate as usize,
+                            frame_count: t.frame_count as usize,
+                            flags: t.flags,
+                            // EngineX(T) calculates these as step per frame by dividing each axis by 30000. We're calculating this with seconds instead of frames
+                            scroll: Vec2::new(
+                                t.scroll[0] as f32 / 500.0,
+                                t.scroll[1] as f32 / 500.0,
+                            ),
+                            hashcode: it.hashcode,
+                        },
+                    )
                 } else {
                     let handle = gl_helper::load_texture(
                         gl,
@@ -162,15 +169,18 @@ impl EntityListPanel {
                         0,
                     );
 
-                    RenderableTexture {
-                        external_reference: None,
-                        frames: vec![handle],
-                        framerate: 0,
-                        frame_count: 0,
-                        flags: 0,
-                        scroll: Vec2::ZERO,
-                        hashcode: it.hashcode,
-                    }
+                    (
+                        *i,
+                        RenderableTexture {
+                            external_reference: None,
+                            frames: vec![handle],
+                            framerate: 0,
+                            frame_count: 0,
+                            flags: 0,
+                            scroll: Vec2::ZERO,
+                            hashcode: it.hashcode,
+                        },
+                    )
                 }
             })
             .collect()
@@ -713,10 +723,15 @@ impl EntityListPanel {
     }
 }
 
+/// Leave hashcodes empty to load all entities
 pub fn read_from_file(
     edb: &mut EdbFile,
+    hashcodes: &[Hashcode],
 ) -> anyhow::Result<(
-    Vec<IdentifiableResult<(EXGeoEntity, ProcessedEntityMesh)>>,
+    Vec<(
+        usize,
+        IdentifiableResult<(EXGeoEntity, ProcessedEntityMesh)>,
+    )>,
     Vec<IdentifiableResult<EXGeoBaseAnimSkin>>,
     Vec<IdentifiableResult<(EXGeoEntity, ProcessedEntityMesh)>>,
 )> {
@@ -724,9 +739,15 @@ pub fn read_from_file(
 
     // TODO(cohae): Replace with header iterators
     let mut entities = vec![];
-    for e in header.entity_list.iter() {
+    for (i, e) in header.entity_list.iter().enumerate().filter(|(_, c)| {
+        if hashcodes.is_empty() {
+            true
+        } else {
+            hashcodes.contains(&c.common.hashcode)
+        }
+    }) {
         let ent = read_entity_identifiable(e.common.address, edb);
-        entities.push(IdentifiableResult::new(e.common.hashcode, ent));
+        entities.push((i, IdentifiableResult::new(e.common.hashcode, ent)));
     }
 
     // TODO(cohae): Replace with header iterators?

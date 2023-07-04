@@ -107,7 +107,7 @@ impl<'d> EdbFile<'d> {
     }
 
     pub fn add_reference(&mut self, file: Hashcode, reference: Hashcode) {
-        if file == u32::MAX && reference.is_local() {
+        if file == u32::MAX || reference.is_local() {
             self.add_reference_internal(reference);
         } else {
             if !self.external_references.contains(&(file, reference)) {

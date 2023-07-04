@@ -50,7 +50,7 @@ pub struct EXGeoAnimSkinEntity {
     pub skin_data: EXRelPtr<Vec<EXRelPtr<EXGeoAnimSkinUnkWeightData>>>,
 
     pub section_index: u32,
-    pub entity_index: u32,
+    pub entity_index: u32, // TODO(cohae): Add to reference list
     pub morph_index: i32,
 }
 

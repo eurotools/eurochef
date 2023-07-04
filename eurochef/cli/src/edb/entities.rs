@@ -97,7 +97,7 @@ pub fn execute_command(
         pb.set_message("Extracting textures");
 
         let textures = UXGeoTexture::read_all(&mut edb);
-        for it in textures.into_iter() {
+        for (_, it) in textures.into_iter() {
             let hash_str = format!("0x{:x}", it.hashcode);
             let _span = error_span!("texture", hash = %hash_str);
             let _span_enter = _span.enter();

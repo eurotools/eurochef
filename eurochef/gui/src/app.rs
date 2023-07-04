@@ -18,6 +18,7 @@ use eurochef_shared::{
     hashcodes::parse_hashcodes, script::UXGeoScript, spreadsheets::UXGeoSpreadsheet,
     textures::UXGeoTexture,
 };
+use instant::Instant;
 use nohash_hasher::IntMap;
 
 use crate::{
@@ -247,9 +248,15 @@ impl EurochefApp {
         &mut self,
         platform: Platform,
         reader: &mut R,
+        references: &[(Hashcode, Hashcode)],
     ) -> anyhow::Result<()> {
         let mut edb = EdbFile::new(reader, platform)?;
         let header = edb.header.clone();
+        let references_thisfile: Vec<u32> = references
+            .iter()
+            .filter(|(f, _)| *f == header.hashcode)
+            .map(|(_, o)| *o)
+            .collect();
 
         let mut rs_lock = self.render_store.write();
         let scripts = UXGeoScript::read_all(&mut edb)?;
@@ -257,16 +264,11 @@ impl EurochefApp {
             rs_lock.insert_script(header.hashcode, s.clone());
         }
 
-        let textures = UXGeoTexture::read_all(&mut edb);
-        for (i, t) in entities::EntityListPanel::load_textures(&self.gl, &textures)
-            .into_iter()
-            .enumerate()
-        {
-            rs_lock.insert_texture(header.hashcode, t.hashcode, i, t);
-        }
-
-        let (entities, _skins, _ref_entities) = entities::read_from_file(&mut edb)?;
-        for (i, e) in entities.iter().enumerate() {
+        // Entities should come after scripts, since we need all references to resolve first
+        // Also include the requested references
+        let internal_refs = [references_thisfile, edb.internal_references.clone()].concat();
+        let (entities, _, _) = entities::read_from_file(&mut edb, &internal_refs)?;
+        for (i, e) in entities.into_iter() {
             let mut r = EntityRenderer::new(header.hashcode, platform);
             if let Ok((_, m)) = &e.data {
                 unsafe {
@@ -274,6 +276,13 @@ impl EurochefApp {
                 }
             }
             rs_lock.insert_entity(header.hashcode, e.hashcode, i, r);
+        }
+
+        // Textures should come last, since textures refer to nothing (aside from a few external references)
+        let internal_refs = edb.internal_references.clone();
+        let textures = UXGeoTexture::read_hashcodes(&mut edb, &internal_refs);
+        for (i, t) in entities::EntityListPanel::load_textures(&self.gl, &textures) {
+            rs_lock.insert_texture(header.hashcode, t.hashcode, i, t);
         }
 
         drop(rs_lock);
@@ -286,14 +295,14 @@ impl EurochefApp {
     pub fn resolve_references(
         &mut self,
         platform: Platform,
-        references: &Vec<(Hashcode, Hashcode)>,
+        references: &[(Hashcode, Hashcode)],
     ) -> anyhow::Result<()> {
         for (ref_file, _) in references {
             if !self.render_store.read().is_file_loaded(*ref_file) {
                 if let Some(path) = self.path_cache.get(ref_file) {
                     let file = File::open(&path)?;
                     let mut reader = BufReader::new(file);
-                    self.load_into_render_store(platform, &mut reader)?;
+                    self.load_into_render_store(platform, &mut reader, references)?;
                 }
             }
         }
@@ -339,11 +348,11 @@ impl EurochefApp {
         ]
         .contains(&platform)
         {
-            let (entities, skins, ref_entities) = entities::read_from_file(&mut edb)?;
+            let (entities, skins, ref_entities) = entities::read_from_file(&mut edb, &[])?;
 
-            for (i, e) in entities.iter().enumerate() {
+            for (i, e) in entities.iter() {
                 if e.hashcode.is_local() {
-                    debug_assert_eq!(e.hashcode.index(), i as u32);
+                    debug_assert_eq!(e.hashcode.index(), *i as u32);
                 }
             }
 
@@ -363,14 +372,14 @@ impl EurochefApp {
                 ));
             }
 
-            for (i, e) in entities.iter().enumerate() {
+            for (i, e) in entities.iter() {
                 let mut r = EntityRenderer::new(header.hashcode, platform);
                 if let Ok((_, m)) = &e.data {
                     unsafe {
                         r.load_mesh(&self.gl, m);
                     }
                 }
-                rs_lock.insert_entity(header.hashcode, e.hashcode, i, r);
+                rs_lock.insert_entity(header.hashcode, e.hashcode, *i, r);
             }
 
             if entities.len() + skins.len() + ref_entities.len() > 0 {
@@ -394,7 +403,7 @@ impl EurochefApp {
                     self.render_store.clone(),
                     ctx,
                     self.gl.clone(),
-                    entities,
+                    entities.into_iter().map(|(_, ires)| ires).collect(),
                     skins,
                     ref_entities,
                     platform,
@@ -407,24 +416,30 @@ impl EurochefApp {
         let textures = UXGeoTexture::read_all(&mut edb);
         {
             let mut rs_lock = self.render_store.write();
-            for (i, t) in entities::EntityListPanel::load_textures(&self.gl, &textures)
-                .into_iter()
-                .enumerate()
+            for (i, t) in entities::EntityListPanel::load_textures(&self.gl, &textures).into_iter()
             {
                 rs_lock.insert_texture(header.hashcode, t.hashcode, i, t);
             }
         }
 
-        if textures.len() == 1 && textures[0].hashcode == 0x06000000 {
+        if textures.len() == 1 && textures[0].1.hashcode == 0x06000000 {
             self.textures = None;
         } else {
-            self.textures = Some(textures::TextureList::new(ctx, textures));
+            self.textures = Some(textures::TextureList::new(
+                ctx,
+                textures.into_iter().map(|(_, t)| t).collect(),
+            ));
         }
 
         edb.external_references.sort_by(|(a, _), (b, _)| a.cmp(b));
         self.fileinfo.as_mut().unwrap().external_references = edb.external_references.clone();
 
+        let start = Instant::now();
         self.resolve_references(platform, &edb.external_references)?;
+        info!(
+            "Resolving references took {}s",
+            start.elapsed().as_secs_f32()
+        );
 
         self.state = AppState::Ready;
 

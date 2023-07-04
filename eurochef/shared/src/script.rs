@@ -7,7 +7,7 @@ use eurochef_edb::{
     error::Result,
     header::EXGeoAnimScriptHeader,
     script::{EXGeoAnimScript, EXGeoAnimScriptControllerChannels, EXGeoAnimScriptControllerHeader},
-    Hashcode, HashcodeUtils,
+    Hashcode,
 };
 
 #[derive(Debug, Clone)]
@@ -92,20 +92,10 @@ impl UXGeoScript {
             };
 
             match &data {
-                UXGeoScriptCommandData::Entity { hashcode, file } => {
-                    if !hashcode.is_local() {
-                        edb.add_reference(*file, *hashcode)
-                    }
-                }
-                UXGeoScriptCommandData::Particle { hashcode, file } => {
-                    if !hashcode.is_local() {
-                        edb.add_reference(*file, *hashcode)
-                    }
-                }
-                UXGeoScriptCommandData::SubScript { hashcode, file } => {
-                    if !hashcode.is_local() {
-                        edb.add_reference(*file, *hashcode)
-                    }
+                UXGeoScriptCommandData::Entity { hashcode, file }
+                | UXGeoScriptCommandData::Particle { hashcode, file }
+                | UXGeoScriptCommandData::SubScript { hashcode, file } => {
+                    edb.add_reference(*file, *hashcode)
                 }
                 _ => {}
             };

@@ -68,9 +68,8 @@ pub struct EXGeoMapZone {
     pub unk38: [u32; 10],                // 0x38
     #[br(if(version.ne(&213) && version.ne(&221) && version.ne(&177) && version.ne(&240)))]
     pub unk60: [u32; 2],
-    #[br(dbg)]
     pub bounds_box: [EXVector3; 2], // 0x60
-    pub unk80: u32, // 0x80
+    pub unk80: u32,                 // 0x80
 
     // Robots has 8 less bytes
     #[br(if(!version.le(&248) || (version.eq(&213) || version.eq(&221) || version.eq(&177) || version.eq(&240))))]
