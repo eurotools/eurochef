@@ -7,7 +7,7 @@ use eurochef_edb::{
     binrw::BinReaderExt,
     edb::EdbFile,
     entity::{EXGeoEntity, EXGeoMapZoneEntity},
-    map::{EXGeoBaseDatum, EXGeoMap, EXGeoPlacement, EXGeoTriggerEngineOptions},
+    map::{EXGeoBaseDatum, EXGeoMap, EXGeoMapZone, EXGeoPlacement, EXGeoTriggerEngineOptions},
     versions::Platform,
     Hashcode,
 };
@@ -32,6 +32,8 @@ pub struct MapViewerPanel {
 pub struct ProcessedMap {
     pub hashcode: u32,
     pub mapzone_entities: Vec<EXGeoMapZoneEntity>,
+    pub zones: Vec<EXGeoMapZone>,
+    pub skies: Vec<Hashcode>,
     pub placements: Vec<EXGeoPlacement>,
     pub triggers: Vec<ProcessedTrigger>,
     pub trigger_collisions: Vec<EXGeoBaseDatum>,
@@ -151,6 +153,8 @@ pub fn read_from_file(edb: &mut EdbFile) -> Vec<ProcessedMap> {
             placements: xmap.placements.data().clone(),
             triggers: vec![],
             trigger_collisions: xmap.trigger_header.trigger_collisions.0.clone(),
+            skies: xmap.skies.iter().map(|s| s.hashcode).collect(),
+            zones: vec![],
         };
 
         for z in &xmap.zones {
@@ -173,6 +177,8 @@ pub fn read_from_file(edb: &mut EdbFile) -> Vec<ProcessedMap> {
                 // .unwrap();
             }
         }
+
+        map.zones = xmap.zones;
 
         for t in xmap.trigger_header.triggers.iter() {
             let trig = &t.trigger;

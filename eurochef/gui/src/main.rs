@@ -31,7 +31,7 @@ fn main() -> Result<()> {
     let native_options = eframe::NativeOptions {
         initial_window_size: Some([1280., 1024.].into()),
         depth_buffer: 24,
-        multisampling: 4,
+        multisampling: 0,
         ..Default::default()
     };
     let res = eframe::run_native(
