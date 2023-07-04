@@ -125,8 +125,7 @@ impl RenderStore {
     pub fn get_script(&self, file: Hashcode, script_hashcode: Hashcode) -> Option<&UXGeoScript> {
         self.files.get(&file).and_then(|v| {
             if script_hashcode.is_local() {
-                // v.2.get(script_hashcode.index() as usize)
-                v.2.iter().find(|v| v.hashcode == script_hashcode)
+                v.2.get(script_hashcode.index() as usize)
             } else {
                 v.2.iter().find(|v| v.hashcode == script_hashcode)
             }
