@@ -1,4 +1,5 @@
 use std::{
+    collections::hash_map,
     fs::File,
     io::{BufReader, Cursor, Read, Seek},
     path::PathBuf,
@@ -244,32 +245,47 @@ impl EurochefApp {
         Ok(())
     }
 
-    pub fn load_into_render_store<R: Read + Seek>(
+    pub fn load_into_render_store(
         &mut self,
+        references: &[Hashcode],
+        file_map: &mut IntMap<Hashcode, EdbFile>,
+        file_ref: Hashcode,
         platform: Platform,
-        reader: &mut R,
-        references: &[(Hashcode, Hashcode)],
     ) -> anyhow::Result<()> {
-        let mut edb = EdbFile::new(reader, platform)?;
+        let ref mut edb = if let Some(path) = self.path_cache.get(&file_ref) {
+            match file_map.entry(file_ref) {
+                hash_map::Entry::Occupied(e) => e.into_mut(),
+                hash_map::Entry::Vacant(a) => {
+                    let file = File::open(&path)?;
+                    let reader = BufReader::new(file);
+
+                    a.insert(EdbFile::new(Box::new(reader), platform)?)
+                }
+            }
+        } else {
+            return Ok(());
+        };
+
         let header = edb.header.clone();
-        let references_thisfile: Vec<u32> = references
-            .iter()
-            .filter(|(f, _)| *f == header.hashcode)
-            .map(|(_, o)| *o)
-            .collect();
 
         let mut rs_lock = self.render_store.write();
-        let scripts = UXGeoScript::read_all(&mut edb)?;
+        let scripts = UXGeoScript::read_hashcodes(edb, &references)?;
         for s in &scripts {
             rs_lock.insert_script(header.hashcode, s.clone());
         }
 
         // Entities should come after scripts, since we need all references to resolve first
         // Also include the requested references
-        let internal_refs = [references_thisfile, edb.internal_references.clone()].concat();
-        let (entities, _, _) = entities::read_from_file(&mut edb, &internal_refs)?;
+        let interal_references_filtered: Vec<Hashcode> = edb
+            .internal_references
+            .iter()
+            .filter(|v| !rs_lock.is_object_loaded(header.hashcode, **v))
+            .map(|v| *v)
+            .collect();
+        let internal_refs = [references, &interal_references_filtered].concat();
+        let (entities, _, _) = entities::read_from_file(edb, Some(&internal_refs))?;
         for (i, e) in entities.into_iter() {
-            let mut r = EntityRenderer::new(header.hashcode, platform);
+            let mut r = EntityRenderer::new(header.hashcode, edb.platform);
             if let Ok((_, m)) = &e.data {
                 unsafe {
                     r.load_mesh(&self.gl, m);
@@ -280,14 +296,14 @@ impl EurochefApp {
 
         // Textures should come last, since textures refer to nothing (aside from a few external references)
         let internal_refs = edb.internal_references.clone();
-        let textures = UXGeoTexture::read_hashcodes(&mut edb, &internal_refs);
+        let textures = UXGeoTexture::read_hashcodes(edb, &internal_refs);
         for (i, t) in entities::EntityListPanel::load_textures(&self.gl, &textures) {
             rs_lock.insert_texture(header.hashcode, t.hashcode, i, t);
         }
 
         drop(rs_lock);
-
-        self.resolve_references(platform, &edb.external_references)?;
+        let external_references = edb.external_references.clone();
+        self.resolve_references(platform, &external_references, file_map)?;
 
         Ok(())
     }
@@ -296,24 +312,35 @@ impl EurochefApp {
         &mut self,
         platform: Platform,
         references: &[(Hashcode, Hashcode)],
+        file_map: &mut IntMap<Hashcode, EdbFile>,
     ) -> anyhow::Result<()> {
-        for (ref_file, _) in references {
-            if !self.render_store.read().is_file_loaded(*ref_file) {
-                if let Some(path) = self.path_cache.get(ref_file) {
-                    let file = File::open(&path)?;
-                    let mut reader = BufReader::new(file);
-                    self.load_into_render_store(platform, &mut reader, references)?;
-                }
+        let mut grouped_refs: Vec<(Hashcode, Vec<Hashcode>)> = vec![];
+        for (rf, ro) in references {
+            let group = if let Some(f) = grouped_refs.iter_mut().find(|(f, _)| f == rf) {
+                f
+            } else {
+                grouped_refs.push((*rf, vec![]));
+                grouped_refs.last_mut().unwrap()
+            };
+
+            if !group.1.contains(ro) && !self.render_store.read().is_object_loaded(*rf, *ro) {
+                group.1.push(*ro)
             }
+        }
+
+        grouped_refs.retain(|v| !v.1.is_empty());
+
+        for (ref_file, ref_objects) in grouped_refs {
+            self.load_into_render_store(&ref_objects, file_map, ref_file, platform)?;
         }
 
         Ok(())
     }
 
-    pub fn load_file<R: Read + Seek>(
+    pub fn load_file<R: Read + Seek + 'static>(
         &mut self,
         platform: Platform,
-        reader: &mut R,
+        reader: Box<R>,
         ctx: &egui::Context,
     ) -> anyhow::Result<()> {
         if platform == Platform::Ps2 {
@@ -348,7 +375,7 @@ impl EurochefApp {
         ]
         .contains(&platform)
         {
-            let (entities, skins, ref_entities) = entities::read_from_file(&mut edb, &[])?;
+            let (entities, skins, ref_entities) = entities::read_from_file(&mut edb, None)?;
 
             for (i, e) in entities.iter() {
                 if e.hashcode.is_local() {
@@ -435,7 +462,8 @@ impl EurochefApp {
         self.fileinfo.as_mut().unwrap().external_references = edb.external_references.clone();
 
         let start = Instant::now();
-        self.resolve_references(platform, &edb.external_references)?;
+        let mut file_map: IntMap<Hashcode, EdbFile> = Default::default();
+        self.resolve_references(platform, &edb.external_references, &mut file_map)?;
         info!(
             "Resolving references took {}s",
             start.elapsed().as_secs_f32()
@@ -461,8 +489,8 @@ impl eframe::App for EurochefApp {
 
         if let Some((data, platform)) = self.pending_file.as_ref() {
             if let Some(platform) = platform {
-                let mut cur = Cursor::new(data.clone()); // FIXME: Cloning the data hurts my soul
-                match self.load_file(*platform, &mut cur, ctx) {
+                let cur = Cursor::new(data.clone()); // FIXME: Cloning the data hurts my soul
+                match self.load_file(*platform, Box::new(cur), ctx) {
                     Ok(_) => {}
                     Err(e) => {
                         self.state = AppState::Error(e.into());

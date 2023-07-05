@@ -726,7 +726,7 @@ impl EntityListPanel {
 /// Leave hashcodes empty to load all entities
 pub fn read_from_file(
     edb: &mut EdbFile,
-    hashcodes: &[Hashcode],
+    hashcodes: Option<&[Hashcode]>,
 ) -> anyhow::Result<(
     Vec<(
         usize,
@@ -740,40 +740,43 @@ pub fn read_from_file(
     // TODO(cohae): Replace with header iterators
     let mut entities = vec![];
     for (i, e) in header.entity_list.iter().enumerate().filter(|(_, c)| {
-        if hashcodes.is_empty() {
-            true
-        } else {
+        if let Some(hashcodes) = hashcodes {
             hashcodes.contains(&c.common.hashcode)
+        } else {
+            true
         }
     }) {
         let ent = read_entity_identifiable(e.common.address, edb);
         entities.push((i, IdentifiableResult::new(e.common.hashcode, ent)));
     }
 
-    // TODO(cohae): Replace with header iterators?
     let mut refents = vec![];
-    for (i, r) in header.refpointer_list.iter().enumerate() {
-        edb.seek(std::io::SeekFrom::Start(r.address as u64))?;
+    if hashcodes.is_none() {
+        for (i, r) in header.refpointer_list.iter().enumerate() {
+            edb.seek(std::io::SeekFrom::Start(r.address as u64))?;
 
-        let etype = edb.read_type::<u32>(edb.endian)?;
-        if etype == 0x601 || etype == 0x602 || etype == 0x603 {
-            let ent = read_entity_identifiable(r.address, edb);
-            refents.push(IdentifiableResult::new(i as _, ent));
+            let etype = edb.read_type::<u32>(edb.endian)?;
+            if etype == 0x601 || etype == 0x602 || etype == 0x603 {
+                let ent = read_entity_identifiable(r.address, edb);
+                refents.push(IdentifiableResult::new(i as _, ent));
+            }
         }
     }
 
     let mut skins = vec![];
-    for s in header.animskin_list.iter() {
-        edb.seek(std::io::SeekFrom::Start(s.common.address as u64))?;
+    if hashcodes.is_none() {
+        for s in header.animskin_list.iter() {
+            edb.seek(std::io::SeekFrom::Start(s.common.address as u64))?;
 
-        let skin = edb.read_type_args::<EXGeoBaseAnimSkin>(edb.endian, (edb.header.version,));
-        skins.push(IdentifiableResult::new(
-            s.common.hashcode,
-            match skin {
-                Ok(s) => Ok(s),
-                Err(e) => Err(anyhow!("Failed to read animskin: {e:?}")),
-            },
-        ));
+            let skin = edb.read_type_args::<EXGeoBaseAnimSkin>(edb.endian, (edb.header.version,));
+            skins.push(IdentifiableResult::new(
+                s.common.hashcode,
+                match skin {
+                    Ok(s) => Ok(s),
+                    Err(e) => Err(anyhow!("Failed to read animskin: {e:?}")),
+                },
+            ));
+        }
     }
 
     Ok((entities, skins, refents))

@@ -5,8 +5,8 @@ use eurochef_shared::spreadsheets::UXGeoSpreadsheet;
 
 pub fn execute_command(filename: String, section: Option<u32>) -> anyhow::Result<()> {
     let mut file = File::open(filename)?;
-    let mut reader = BufReader::new(&mut file);
-    let mut edb = EdbFile::new(&mut reader, Platform::Pc)?;
+    let mut reader = BufReader::new(file);
+    let mut edb = EdbFile::new(Box::new(reader), Platform::Pc)?;
 
     let spreadsheets = UXGeoSpreadsheet::read_all(&mut edb);
     assert!(spreadsheets.len() <= 1);

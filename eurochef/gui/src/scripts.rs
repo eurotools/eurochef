@@ -308,6 +308,7 @@ impl ScriptListPanel {
 
     const COMMAND_COLOR_ENTITY: egui::Color32 = egui::Color32::from_rgb(98, 176, 255);
     const COMMAND_COLOR_PARTICLE: egui::Color32 = egui::Color32::from_rgb(168, 235, 247);
+    const COMMAND_COLOR_ANIMATION: egui::Color32 = egui::Color32::from_rgb(255, 173, 134);
     const COMMAND_COLOR_SUBSCRIPT: egui::Color32 = egui::Color32::from_rgb(238, 145, 234);
     const COMMAND_COLOR_SOUND: egui::Color32 = egui::Color32::from_rgb(255, 188, 255);
     const COMMAND_COLOR_EVENT: egui::Color32 = egui::Color32::WHITE;
@@ -337,6 +338,21 @@ impl ScriptListPanel {
                     Self::COMMAND_COLOR_ENTITY,
                     format!("Entity {}", format_hashcode(&self.hashcodes, *hashcode)),
                     *file,
+                ),
+                UXGeoScriptCommandData::Animation {
+                    skin_file,
+                    skin_hashcode,
+                    anim_file,
+                    anim_hashcode,
+                } => (
+                    Self::COMMAND_COLOR_ANIMATION,
+                    format!(
+                        "Animation {} (skin {} {})",
+                        format_hashcode(&self.hashcodes, *anim_hashcode),
+                        format_hashcode(&self.hashcodes, *skin_hashcode),
+                        format_hashcode(&self.hashcodes, *skin_file)
+                    ),
+                    *anim_file,
                 ),
                 UXGeoScriptCommandData::SubScript { hashcode, file } => (
                     Self::COMMAND_COLOR_SUBSCRIPT,

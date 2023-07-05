@@ -39,11 +39,11 @@ impl<R: Read + Seek + Sized> DatabaseReader for R {
     }
 }
 
-pub struct EdbFile<'d> {
+pub struct EdbFile {
     /// Using a marker to allow for safe downcasting when access to the object is needed in
     safety_marker: u64,
 
-    reader: &'d mut dyn DatabaseReader,
+    reader: Box<dyn DatabaseReader>,
     pub endian: Endian,
     pub platform: Platform,
     pub header: EXGeoHeader,
@@ -55,11 +55,11 @@ pub struct EdbFile<'d> {
     pub internal_references: Vec<Hashcode>,
 }
 
-impl<'d> EdbFile<'d> {
+impl EdbFile {
     pub const SAFETY_MARKER: u64 = 0xDEADC0FF47654F6D;
 
     /// Resets the reader, tests endianness and reads the header
-    pub fn new(reader: &'d mut dyn DatabaseReader, platform: Platform) -> Result<Self> {
+    pub fn new(reader: Box<dyn DatabaseReader>, platform: Platform) -> Result<Self> {
         let mut reader = reader;
         reader.seek(std::io::SeekFrom::Start(0)).ok();
         let endian = if reader.read_ne::<u8>()? == 0x47 {
@@ -123,13 +123,13 @@ impl<'d> EdbFile<'d> {
     }
 }
 
-impl<'d> Seek for EdbFile<'d> {
+impl Seek for EdbFile {
     fn seek(&mut self, pos: std::io::SeekFrom) -> std::io::Result<u64> {
         self.reader.seek(pos)
     }
 }
 
-impl<'d> Read for EdbFile<'d> {
+impl Read for EdbFile {
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
         self.reader.read(buf)
     }

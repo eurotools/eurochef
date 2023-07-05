@@ -1,6 +1,6 @@
 use binrw::{binread, BinRead, BinReaderExt, BinResult, VecArgs};
 use serde::Serialize;
-use tracing::debug;
+use tracing::{debug, warn};
 
 use crate::common::{EXRelPtr, EXVector, EXVector3};
 
@@ -40,9 +40,11 @@ pub struct EXGeoAnimScriptControllerHeader {
 pub struct EXGeoAnimScriptControllerChannels {
     pub time_0: Vec<(f32, f32)>,         // 0x1
     pub time_1: Vec<(f32, f32)>,         // 0x2
-    pub vector_0: Vec<(f32, EXVector3)>, // 0x4
-    pub quat_0: Vec<(f32, EXVector)>,    // 0x8
-    pub vector_1: Vec<(f32, EXVector3)>, // 0x10
+    pub vector_0: Vec<(f32, EXVector3)>, // 0x4, position
+    pub quat_0: Vec<(f32, EXVector)>,    // 0x8, rotation
+    pub vector_1: Vec<(f32, EXVector3)>, // 0x10, scale
+
+    pub vector_2: Vec<(f32, EXVector3)>, // 0x40
 }
 
 impl BinRead for EXGeoAnimScriptControllerHeader {
@@ -119,6 +121,15 @@ impl BinRead for EXGeoAnimScriptControllerHeader {
 
         if (ctrl_mask & 0x10) != 0 {
             channels.vector_1 = read_channel!();
+        }
+
+        if (ctrl_mask & 0x20) != 0 {
+            warn!("Unknown data for animscript controller channel 0x20!");
+            let _: Vec<u8> = read_channel!();
+        }
+
+        if (ctrl_mask & 0x40) != 0 {
+            channels.vector_2 = read_channel!();
         }
 
         for i in 5..32 {

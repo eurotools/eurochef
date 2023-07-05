@@ -106,8 +106,8 @@ impl FileInfoPanel {
                 .striped(true)
                 .resizable(false)
                 .cell_layout(egui::Layout::left_to_right(egui::Align::Center))
-                .column(Column::auto())
-                .column(Column::auto())
+                .column(Column::exact(256.))
+                .column(Column::exact(356.))
                 .column(Column::initial(16.0).at_most(32.0))
                 .min_scrolled_height(0.0);
 

@@ -46,8 +46,8 @@ pub fn execute_command(
     }
 
     let mut file = File::open(&filename)?;
-    let mut reader = BufReader::new(&mut file);
-    let mut edb = EdbFile::new(&mut reader, platform)?;
+    let mut reader = BufReader::new(file);
+    let mut edb = EdbFile::new(Box::new(reader), platform)?;
     let header = edb.header.clone();
 
     if header.animskin_list.len() == 0 {

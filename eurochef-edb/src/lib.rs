@@ -17,6 +17,10 @@ pub mod versions;
 pub use binrw;
 
 pub type Hashcode = u32;
+pub const HC_BASE_ENTITY: Hashcode = 0x2 << 24;
+pub const HC_BASE_SCRIPT: Hashcode = 0x4 << 24;
+pub const HC_BASE_TEXTURE: Hashcode = 0x6 << 24;
+pub const HC_BASE_PARTICLE: Hashcode = 0x11 << 24;
 
 pub trait HashcodeUtils {
     fn is_local(&self) -> bool;

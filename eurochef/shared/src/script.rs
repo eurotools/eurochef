@@ -12,12 +12,35 @@ use eurochef_edb::{
 
 #[derive(Debug, Clone)]
 pub enum UXGeoScriptCommandData {
-    Entity { hashcode: Hashcode, file: Hashcode },
-    Sound { hashcode: Hashcode },
-    Particle { hashcode: Hashcode, file: Hashcode },
-    Event { event_type: Hashcode, data: Vec<u8> },
-    SubScript { hashcode: Hashcode, file: Hashcode },
-    Unknown { cmd: u8, data: Vec<u8> },
+    Entity {
+        hashcode: Hashcode,
+        file: Hashcode,
+    },
+    Animation {
+        skin_file: Hashcode,
+        skin_hashcode: Hashcode,
+        anim_file: Hashcode,
+        anim_hashcode: Hashcode,
+    },
+    Sound {
+        hashcode: Hashcode,
+    },
+    Particle {
+        hashcode: Hashcode,
+        file: Hashcode,
+    },
+    Event {
+        event_type: Hashcode,
+        data: Vec<u8>,
+    },
+    SubScript {
+        hashcode: Hashcode,
+        file: Hashcode,
+    },
+    Unknown {
+        cmd: u8,
+        data: Vec<u8>,
+    },
 }
 
 #[derive(Debug, Clone)]
@@ -59,6 +82,21 @@ impl UXGeoScript {
         Ok(res)
     }
 
+    /// Read specific hashcodes
+    pub fn read_hashcodes(edb: &mut EdbFile, hashcodes: &[Hashcode]) -> Result<Vec<UXGeoScript>> {
+        let header = edb.header.clone();
+        let mut res = vec![];
+        for c in header
+            .animscript_list
+            .iter()
+            .filter(|c| hashcodes.contains(&c.hashcode))
+        {
+            res.push(Self::read(c, edb)?);
+        }
+
+        Ok(res)
+    }
+
     pub fn read(header: &EXGeoAnimScriptHeader, edb: &mut EdbFile) -> Result<UXGeoScript> {
         edb.seek(std::io::SeekFrom::Start(header.address as u64))?;
         let script = edb.read_type::<EXGeoAnimScript>(edb.endian)?;
@@ -66,6 +104,12 @@ impl UXGeoScript {
         let mut commands = vec![];
         for c in script.commands {
             let data = match c.cmd {
+                2 => UXGeoScriptCommandData::Animation {
+                    skin_file: u32_from_index(&c.data, edb.endian, 8)?,
+                    skin_hashcode: u32_from_index(&c.data, edb.endian, 12)?,
+                    anim_file: u32_from_index(&c.data, edb.endian, 16)?,
+                    anim_hashcode: u32_from_index(&c.data, edb.endian, 20)?,
+                },
                 3 => UXGeoScriptCommandData::Entity {
                     hashcode: u32_from_index(&c.data, edb.endian, 8)?,
                     file: u32_from_index(&c.data, edb.endian, 4)?,
@@ -96,6 +140,15 @@ impl UXGeoScript {
                 | UXGeoScriptCommandData::Particle { hashcode, file }
                 | UXGeoScriptCommandData::SubScript { hashcode, file } => {
                     edb.add_reference(*file, *hashcode)
+                }
+                UXGeoScriptCommandData::Animation {
+                    skin_file,
+                    skin_hashcode,
+                    anim_file,
+                    anim_hashcode,
+                } => {
+                    edb.add_reference(*skin_file, *skin_hashcode);
+                    edb.add_reference(*anim_file, *anim_hashcode);
                 }
                 _ => {}
             };

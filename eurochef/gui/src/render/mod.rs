@@ -1,4 +1,4 @@
-use eurochef_edb::{Hashcode, HashcodeUtils};
+use eurochef_edb::{Hashcode, HashcodeUtils, HC_BASE_ENTITY, HC_BASE_SCRIPT, HC_BASE_TEXTURE};
 use eurochef_shared::script::UXGeoScript;
 use glam::{Mat4, Quat};
 use glow::HasContext;
@@ -157,6 +157,14 @@ impl RenderStore {
     }
 
     pub fn is_object_loaded(&self, file: Hashcode, hashcode: Hashcode) -> bool {
+        match hashcode.base() {
+            HC_BASE_ENTITY | HC_BASE_SCRIPT | HC_BASE_TEXTURE => {}
+            v => {
+                debug!("Checked load for unknown object type 0x{v:x} (hc {hashcode:08x})");
+                return true;
+            }
+        }
+
         self.files
             .get(&file)
             .map(|f| f.3.contains(&hashcode))
