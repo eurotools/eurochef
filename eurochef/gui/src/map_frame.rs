@@ -477,6 +477,36 @@ impl MapFrame {
 
                 painter.gl().depth_mask(true);
             }
+            match sky_ent.base() {
+                0x02000000 => render_queue.push(QueuedEntityRender {
+                    entity: (current_file, sky_ent),
+                    entity_alt: None,
+                    position: Vec3::ZERO,
+                    rotation: Quat::IDENTITY,
+                    scale: Vec3::ONE,
+                }),
+                0x04000000 => {
+                    // TODO(cohae): Hack for scripts with fucked starting frames
+                    let (framerate, length) = render_store
+                        .read()
+                        .get_script(current_file, sky_ent)
+                        .map(|s| (s.framerate, s.length))
+                        .unwrap_or((30.0, 1));
+
+                    render_script(
+                        camera_pos,
+                        Quat::IDENTITY,
+                        Vec3::ONE,
+                        current_file,
+                        sky_ent,
+                        // Animate if the trigger is selected
+                        time as f32 % (length as f32 / framerate),
+                        &render_store.read(),
+                        |q| render_queue.push(q),
+                    )
+                }
+                _ => {}
+            }
 
             // Render base (ref) entities
             if render_filter.contains(RenderFilter::MapZone) {
