@@ -91,9 +91,6 @@ pub fn execute_command(filename: String, output_folder: Option<String>) -> anyho
         match spreadsheet {
             UXGeoSpreadsheet::Data(data) => {
                 for (sheet_num, sheet) in data.iter().enumerate() {
-                    let mut output = File::create(
-                        output_folder.join(format!("{hashcode:08x}_{sheet_num}.csv")),
-                    )?;
                     edb.seek(SeekFrom::Start(sheet.address as u64))?;
                     let sheet_definition = match spreadsheet_definition.0.get(&hashcode) {
                         None => {
@@ -108,6 +105,9 @@ pub fn execute_command(filename: String, output_folder: Option<String>) -> anyho
                             Some(s) => s,
                         },
                     };
+                    let mut output = File::create(
+                        output_folder.join(format!("{hashcode:08x}_{sheet_num}.csv")),
+                    )?;
 
                     if sheet_definition.columns.is_empty() {
                         warn!("Missing column definitions for file {:08x} spreadsheet {hashcode:08x} sheet #{sheet_num} (address 0x{:x})", edb.header.hashcode, sheet.address);
