@@ -186,15 +186,8 @@ impl EntityRenderer {
         time: f64,
         render_store: &RenderStore,
     ) {
+        puffin::profile_function!();
         if let Some((_index_count, vertex_array, index_buffer, strips)) = self.mesh.as_ref() {
-            // self.init_draw(
-            //     gl,
-            //     self.get_shader(context),
-            //     position,
-            //     rotation,
-            //     scale,
-            //     context,
-            // );
             gl.bind_vertex_array(Some(*vertex_array));
             gl.bind_buffer(glow::ELEMENT_ARRAY_BUFFER, Some(*index_buffer));
 
@@ -227,15 +220,8 @@ impl EntityRenderer {
         time: f64,
         render_store: &RenderStore,
     ) {
+        puffin::profile_function!();
         if let Some((_index_count, vertex_array, index_buffer, strips)) = self.mesh.as_ref() {
-            // self.init_draw(
-            //     gl,
-            //     self.get_shader(context),
-            //     position,
-            //     rotation,
-            //     scale,
-            //     context,
-            // );
             gl.bind_vertex_array(Some(*vertex_array));
             gl.bind_buffer(glow::ELEMENT_ARRAY_BUFFER, Some(*index_buffer));
 
@@ -275,6 +261,8 @@ impl EntityRenderer {
         scale: Vec3,
         context: &RenderContext,
     ) {
+        puffin::profile_function!();
+
         // For stripflags (EX):
         // 0x1 - transparent / vertex blended?
         // 0x2 - ?

@@ -76,7 +76,6 @@ impl TextItemList {
             ui.vertical(|ui| {
                 egui::ScrollArea::vertical()
                     .id_source("section_scroll_area")
-                    .always_show_scroll(true)
                     .show(ui, |ui| {
                         let mut current_set = 0;
                         for (i, s) in match spreadsheet {

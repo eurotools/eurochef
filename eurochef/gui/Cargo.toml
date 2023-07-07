@@ -20,9 +20,9 @@ serde_json = "1"
 tracing = "0.1.37"
 
 # GUI
-egui = "0.21.0"
-egui_extras = "0.21.0"
-eframe = { version = "0.21.0", default-features = false, features = [
+egui = "0.22.0"
+egui_extras = "0.22.0"
+eframe = { version = "0.22.0", default-features = false, features = [
     "default_fonts",
     "glow",
     "persistence",
@@ -34,7 +34,7 @@ color-eyre = { version = "0.6.2", features = ["issue-url"] }
 crossbeam = "0.8.2"
 font-awesome = "0.2"
 glow = "0.12"
-egui_glow = "0.21.0"
+egui_glow = "0.22.0"
 glam = { version = "0.24.0", features = ["mint"] }
 chrono = "0.4.26"
 png = "0.17.9"
@@ -47,6 +47,8 @@ genmesh = "0.6.2"
 bitflags = "2.3.3"
 glob = "0.3.1"
 hex = "0.4.3"
+puffin = "0.16.0"
+puffin_egui = "0.22.0"
 
 [build-dependencies]
 chrono = "0.4.26"

@@ -203,7 +203,6 @@ impl EntityListPanel {
         } else {
             egui::ScrollArea::vertical()
                 .id_source("section_scroll_area")
-                .always_show_scroll(true)
                 .auto_shrink([false, false])
                 .show(ui, |ui| {
                     if !self.skins.is_empty() {

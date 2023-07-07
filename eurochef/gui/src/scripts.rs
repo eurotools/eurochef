@@ -97,7 +97,6 @@ impl ScriptListPanel {
             ui.vertical(|ui| {
                 egui::ScrollArea::vertical()
                     .id_source("script_scroll_area")
-                    .always_show_scroll(true)
                     .show(ui, |ui| {
                         for i in 0..self.scripts.len() {
                             if let Some((hc, (_, _))) =

@@ -66,6 +66,7 @@ pub struct EurochefApp {
 
     ps2_warning: bool,
     about_window: bool,
+    show_profiler: bool,
 
     hashcodes: Arc<IntMap<u32, String>>,
     path_cache: IntMap<Hashcode, String>,
@@ -134,6 +135,7 @@ impl EurochefApp {
             render_store: Arc::new(RwLock::new(RenderStore::new())),
             hashcodes: Arc::new(hashcodes),
             game: String::new(),
+            show_profiler: false,
         };
 
         if let Some(path) = path {
@@ -440,6 +442,15 @@ impl eframe::App for EurochefApp {
     /// Called each time the UI needs repainting, which may be many times per second.
     /// Put your widgets into a `SidePanel`, `TopPanel`, `CentralPanel`, `Window` or `Area`.
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        puffin::set_scopes_on(self.show_profiler);
+        puffin::GlobalProfiler::lock().new_frame();
+
+        egui::Window::new("Profiler")
+            .open(&mut self.show_profiler)
+            .show(ctx, |ui| {
+                puffin_egui::profiler_ui(ui);
+            });
+
         if let Some((data, load_path)) = self.load_input.take() {
             let platform = Platform::from_path(&load_path);
             self.pending_file = Some((data, platform));
@@ -514,6 +525,10 @@ impl eframe::App for EurochefApp {
                         ui.close_menu()
                     }
                 });
+
+                if ui.button("Profiler").clicked() {
+                    self.show_profiler = true;
+                }
 
                 if ui.button("About").clicked() {
                     self.about_window = true;

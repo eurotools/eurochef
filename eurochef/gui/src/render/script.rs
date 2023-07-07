@@ -14,10 +14,12 @@ pub fn render_script<F>(
     script_hashcode: Hashcode,
     current_time: f32,
     render_store: &RenderStore,
-    mut render: &mut F,
+    render: &mut F,
 ) where
     F: FnMut(QueuedEntityRender),
 {
+    puffin::profile_function!();
+
     let script = render_store.get_script(current_file, script_hashcode);
     if script.is_none() {
         return;
