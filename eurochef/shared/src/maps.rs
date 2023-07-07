@@ -1,5 +1,6 @@
 use std::{collections::BTreeMap, mem::transmute};
 
+use eurochef_edb::Hashcode;
 use nohash_hasher::IntMap;
 use serde::{Deserialize, Serialize};
 
@@ -31,20 +32,23 @@ fn default_engine_values() -> BTreeMap<u32, TriggerValue> {
     BTreeMap::from([
         (
             0,
-            TriggerValue::new(Some("Visual Object"), TrigDataType::Hashcode),
+            TriggerValue::new(Some("Visual Object"), DefinitionDataType::Hashcode),
         ),
-        (1, TriggerValue::new(Some("File"), TrigDataType::Hashcode)),
+        (
+            1,
+            TriggerValue::new(Some("File"), DefinitionDataType::Hashcode),
+        ),
         (
             2,
-            TriggerValue::new(Some("GameScript Index"), TrigDataType::U32),
+            TriggerValue::new(Some("GameScript Index"), DefinitionDataType::U32),
         ),
         (
             3,
-            TriggerValue::new(Some("Collision Index"), TrigDataType::U32),
+            TriggerValue::new(Some("Collision Index"), DefinitionDataType::U32),
         ),
         (
             4,
-            TriggerValue::new(Some("Trigger Color"), TrigDataType::U32),
+            TriggerValue::new(Some("Trigger Color"), DefinitionDataType::U32),
         ),
     ])
 }
@@ -80,11 +84,11 @@ pub struct TriggerDefinition {
 pub struct TriggerValue {
     pub name: Option<String>,
     #[serde(alias = "type", default)]
-    pub dtype: TrigDataType,
+    pub dtype: DefinitionDataType,
 }
 
 impl TriggerValue {
-    pub fn new(name: Option<&str>, dtype: TrigDataType) -> Self {
+    pub fn new(name: Option<&str>, dtype: DefinitionDataType) -> Self {
         Self {
             name: name.map(|v| v.to_owned()),
             dtype,
@@ -94,17 +98,17 @@ impl TriggerValue {
 
 #[derive(Copy, Clone, Debug, Deserialize)]
 #[serde(rename_all = "lowercase")]
-pub enum TrigDataType {
-    Unknown,
+pub enum DefinitionDataType {
+    Unknown32,
     U32,
-    F32,
+    Float,
     Hashcode,
 }
 
-impl TrigDataType {
+impl DefinitionDataType {
     pub fn to_string(&self, hashcodes: &IntMap<u32, String>, v: u32) -> String {
         match self {
-            TrigDataType::Unknown => {
+            DefinitionDataType::Unknown32 => {
                 if (v & 0xffff0000) != 0 {
                     if let Some(hc) = hashcodes.get(&v) {
                         return format!("{hc} (0x{:x})", v);
@@ -112,20 +116,36 @@ impl TrigDataType {
                 }
                 format!("{} (0x{:x})", human_num(v), v)
             }
-            TrigDataType::U32 => {
+            DefinitionDataType::U32 => {
                 if v > 9999 {
                     format!("0x{v:x}")
                 } else {
                     format!("{v}")
                 }
             }
-            TrigDataType::F32 => unsafe { format!("{:.5}", transmute::<u32, f32>(v)) },
-            TrigDataType::Hashcode => format_hashcode(hashcodes, v),
+            DefinitionDataType::Float => unsafe { format!("{:.5}", transmute::<u32, f32>(v)) },
+            DefinitionDataType::Hashcode => format_hashcode(hashcodes, v),
+        }
+    }
+
+    pub fn size(&self) -> usize {
+        match self {
+            DefinitionDataType::Unknown32 => 4,
+            DefinitionDataType::U32 => 4,
+            DefinitionDataType::Float => 4,
+            DefinitionDataType::Hashcode => 4,
         }
     }
 }
 
-pub fn format_hashcode(hashcodes: &IntMap<u32, String>, hc: u32) -> String {
+pub fn format_hashcode(hashcodes: &IntMap<Hashcode, String>, hc: Hashcode) -> String {
+    if hc == Hashcode::MAX {
+        return "HT_None".to_string();
+    }
+    if hc == 0 {
+        return "HT_Zero".to_string();
+    }
+
     let hashcode = hashcodes.get(&hc);
 
     if let Some(hc) = hashcode {
@@ -154,9 +174,9 @@ pub fn format_hashcode(hashcodes: &IntMap<u32, String>, hc: u32) -> String {
     }
 }
 
-impl Default for TrigDataType {
+impl Default for DefinitionDataType {
     fn default() -> Self {
-        TrigDataType::Unknown
+        DefinitionDataType::Unknown32
     }
 }
 

@@ -88,9 +88,8 @@ enum EdbCommand {
         /// .edb file to read
         filename: String,
 
-        /// Section ID to read
-        #[arg(value_parser = maybe_hex::<u32>)]
-        section: Option<u32>,
+        /// Output folder for spreadsheet (default: "./spreadsheets/{filename}/")
+        output_folder: Option<String>,
     },
     /// Extract maps
     Maps {
@@ -228,9 +227,10 @@ fn handle_edb(cmd: EdbCommand) -> anyhow::Result<()> {
             output_folder,
             trigger_defs,
         } => edb::maps::execute_command(filename, platform, output_folder, trigger_defs),
-        EdbCommand::Spreadsheets { filename, section } => {
-            edb::spreadsheets::execute_command(filename, section)
-        }
+        EdbCommand::Spreadsheets {
+            filename,
+            output_folder,
+        } => edb::spreadsheets::execute_command(filename, output_folder),
         EdbCommand::Textures {
             filename,
             platform,

@@ -2,19 +2,19 @@ use std::{
     collections::hash_map,
     fs::File,
     io::{BufReader, Cursor, Read, Seek},
-    path::PathBuf,
     sync::Arc,
 };
 
 use crossbeam::atomic::AtomicCell;
 use eframe::CreationContext;
-use egui::{epaint::ahash::HashMapExt, mutex::RwLock, Color32, FontData, FontDefinitions, NumExt};
+use egui::{mutex::RwLock, Color32, FontData, FontDefinitions, NumExt};
 use eurochef_edb::{
     binrw::{BinReaderExt, Endian},
     edb::EdbFile,
     versions::Platform,
     Hashcode, HashcodeUtils,
 };
+use eurochef_shared::filesystem::path::DissectedFilelistPath;
 use eurochef_shared::{
     hashcodes::parse_hashcodes, script::UXGeoScript, spreadsheets::UXGeoSpreadsheet,
     textures::UXGeoTexture,
@@ -24,9 +24,7 @@ use nohash_hasher::IntMap;
 
 use crate::{
     entities::{self},
-    fileinfo,
-    filesystem::path::DissectedFilelistPath,
-    maps,
+    fileinfo, maps,
     render::{entity::EntityRenderer, RenderStore},
     scripts, spreadsheet, textures,
 };
@@ -160,50 +158,10 @@ impl EurochefApp {
         if let Some(dissected_path) = DissectedFilelistPath::dissect(&path) {
             self.game = dissected_path.game.clone();
 
-            let mut hashcodes = IntMap::new();
-            if let Ok(hfs) = std::fs::read_to_string(dissected_path.hashcodes_file()) {
-                hashcodes.extend(parse_hashcodes(&hfs));
-            } else {
-                // Fall back to the 'hashcodes' directory
-                let exe_path = std::env::current_exe().unwrap();
-                let exe_dir = exe_path.parent().unwrap();
-                if let Ok(hfs) = std::fs::read_to_string(exe_dir.join(PathBuf::from_iter(&[
-                    "hashcodes",
-                    &dissected_path.game,
-                    "albert",
-                    "hashcodes.h",
-                ]))) {
-                    hashcodes.extend(parse_hashcodes(&hfs));
-                } else {
-                    warn!(
-                        "Couldn't find a hashcodes.h file for {} :(",
-                        dissected_path.game
-                    );
-                }
-            }
-
-            if let Ok(hfs) = std::fs::read_to_string(dissected_path.sound_hashcodes_file()) {
-                hashcodes.extend(parse_hashcodes(&hfs));
-            } else {
-                // Fall back to the 'hashcodes' directory
-                let exe_path = std::env::current_exe().unwrap();
-                let exe_dir = exe_path.parent().unwrap();
-                if let Ok(hfs) = std::fs::read_to_string(exe_dir.join(PathBuf::from_iter(&[
-                    "hashcodes",
-                    &dissected_path.game,
-                    "sonix",
-                    "sound.h",
-                ]))) {
-                    hashcodes.extend(parse_hashcodes(&hfs));
-                } else {
-                    warn!(
-                        "Couldn't find a sound.h file for {} :(",
-                        dissected_path.game
-                    );
-                }
-            }
-
-            self.hashcodes = Arc::new(hashcodes);
+            self.hashcodes = Arc::new(eurochef_shared::filesystem::load_hashcodes(
+                &dissected_path,
+                true,
+            ));
 
             // Index the folder and load it into the path cache
             info!(
@@ -360,9 +318,9 @@ impl EurochefApp {
 
         self.fileinfo = Some(fileinfo::FileInfoPanel::new(edb.header.clone()));
 
-        let spreadsheets = UXGeoSpreadsheet::read_all(&mut edb);
+        let spreadsheets = UXGeoSpreadsheet::read_all(&mut edb)?;
         if spreadsheets.len() > 0 {
-            self.spreadsheetlist = Some(spreadsheet::TextItemList::new(spreadsheets[0].clone()));
+            self.spreadsheetlist = Some(spreadsheet::TextItemList::new(spreadsheets.clone()));
         }
 
         if [

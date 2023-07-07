@@ -1,0 +1,144 @@
+0x1c10009: # msc_chrctr
+  0x14000021:
+    0: # First sheet
+      row_size: 112 # In bytes
+      columns:
+        - { type: unknown32 }
+        - { type: hashcode }
+        - { type: hashcode }
+        - { type: hashcode }
+        - { type: unknown32 }
+        - { type: float }
+        - { type: unknown32 }
+        - { type: unknown32 }
+        - { type: unknown32 }
+        - { type: float }
+        - { type: float }
+        - { type: unknown32 }
+        - { type: unknown32 }
+        - { type: unknown32 }
+        - { type: unknown32 }
+        - { type: unknown32 }
+        - { type: float }
+        - { type: unknown32 }
+        - { type: float }
+        - { type: float }
+        - { type: float }
+        - { type: unknown32 }
+        - { type: unknown32 }
+        - { type: unknown32 }
+        - { type: unknown32 }
+        - { type: unknown32 }
+        - { type: unknown32 }
+        - { type: unknown32 }
+
+0x1c10010: # msc_leveld
+  0x14000011:
+    0:
+      row_size: 68
+      columns:
+        - { name: File, type: hashcode } # 0x0
+        - { type: u32 } # 0x4
+        - { type: u32 } # 0x8
+        - { type: u32 } # 0xc
+        - { type: hashcode } # 0x10
+        - { type: hashcode } # 0x14
+        - { type: hashcode } # 0x18
+        - { type: unknown32 } # 0x1c
+        - { type: unknown32 } # 0x20
+        - { type: unknown32 } # 0x24
+        - { type: hashcode } # 0x28
+        - { type: hashcode } # 0x2c
+        - { type: hashcode } # 0x30
+        - { name: Minimap File, type: hashcode } # 0x34
+        - { name: Minimap Hashcode, type: hashcode } # 0x38
+        - { type: unknown32 } # 0x3c
+        - { type: unknown32 } # 0x40
+
+0x01c10029: # msc_achieve
+  0x14000038:
+    0:
+      row_size: 16
+      columns:
+        - { type: hashcode }
+        - { type: unknown32 }
+        - { type: unknown32 }
+        - { type: unknown32 }
+
+0x01c10022: # msc_context
+  0x1400002f:
+    0:
+      row_size: 12
+      columns:
+        - { type: hashcode }
+        - { type: hashcode }
+        - { type: hashcode }
+
+0x01c1002a: # msc_cred
+  0x1400003a:
+    0:
+      row_size: 12
+      columns:
+        - { type: hashcode }
+        - { type: unknown32 }
+        - { type: unknown32 }
+
+0x01c1000f: # msc_invitm
+  0x14000008:
+    0:
+      row_size: 44
+      columns:
+        - { type: unknown32 }
+        - { type: hashcode }
+        - { type: hashcode }
+        - { type: unknown32 }
+        - { type: unknown32 }
+        - { type: unknown32 }
+        - { type: unknown32 }
+        - { type: unknown32 }
+        - { type: unknown32 }
+        - { type: unknown32 }
+        - { type: unknown32 }
+    1:
+      row_size: 16
+
+0x01c10011: # msc_lipsnc
+  0x1400002b:
+    0:
+      row_size: 12
+      columns:
+        - { type: unknown32 }
+        - { type: unknown32 }
+        - { type: unknown32 }
+
+0x01c10026: # msc_missnfo
+  0x14000035:
+    0:
+      row_size: 28
+      columns:
+        - { type: hashcode }
+        - { type: hashcode }
+        - { type: hashcode }
+        - { type: hashcode }
+        - { type: unknown32 }
+        - { type: unknown32 }
+        - { type: hashcode }
+
+0x01c10025: # msc_proj
+  0x14000034:
+    0:
+      row_size: 8
+      columns:
+        - { type: unknown32 }
+        - { type: unknown32 }
+
+0x01c10021: # msc_scan
+  0x1400002e:
+    0:
+      row_size: 20
+      columns:
+        - { type: hashcode }
+        - { type: hashcode }
+        - { type: hashcode }
+        - { type: unknown32 }
+        - { type: unknown32 }

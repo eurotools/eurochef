@@ -7,7 +7,7 @@ use egui::{
     Pos2, Rect, Vec2,
 };
 use eurochef_edb::{Hashcode, HashcodeUtils};
-use eurochef_shared::maps::{TrigDataType, TriggerInformation};
+use eurochef_shared::maps::{DefinitionDataType, TriggerInformation};
 use fxhash::FxHashMap;
 use glam::{Quat, Vec3};
 use glow::HasContext;
@@ -917,7 +917,7 @@ impl MapFrame {
                                             {
                                                 (ti.name.clone(), ti.dtype)
                                             } else {
-                                                (None, TrigDataType::default())
+                                                (None, DefinitionDataType::default())
                                             };
 
                                             readonly_input!(
@@ -951,7 +951,7 @@ impl MapFrame {
                                         readonly_input!(
                                             ui,
                                             "Visual Object",
-                                            TrigDataType::Hashcode.to_string(&self.hashcodes, v)
+                                            DefinitionDataType::Hashcode.to_string(&self.hashcodes, v)
                                         );
                                         ui.end_row();
                                     }
@@ -959,7 +959,7 @@ impl MapFrame {
                                         readonly_input!(
                                             ui,
                                             "Visual Object File",
-                                            TrigDataType::Hashcode.to_string(&self.hashcodes, v)
+                                            DefinitionDataType::Hashcode.to_string(&self.hashcodes, v)
                                         );
                                         ui.end_row();
                                     }
@@ -967,7 +967,7 @@ impl MapFrame {
                                         readonly_input!(
                                             ui,
                                             "GameScript Index",
-                                            TrigDataType::U32.to_string(&self.hashcodes, v)
+                                            DefinitionDataType::U32.to_string(&self.hashcodes, v)
                                         );
                                         ui.end_row();
                                     }
@@ -975,7 +975,7 @@ impl MapFrame {
                                         readonly_input!(
                                             ui,
                                             "Collision Index",
-                                            TrigDataType::U32.to_string(&self.hashcodes, v)
+                                            DefinitionDataType::U32.to_string(&self.hashcodes, v)
                                         );
                                         ui.end_row();
                                     }
@@ -993,7 +993,7 @@ impl MapFrame {
                                         readonly_input!(
                                             ui,
                                             "Unk5",
-                                            TrigDataType::Unknown.to_string(&self.hashcodes, v)
+                                            DefinitionDataType::Unknown32.to_string(&self.hashcodes, v)
                                         );
                                         ui.end_row();
                                     }
@@ -1001,7 +1001,7 @@ impl MapFrame {
                                         readonly_input!(
                                             ui,
                                             "Unk6",
-                                            TrigDataType::Unknown.to_string(&self.hashcodes, v)
+                                            DefinitionDataType::Unknown32.to_string(&self.hashcodes, v)
                                         );
                                         ui.end_row();
                                     }
@@ -1009,7 +1009,7 @@ impl MapFrame {
                                         readonly_input!(
                                             ui,
                                             "Unk7",
-                                            TrigDataType::Unknown.to_string(&self.hashcodes, v)
+                                            DefinitionDataType::Unknown32.to_string(&self.hashcodes, v)
                                         );
                                         ui.end_row();
                                     }

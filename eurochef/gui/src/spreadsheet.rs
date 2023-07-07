@@ -1,4 +1,5 @@
 use egui::FontSelection;
+use eurochef_edb::Hashcode;
 use eurochef_shared::spreadsheets::{UXGeoSpreadsheet, UXGeoTextItem};
 
 pub struct TextItemList {
@@ -7,16 +8,16 @@ pub struct TextItemList {
     /// Search query for text item contents
     search_text: String,
 
-    spreadsheet: UXGeoSpreadsheet,
+    spreadsheets: Vec<(Hashcode, UXGeoSpreadsheet)>,
     selected_section: usize,
 }
 
 impl TextItemList {
-    pub fn new(spreadsheet: UXGeoSpreadsheet) -> Self {
+    pub fn new(spreadsheets: Vec<(Hashcode, UXGeoSpreadsheet)>) -> Self {
         Self {
             search_hashcode: String::new(),
             search_text: String::new(),
-            spreadsheet,
+            spreadsheets,
             selected_section: 0,
         }
     }
@@ -35,29 +36,41 @@ impl TextItemList {
 
         ui.separator();
 
-        let filtered_items: Vec<Vec<&UXGeoTextItem>> = self
-            .spreadsheet
-            .0
-            .iter()
-            .map(|s| {
-                s.entries
-                    .iter()
-                    .filter(|v| {
-                        if self.search_hashcode.is_empty() {
-                            true
-                        } else {
-                            format!("{:08x}", v.hashcode)
-                                .contains(&self.search_hashcode.to_lowercase())
-                        }
-                    })
-                    .filter(|v| {
-                        v.text
-                            .to_lowercase()
-                            .contains(&self.search_text.to_lowercase())
-                    })
-                    .collect()
-            })
-            .collect();
+        let spreadsheet = self.spreadsheets.iter().find(|(_, v)| match v {
+            UXGeoSpreadsheet::Data(_) => false,
+            UXGeoSpreadsheet::Text(_) => true,
+        });
+
+        if spreadsheet.is_none() {
+            ui.heading("No text spreadsheets found");
+            return;
+        }
+
+        let (_, spreadsheet) = spreadsheet.unwrap();
+
+        let filtered_items: Vec<Vec<&UXGeoTextItem>> = match spreadsheet {
+            UXGeoSpreadsheet::Text(v) => v,
+            _ => unreachable!(),
+        }
+        .iter()
+        .map(|s| {
+            s.entries
+                .iter()
+                .filter(|v| {
+                    if self.search_hashcode.is_empty() {
+                        true
+                    } else {
+                        format!("{:08x}", v.hashcode).contains(&self.search_hashcode.to_lowercase())
+                    }
+                })
+                .filter(|v| {
+                    v.text
+                        .to_lowercase()
+                        .contains(&self.search_text.to_lowercase())
+                })
+                .collect()
+        })
+        .collect();
 
         ui.horizontal_top(|ui| {
             ui.vertical(|ui| {
@@ -66,7 +79,13 @@ impl TextItemList {
                     .always_show_scroll(true)
                     .show(ui, |ui| {
                         let mut current_set = 0;
-                        for (i, s) in self.spreadsheet.0.iter().enumerate() {
+                        for (i, s) in match spreadsheet {
+                            UXGeoSpreadsheet::Text(v) => v,
+                            _ => unreachable!(),
+                        }
+                        .iter()
+                        .enumerate()
+                        {
                             if filtered_items[i].is_empty() {
                                 continue;
                             }

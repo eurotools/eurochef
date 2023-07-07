@@ -1054,6 +1054,7 @@ dependencies = [
  "eurochef-shared",
  "glob",
  "gltf",
+ "hex",
  "image",
  "indicatif",
  "parse_int",

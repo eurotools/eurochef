@@ -1,6 +1,7 @@
 use anyhow::anyhow;
 
 pub mod entities;
+pub mod filesystem;
 pub mod hashcodes;
 pub mod maps;
 pub mod platform;
