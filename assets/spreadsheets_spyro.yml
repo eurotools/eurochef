@@ -1,0 +1,215 @@
+0x01000037: # realm1a
+  0x1400000a:
+    0:
+      row_size: 36
+      columns:
+        - { type: hashcode }
+        - { type: unknown32 }
+        - { type: unknown32 }
+        - { type: float }
+        - { type: unknown32 }
+        - { type: float }
+        - { type: unknown32 }
+        - { type: unknown32 }
+        - { type: unknown32 }
+    1:
+      row_size: 48
+      columns:
+        - { type: hashcode }
+        - { type: hashcode }
+        - { type: hashcode }
+        - { type: hashcode }
+        - { type: float }
+        - { type: float }
+        - { type: float }
+        - { type: float }
+        - { type: float }
+        - { type: float }
+        - { type: unknown32 }
+        - { type: unknown32 }
+    2:
+      row_size: 16
+      columns:
+        - { type: u32 }
+        - { type: float }
+        - { type: float }
+        - { type: float }
+
+0x01000039: # realm1b
+  0x14000019: &generator_table
+    0:
+      row_size: 44
+      columns:
+        - { type: hashcode }
+        - { type: hashcode }
+        - { type: hashcode }
+        - { type: unknown32 }
+        - { type: float }
+        - { type: unknown32 }
+        - { type: unknown32 }
+        - { type: unknown32 }
+        - { type: hashcode }
+        - { type: hashcode }
+        - { type: hashcode }
+
+0x0100003b: # realm2a
+  0x1400001b: *generator_table
+
+0x01000038: # realm3a
+  0x14000022: *generator_table
+
+0x010000e5: # realm3z
+  0x1400002b:
+    0:
+      row_size: 80
+      columns:
+        - { type: float }
+        - { type: float }
+        - { type: float }
+        - { type: float }
+        - { type: float }
+        - { type: float }
+        - { type: float }
+        - { type: float }
+        - { type: float }
+        - { type: float }
+        - { type: float }
+        - { type: float }
+        - { type: float }
+        - { type: float }
+        - { type: float }
+        - { type: float }
+        - { type: float }
+        - { type: float }
+        - { type: float }
+        - { type: float }
+    1:
+      row_size: 12
+      columns:
+        - { type: unknown32 }
+        - { type: u32 }
+        - { type: u32 }
+
+0x0100005f: # realm4c
+  0x14000014:
+    0:
+      row_size: 96
+      columns:
+        - { type: hashcode }
+        - { type: float }
+        - { type: float }
+        - { type: float }
+        - { type: float }
+        - { type: float }
+        - { type: float }
+        - { type: float }
+        - { type: float }
+        - { type: float }
+        - { type: float }
+        - { type: float }
+        - { type: float }
+        - { type: float }
+        - { type: float }
+        - { type: float }
+        - { type: float }
+        - { type: float }
+        - { type: float }
+        - { type: float }
+        - { type: float }
+        - { type: hashcode }
+        - { type: hashcode }
+        - { type: hashcode }
+
+0x010000a1:
+  0x14000029: *generator_table
+  0x1400002a:
+    0:
+      row_size: 24
+      columns:
+        - { type: unknown32 }
+        - { type: float }
+        - { type: float }
+        - { type: float }
+        - { type: float }
+        - { type: unknown32 }
+
+0x01000050: # gameinfo
+  0x14000005:
+    0:
+      row_size: 64
+      columns:
+        - { type: unknown32 }
+        - { type: hashcode }
+        - { type: hashcode }
+        - { type: unknown32 }
+        - { type: float }
+        - { type: float }
+        - { type: float }
+        - { type: unknown32 }
+        - { type: unknown32 }
+        - { type: unknown32 }
+        - { type: unknown32 }
+        - { type: unknown32 }
+        - { type: unknown32 }
+        - { type: unknown32 }
+        - { type: unknown32 }
+        - { type: unknown32 }
+  0x14000011:
+    0: &task_table
+      row_size: 28
+      columns:
+        - { type: hashcode }
+        - { type: hashcode }
+        - { type: hashcode }
+        - { type: unknown32 }
+        - { type: unknown32 }
+        - { type: unknown32 }
+        - { type: unknown32 }
+    1: *task_table
+    2: *task_table
+    3: *task_table
+    4: *task_table
+    5: *task_table
+    6: *task_table
+    7: *task_table
+    8: *task_table
+    9: *task_table
+    10: *task_table
+    11: *task_table
+    12: *task_table
+    13: *task_table
+    14: *task_table
+    15: *task_table
+    16: *task_table
+    17: *task_table
+  0x14000020:
+    0:
+      row_size: 32
+      columns:
+        - { type: hashcode }
+        - { type: hashcode }
+        - { type: hashcode }
+        - { type: hashcode }
+        - { type: unknown32 }
+        - { type: unknown32 }
+        - { type: unknown32 }
+        - { type: unknown32 }
+  0x14000027:
+    0:
+      row_size: 16
+      columns:
+        - { type: hashcode }
+        - { type: hashcode }
+        - { type: hashcode }
+        - { type: u32 }
+    1:
+      row_size: 8
+      columns:
+        - { type: hashcode }
+        - { type: u32 }
+  0x14000028:
+    0:
+      row_size: 8
+      columns:
+        - { type: hashcode }
+        - { type: unknown32 }
