@@ -88,11 +88,12 @@ pub fn execute_command(filename: String, output_folder: Option<String>) -> anyho
             }
         );
 
-        let mut output = File::create(output_folder.join(format!("{hashcode:08x}.csv")))?;
-
         match spreadsheet {
             UXGeoSpreadsheet::Data(data) => {
                 for (sheet_num, sheet) in data.iter().enumerate() {
+                    let mut output = File::create(
+                        output_folder.join(format!("{hashcode:08x}_{sheet_num}.csv")),
+                    )?;
                     edb.seek(SeekFrom::Start(sheet.address as u64))?;
                     let sheet_definition = match spreadsheet_definition.0.get(&hashcode) {
                         None => {
@@ -157,7 +158,9 @@ pub fn execute_command(filename: String, output_folder: Option<String>) -> anyho
             }
 
             UXGeoSpreadsheet::Text(text) => {
-                for s in text {
+                for (i, s) in text.iter().enumerate() {
+                    let mut output =
+                        File::create(output_folder.join(format!("{hashcode:08x}_{i}.csv")))?;
                     writeln!(output, "# Section {:08x}", s.hashcode)?;
                     spreadsheet.export_text_to_csv(&mut output, s.hashcode)?;
                 }
