@@ -502,7 +502,7 @@ impl MapFrame {
                         // Animate if the trigger is selected
                         time as f32 % (length as f32 / framerate),
                         &render_store.read(),
-                        |q| render_queue.push(q),
+                        &mut |q| render_queue.push(q),
                     )
                 }
                 _ => {}
@@ -585,7 +585,7 @@ impl MapFrame {
                                         1. / framerate
                                     },
                                     &render_store.read(),
-                                    |q| render_queue.push(q),
+                                    &mut |q| render_queue.push(q),
                                 )
                             }
                             _ => {}

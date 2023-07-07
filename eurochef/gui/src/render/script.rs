@@ -14,7 +14,7 @@ pub fn render_script<F>(
     script_hashcode: Hashcode,
     current_time: f32,
     render_store: &RenderStore,
-    mut render: F,
+    mut render: &mut F,
 ) where
     F: FnMut(QueuedEntityRender),
 {
@@ -141,6 +141,18 @@ pub fn render_script<F>(
                 rotation: rotation * transform.1,
                 scale: scale * transform.2,
             }),
+            UXGeoScriptCommandData::SubScript { hashcode, file } => {
+                render_script(
+                    position + (rotation.mul_vec3(transform.0)),
+                    rotation * transform.1,
+                    scale * transform.2,
+                    if file == u32::MAX { current_file } else { file },
+                    hashcode,
+                    current_time,
+                    render_store,
+                    render,
+                );
+            }
             _ => {}
         }
     }

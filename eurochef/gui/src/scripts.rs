@@ -202,7 +202,7 @@ impl ScriptListPanel {
                 current_script,
                 current_time,
                 &render_store.read(),
-                |q| render_queue.push(q),
+                &mut |q| render_queue.push(q),
             );
 
             for r in render_queue.iter() {
