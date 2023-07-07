@@ -74,7 +74,6 @@ pub fn execute_command(filename: String, output_folder: Option<String>) -> anyho
     }
 
     let spreadsheets = UXGeoSpreadsheet::read_all(&mut edb)?;
-    assert!(spreadsheets.len() <= 1);
     if spreadsheets.is_empty() {
         println!("No spreadsheets found in file");
         return Ok(());
