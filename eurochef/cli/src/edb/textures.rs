@@ -34,8 +34,8 @@ pub fn execute_command(
         .or(Platform::from_path(&filename))
         .expect("Failed to detect platform");
 
-    let mut file = File::open(&filename)?;
-    let mut reader = BufReader::new(file);
+    let file = File::open(&filename)?;
+    let reader = BufReader::new(file);
     let mut edb = EdbFile::new(Box::new(reader), platform)?;
     let header = edb.header.clone();
 

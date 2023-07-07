@@ -1,8 +1,9 @@
 use std::io::{Read, Seek};
 
 use bytemuck::{Pod, Zeroable};
+use eurochef_edb::edb::EdbFile;
 use eurochef_edb::{
-    binrw::{BinReaderExt, Endian},
+    binrw::BinReaderExt,
     common::{EXVector, EXVector2, EXVector3},
     edb::DatabaseReader,
     entity::EXGeoEntity,
@@ -30,15 +31,12 @@ pub struct UXVertex {
     pub color: EXVector,
 }
 
-pub fn read_entity<R: Read + Seek>(
+pub fn read_entity(
     ent: &EXGeoEntity,
     vertex_data: &mut Vec<UXVertex>,
     indices: &mut Vec<u32>,
     strips: &mut Vec<TriStrip>,
-    endian: Endian,
-    version: u32,
-    platform: Platform,
-    data: &mut R,
+    edb: &mut EdbFile,
     depth_limit: u32,
     remove_transparent: bool,
     convert_strips: bool,
@@ -55,10 +53,7 @@ pub fn read_entity<R: Read + Seek>(
                     vertex_data,
                     indices,
                     strips,
-                    endian,
-                    version,
-                    platform,
-                    data,
+                    edb,
                     depth_limit - 1,
                     remove_transparent,
                     convert_strips,
@@ -66,7 +61,7 @@ pub fn read_entity<R: Read + Seek>(
             }
         }
         EXGeoEntity::Mesh(mesh) => {
-            if let Some(edb) = data.downcast_to_edbfile() {
+            if let Some(edb) = edb.downcast_to_edbfile() {
                 for v in &mesh.texture_list {
                     edb.add_reference_internal(
                         edb.header.texture_list[*v as usize].common.hashcode,
@@ -74,11 +69,11 @@ pub fn read_entity<R: Read + Seek>(
                 }
             }
 
-            if platform == Platform::Ps2 {
+            if edb.platform == Platform::Ps2 {
                 panic!("PS2 support is disabled");
             }
 
-            let vertex_colors = if platform.is_gx() {
+            let vertex_colors = if edb.platform.is_gx() {
                 vec![[0.5, 0.5, 0.5, 1.0]; mesh.vertices.len()]
             } else {
                 mesh.vertex_colors
@@ -109,7 +104,7 @@ pub fn read_entity<R: Read + Seek>(
                     }),
             );
 
-            if platform == Platform::GameCube || platform == Platform::Wii {
+            if edb.platform.is_gx() {
                 // Move the vertices out of the main array, as we have to rebuild them
                 let original_verts = vertex_data[vertex_offset as usize..].to_vec();
                 vertex_data.drain(vertex_offset as usize..);
@@ -162,7 +157,7 @@ pub fn read_entity<R: Read + Seek>(
 
                             // TODO(cohae): The only way we can know the amount of vertex colors is by iterating through all indices. This is something for the entity handling rewrite.
                             let mut color = [0u8; 4];
-                            data.seek(std::io::SeekFrom::Start(
+                            edb.seek(std::io::SeekFrom::Start(
                                 mesh.data
                                     .vertex_color_offset
                                     .as_ref()
@@ -170,9 +165,9 @@ pub fn read_entity<R: Read + Seek>(
                                     .offset_absolute()
                                     + 4 * c.color as u64,
                             ))?;
-                            data.read_exact(&mut color)?;
+                            edb.read_exact(&mut color)?;
 
-                            data.seek(std::io::SeekFrom::Start(
+                            edb.seek(std::io::SeekFrom::Start(
                                 mesh.data
                                     .texture_coordinates
                                     .as_ref()
@@ -180,7 +175,7 @@ pub fn read_entity<R: Read + Seek>(
                                     .offset_absolute()
                                     + 4 * c.uv as u64,
                             ))?;
-                            let uv: (i16, i16) = data.read_type(endian)?;
+                            let uv: (i16, i16) = edb.read_type(edb.endian)?;
 
                             new_indices.push(vertex_data.len() as u32 - vertex_offset);
                             index_count += 1;
@@ -265,15 +260,15 @@ pub fn read_entity<R: Read + Seek>(
                     {
                         if (i - index_offset_local as usize) % 2 == 0 {
                             indices.extend([
-                                vertex_offset + new_indices[i + 2] as u32,
-                                vertex_offset + new_indices[i + 1] as u32,
-                                vertex_offset + new_indices[i] as u32,
+                                vertex_offset + new_indices[i + 2],
+                                vertex_offset + new_indices[i + 1],
+                                vertex_offset + new_indices[i],
                             ])
                         } else {
                             indices.extend([
-                                vertex_offset + new_indices[i] as u32,
-                                vertex_offset + new_indices[i + 1] as u32,
-                                vertex_offset + new_indices[i + 2] as u32,
+                                vertex_offset + new_indices[i],
+                                vertex_offset + new_indices[i + 1],
+                                vertex_offset + new_indices[i + 2],
                             ])
                         }
                     }

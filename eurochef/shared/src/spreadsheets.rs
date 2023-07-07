@@ -31,7 +31,7 @@ impl UXGeoSpreadsheet {
         let header = edb.header.clone();
         for s in &header.spreadsheet_list {
             if s.stype != 1 {
-                warn!("Skipping data spreadsheet");
+                warn!("Skipping data spreadsheet (0x{:x})", s.common.address);
                 continue;
             }
 

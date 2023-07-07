@@ -45,8 +45,8 @@ pub fn execute_command(
         anyhow::bail!("Entity extraction is only supported for PC and Xbox (360) (for now)")
     }
 
-    let mut file = File::open(&filename)?;
-    let mut reader = BufReader::new(file);
+    let file = File::open(&filename)?;
+    let reader = BufReader::new(file);
     let mut edb = EdbFile::new(Box::new(reader), platform)?;
     let header = edb.header.clone();
 
@@ -167,9 +167,6 @@ pub fn execute_command(
                 &mut vertex_data,
                 &mut indices,
                 &mut strips,
-                edb.endian,
-                header.version,
-                platform,
                 &mut edb,
                 4,
                 false,
