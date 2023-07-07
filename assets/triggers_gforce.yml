@@ -57,7 +57,7 @@ triggers:
   20:
     name: TR_Hurtzone
     values:
-      3: { type: f32 }
+      3: { type: float }
   22:
     name: FX_Precipitation
   23:

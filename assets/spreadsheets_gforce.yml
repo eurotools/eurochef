@@ -88,16 +88,16 @@
     0:
       row_size: 44
       columns:
-        - { type: unknown32 }
-        - { type: hashcode }
-        - { type: hashcode }
-        - { type: unknown32 }
-        - { type: unknown32 }
+        - { name: Hashcode, type: hashcode }
+        - { name: Name, type: hashcode }
+        - { name: Description, type: hashcode }
         - { type: unknown32 }
         - { type: unknown32 }
         - { type: unknown32 }
         - { type: unknown32 }
         - { type: unknown32 }
+        - { type: unknown32 }
+        - { name: Amount, type: u32 }
         - { type: unknown32 }
     1:
       row_size: 16
