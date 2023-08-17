@@ -2,7 +2,7 @@
 
 _Cooking up some EDBs_
 
-Eurochef provides tools and Rust crates for working with Eurocom EngineX(T) files, including filelist, .edb, .sfx and .elx files.
+Eurochef provides tools and Rust crates for working with Eurocom EngineX(T) files; including filelist, .edb, .sfx and .elx files.
 
 ## Features
 
@@ -36,7 +36,7 @@ _(Priority currently lies with Spyro and G-Force)_
 | Pirates of the Caribbean: At World's End (252) | ✅/❌                     | ✅/❌  | ❌       | ❌        | ❌          | ❌         | ✅/❌          |
 | Ice Age: Dawn of the Dinosaurs (260)           | ✅/❌                     | ✅/❌  | ❌       | ✅/❌      | ❌          | ❌         | ✅/❌          |
 | G-Force (259)                                  | ✅/❌                     | ✅/❌  | ❌       | ✅/❌      | ❌          | ❌         | ✅/❌          |
-| Spiderman 4 (263)                              | ✅/❌                     | ✅/❌  | ❌       | ✅/❌      | ❌          | ❌         | ✅/❌          |
+| Spider-Man 4 (263)                             | ✅/❌                     | ✅/❌  | ❌       | ✅/❌      | ❌          | ❌         | ✅/❌          |
 | GoldenEye 007 (263)                            | ✅/❌                     | ✅/❌  | ❌       | ✅/❌      | ❌          | ❌         | ✅/❌          |
 
 <sup>[1]</sup> Texture/entity support only indicates the ability to read headers and frame data. See the platform matrix for texture/mesh encoding/decoding support
@@ -55,8 +55,8 @@ _Each field is formatted as R/W. For example, if a feature can be read, but not 
 | GameCube      | BE     | ✅<sup>[2]</sup>/❌ | ❌      | ✅/❌               | 🆗                            |
 | Wii           | BE     | ✅<sup>[2]</sup>/❌ | ❌      | ✅/❌               | 🆗                            |
 | Wii U         | BE     | ❌                 | ❌      | ❌                 | ❌                            |
-| Playstation 2 | LE     | ✅<sup>[2]</sup>/❌ | ❌      | 🚧<sup>[3]</sup>/❌ | 🆗                            |
-| Playstation 3 | BE     | ❌                 | ❌      | ❌                 | ❌                            |
+| PlayStation 2 | LE     | ✅<sup>[2]</sup>/❌ | ❌      | 🚧<sup>[3]</sup>/❌ | 🆗                            |
+| PlayStation 3 | BE     | ❌                 | ❌      | ❌                 | ❌                            |
 
 <sup>[2]</sup> The most significant formats have been implemented, no games using the remaining formats are currently known
 
