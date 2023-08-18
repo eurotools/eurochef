@@ -147,14 +147,14 @@ enum EdbCommand {
 enum FilelistCommand {
     /// Extract a filelist
     Extract {
-        /// .bin file to use
+        /// .bin file to use (don't use a .000 file)
         filename: String,
 
         /// The folder to extract to (will be created if it doesnt exist)
         #[arg(default_value = "./")]
         output_folder: String,
 
-        /// Create a .scr file in the output folder
+        /// Create a .scr file in the output folder listing the contents in the right order, for future repacking
         #[arg(short = 's', long)]
         create_scr: bool,
     },
