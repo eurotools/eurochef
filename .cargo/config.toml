@@ -1,2 +1,7 @@
 [registries.crates-io]
 protocol = "sparse"
+
+# swy: stop depending on vcruntimeXX.dll, doesn't really add any noticeable weight to the final binaries:
+#      https://docs.rs/static_vcruntime/latest/static_vcruntime/#issues
+[target.'cfg(all(windows, target_env = "msvc"))']
+rustflags = ["-C", "target-feature=+crt-static"]
