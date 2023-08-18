@@ -219,7 +219,9 @@ pub fn execute_command(
 
         //      so here we're always making the buffer big enough to cover the total space that we need, and then pasting the file to cover
         //      from the start, until its maximum size, anything that remains keeps the previous data, because that's what we like ¯\_(ツ)_/¯
-        common_garbage_buf.resize(max(common_garbage_buf.len(), filedata.len()), 0);
+        let filedata_len_plus_padding = filedata.len() + difference;
+
+        common_garbage_buf.resize(max(common_garbage_buf.len(), filedata_len_plus_padding), 0x00);
         common_garbage_buf[0 .. filedata.len()].copy_from_slice(&filedata);
 
         println!(
@@ -232,11 +234,6 @@ pub fn execute_command(
             //      this should make the diff engines' life easier. and we should
             //      get a byte-by-byte perfect reconstruction for pristine files,
             //      (as long as they get stored in the same order with the help of a handy .scr spec file)
-            let filedata_len_plus_padding = filedata.len() + difference;
-
-            if common_garbage_buf.len() < filedata_len_plus_padding {
-                common_garbage_buf.resize(filedata_len_plus_padding, 0);
-            }
             f_data.write(&common_garbage_buf[filedata.len() .. filedata_len_plus_padding])?;
         }
     }
