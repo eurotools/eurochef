@@ -19,6 +19,7 @@ pub struct TextureList {
     filter_animated: bool,
 
     enlarged_texture: Option<(usize, u32)>,
+    enlarged_zoom: f32,
 
     fallback_texture: egui::TextureHandle,
 }
@@ -34,6 +35,7 @@ impl TextureList {
             filter_animated: false,
 
             enlarged_texture: None,
+            enlarged_zoom: 2.5,
 
             fallback_texture: ctx.load_texture("fallback", 
             egui::ColorImage::from_rgba_unmultiplied(
@@ -224,7 +226,7 @@ impl TextureList {
     }
 
     pub fn show_enlarged_window(&mut self, ctx: &egui::Context) {
-        let mut window_open = self.enlarged_texture.is_some();
+        let mut window_open: bool = self.enlarged_texture.is_some();
         if let Some(enlarged_texture) = self.enlarged_texture {
             let (i, _hashcode) = enlarged_texture;
             let it = &self.textures[i];
@@ -236,6 +238,10 @@ impl TextureList {
                     .collapsible(false)
                     .default_height(ctx.available_rect().height() * 0.70 as f32)
                     .show(ctx, |ui| {
+                        if (ctx.frame_nr() == 0) {
+                            self.enlarged_zoom = 2.5; // swy: reset the zoom level each time we open a preview
+                        }
+
                         let time = self.start_time.elapsed().as_secs_f32();
                         let frametime_scale = t.frame_count as f32 / t.frames.len() as f32;
                         let frame_time = (1. / t.framerate as f32) * frametime_scale;
@@ -247,7 +253,11 @@ impl TextureList {
                             &frames[0]
                         };
 
-                        egui::Image::new(current, current.size_vec2() * 2.5).ui(ui);
+                        if let pos = ctx.input(|i| i.zoom_delta()) {
+                            self.enlarged_zoom *= pos;
+                        }
+
+                        egui::Image::new(current, current.size_vec2() * self.enlarged_zoom).ui(ui);
 
                         // TODO(cohae): Animation checkbox, when unticked, show frame slider
                     });
