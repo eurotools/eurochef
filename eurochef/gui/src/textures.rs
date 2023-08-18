@@ -20,6 +20,7 @@ pub struct TextureList {
 
     enlarged_texture: Option<(usize, u32)>,
     enlarged_zoom: f32,
+    enlarged_zoom_default: f32,
 
     fallback_texture: egui::TextureHandle,
 }
@@ -35,7 +36,8 @@ impl TextureList {
             filter_animated: false,
 
             enlarged_texture: None,
-            enlarged_zoom: 2.5,
+            enlarged_zoom_default: 2.5,
+            enlarged_zoom: 0.0,
 
             fallback_texture: ctx.load_texture("fallback", 
             egui::ColorImage::from_rgba_unmultiplied(
@@ -46,7 +48,7 @@ impl TextureList {
             ),
             egui::TextureOptions::default()),
         };
-
+        s.enlarged_zoom = s.enlarged_zoom_default; // swy: can't self-assign values from other fields above ???
         s.load_textures(ctx);
 
         s
@@ -238,10 +240,6 @@ impl TextureList {
                     .collapsible(false)
                     .default_height(ctx.available_rect().height() * 0.70 as f32)
                     .show(ctx, |ui| {
-                        if (ctx.frame_nr() == 0) {
-                            self.enlarged_zoom = 2.5; // swy: reset the zoom level each time we open a preview
-                        }
-
                         let time = self.start_time.elapsed().as_secs_f32();
                         let frametime_scale = t.frame_count as f32 / t.frames.len() as f32;
                         let frame_time = (1. / t.framerate as f32) * frametime_scale;
@@ -266,6 +264,7 @@ impl TextureList {
 
         if !window_open {
             self.enlarged_texture = None;
+            self.enlarged_zoom = self.enlarged_zoom_default; // swy: reset the zoom level each time we close a preview
         }
     }
 }
