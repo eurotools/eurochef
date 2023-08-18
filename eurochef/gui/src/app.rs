@@ -489,7 +489,7 @@ impl eframe::App for EurochefApp {
 
         // swy: queue a load for the first drag-and-dropped file we encounter here;
         //      Rust seems like a very sane language, not verbose at all ¯\_(ツ)_/¯
-        ctx.input(|i: &egui::InputState| {
+        ctx.input(|i| {
             if !i.raw.dropped_files.is_empty() {
                 for file in &i.raw.dropped_files {
                     let mut info = if let Some(path) = &file.path {
@@ -503,14 +503,18 @@ impl eframe::App for EurochefApp {
                     println!("Dragged the following file into the main window: {}", info);
 
                     // swy: put the path and its data inside load_input, load_clone is like a pointer
-                    let mut f = File::open(&info).unwrap();
-                    let mut data = vec![];
-                    f.read_to_end(&mut data).unwrap();
+                    match File::open(&info) {
+                        Err(why) => println!("Couldn't read «{}», skipping: {}", info, why),
+                        Ok(mut f) => {
+                            let mut data = vec![];
+                            f.read_to_end(&mut data).unwrap();
 
-                    load_clone.store(Some((data, info.to_string())));
+                            load_clone.store(Some((data, info)));
 
-                    // swy: skip the rest, for the time being, we only care about the first one
-                    break;
+                            // swy: skip the rest, for the time being, we only care about the first one
+                            break;
+                        }
+                    }
                 }
             }
         });

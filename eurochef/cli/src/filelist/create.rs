@@ -205,7 +205,7 @@ pub fn execute_command(
         // Pad next data to 2048 bytes
         let unaligned_pos = f_data.stream_position()?;
         let aligned_pos = (unaligned_pos + 0x7ff) & !0x7ff; /* swy: 2048 - 1 = 0x7ff */
-        let difference: usize = (aligned_pos - unaligned_pos).try_into().unwrap();
+        let difference: usize = (aligned_pos - unaligned_pos) as usize;
         println!(
             "{} {} remaining space: {:#x} - {:#x} = {:#x}",
             i, vpath, unaligned_pos, aligned_pos, difference
