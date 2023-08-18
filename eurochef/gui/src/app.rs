@@ -486,6 +486,35 @@ impl eframe::App for EurochefApp {
         } = self;
 
         let load_clone = load_input.clone();
+
+        // swy: queue a load for the first drag-and-dropped file we encounter here;
+        //      Rust seems like a very sane language, not verbose at all ¯\_(ツ)_/¯
+        ctx.input(|i: &egui::InputState| {
+            if !i.raw.dropped_files.is_empty() {
+                for file in &i.raw.dropped_files {
+                    let mut info = if let Some(path) = &file.path {
+                        path.display().to_string()
+                    } else if !file.name.is_empty() {
+                        file.name.clone()
+                    } else {
+                        "???".to_owned()
+                    };
+
+                    println!("Dragged the following file into the main window: {}", info);
+
+                    // swy: put the path and its data inside load_input, load_clone is like a pointer
+                    let mut f = File::open(&info).unwrap();
+                    let mut data = vec![];
+                    f.read_to_end(&mut data).unwrap();
+
+                    load_clone.store(Some((data, info.to_string())));
+
+                    // swy: skip the rest, for the time being, we only care about the first one
+                    break;
+                }
+            }
+        });
+
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             egui::menu::bar(ui, |ui| {
                 ui.menu_button("File", |ui| {
