@@ -36,17 +36,19 @@ impl RenderUniforms {
         aspect_ratio: f32,
         time: f32,
     ) {
+        let mut aspect_ratio_vert = (1.0 / aspect_ratio).max(1.0);
+        
         let mut projection = if orthographic {
             glam::Mat4::orthographic_rh_gl(
-                (-aspect_ratio * -camera.zoom()) * 2.0,
-                (aspect_ratio * -camera.zoom()) * 2.0,
-                (1.0 * -camera.zoom()) * 2.0,
-                (-1.0 * -camera.zoom()) * 2.0,
+                (-(aspect_ratio * aspect_ratio_vert) * -camera.zoom()) * 2.0,
+                ((aspect_ratio * aspect_ratio_vert) * -camera.zoom()) * 2.0,
+                (aspect_ratio_vert * -camera.zoom()) * 2.0,
+                (-aspect_ratio_vert * -camera.zoom()) * 2.0,
                 -2500.0,
                 2500.0,
             )
         } else {
-            glam::Mat4::perspective_rh(90.0_f32.to_radians(), aspect_ratio, 0.02, 2000.0)
+            glam::Mat4::perspective_rh(2.0 * aspect_ratio_vert.atan(), aspect_ratio, 0.02, 2000.0)
         };
 
         if !orthographic {
