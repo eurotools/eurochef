@@ -189,7 +189,7 @@ impl EntityListPanel {
     pub fn show(&mut self, context: &egui::Context, ui: &mut egui::Ui) {
         if self.entity_renderer.is_some() {
             ui.horizontal(|ui| {
-                if ui.button("Back").clicked() {
+                if ui.button("< Back").clicked() {
                     self.entity_renderer = None;
                     return;
                 }
