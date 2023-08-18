@@ -148,6 +148,8 @@ pub fn execute_command(
     );
     pb.set_message("Packing files");
 
+    let mut common_garbage_buf = vec![];
+
     // Virtual path, real path
     for (i, (vpath, rpath)) in file_paths.iter().enumerate().progress_with(pb) {
         let mut filedata = vec![];
@@ -202,10 +204,16 @@ pub fn execute_command(
 
         f_data.write_all(&filedata)?;
 
+
         // Pad next data to 2048 bytes
         let unaligned_pos = f_data.stream_position()?;
         let aligned_pos = (unaligned_pos + 0x7ff) & !0x7ff; /* swy: 2048 - 1 = 0x7ff */
         let difference: usize = (aligned_pos - unaligned_pos) as usize;
+
+        use core::cmp::max;
+        common_garbage_buf.resize(max(common_garbage_buf.len(), filedata.len()), 0);
+        common_garbage_buf[0 .. filedata.len()].copy_from_slice(&filedata);
+
         println!(
             "{} {} remaining space: {:#x} - {:#x} = {:#x}",
             i, vpath, unaligned_pos, aligned_pos, difference
@@ -215,7 +223,11 @@ pub fn execute_command(
             // swy: fill out the space with 'a's for now, at least this should make
             //      the diff engines' life easier without an all-zeros pad buffer
             let fill = b"a".repeat(difference);
-            f_data.write(&fill)?;
+
+            if common_garbage_buf.len() < filedata.len() + difference {
+                common_garbage_buf.resize(filedata.len() + difference, 0);
+            }
+            f_data.write(&common_garbage_buf[filedata.len() .. filedata.len() + difference])?;
         }
     }
 
