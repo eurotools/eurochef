@@ -41,7 +41,7 @@ png = "0.17.9"
 serde_yaml = "0.9"
 parse_int = "0.6.0"
 nohash-hasher = "0.2.0"
-clap = "4.3.4"
+clap = { version = "4.3.4", features = ["derive"] }
 fxhash = "0.2.1"
 genmesh = "0.6.2"
 bitflags = "2.3.3"
