@@ -64,7 +64,7 @@ fn main() {
     let web_options = eframe::WebOptions::default();
 
     wasm_bindgen_futures::spawn_local(async {
-        eframe::start_web(
+        eframe::WebRunner(
             "the_canvas_id", // hardcode it
             web_options,
             Box::new(|cc| Box::new(eurochef_gui::EurochefApp::new(None, None, cc))),
