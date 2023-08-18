@@ -659,12 +659,12 @@ impl eframe::App for EurochefApp {
                                     ui.selectable_value(
                                         selected_platform,
                                         Platform::Ps2,
-                                        "Playstation 2",
+                                        "PlayStation 2",
                                     );
                                     ui.selectable_value(
                                         selected_platform,
                                         Platform::Ps3,
-                                        "Playstation 3",
+                                        "PlayStation 3",
                                     );
                                     ui.selectable_value(
                                         selected_platform,
