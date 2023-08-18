@@ -15,6 +15,7 @@ use walkdir::WalkDir;
 
 use crate::filelist::TICK_STRINGS;
 use crate::PlatformArg;
+use core::cmp::max;
 
 pub fn execute_command(
     input_folder: String,
@@ -202,6 +203,7 @@ pub fn execute_command(
             },
         ));
 
+        // swy: write the actual file contents
         f_data.write_all(&filedata)?;
 
 
@@ -210,7 +212,13 @@ pub fn execute_command(
         let aligned_pos = (unaligned_pos + 0x7ff) & !0x7ff; /* swy: 2048 - 1 = 0x7ff */
         let difference: usize = (aligned_pos - unaligned_pos) as usize;
 
-        use core::cmp::max;
+        // swy: this funky buffer holds the cumulative overwritten contents of everything that came before;
+        //      we need to use this as a sort of emulation layer for matching how the original XUtil memcpy()'ed not only
+        //      until the end of the current file, but also extending it to any garbage data that may lay beyond the limit, what's there?
+        //      probably the data at that offset of any previous file big enough to reach there, otherwise we'll use zeroes
+
+        //      so here we're always making the buffer big enough to cover the total space that we need, and then pasting the file to cover
+        //      from the start, until its maximum size, anything that remains keeps the previous data, because that's what we like ¯\_(ツ)_/¯
         common_garbage_buf.resize(max(common_garbage_buf.len(), filedata.len()), 0);
         common_garbage_buf[0 .. filedata.len()].copy_from_slice(&filedata);
 
@@ -220,14 +228,16 @@ pub fn execute_command(
         );
 
         if difference > 0 {
-            // swy: fill out the space with 'a's for now, at least this should make
-            //      the diff engines' life easier without an all-zeros pad buffer
-            let fill = b"a".repeat(difference);
+            // swy: fill out the padding with the correct garbage at that offset, 
+            //      this should make the diff engines' life easier. and we should
+            //      get a byte-by-byte perfect reconstruction for pristine files,
+            //      (as long as they get stored in the same order with the help of a handy .scr spec file)
+            let filedata_len_plus_padding = filedata.len() + difference;
 
-            if common_garbage_buf.len() < filedata.len() + difference {
-                common_garbage_buf.resize(filedata.len() + difference, 0);
+            if common_garbage_buf.len() < filedata_len_plus_padding {
+                common_garbage_buf.resize(filedata_len_plus_padding, 0);
             }
-            f_data.write(&common_garbage_buf[filedata.len() .. filedata.len() + difference])?;
+            f_data.write(&common_garbage_buf[filedata.len() .. filedata_len_plus_padding])?;
         }
     }
 
