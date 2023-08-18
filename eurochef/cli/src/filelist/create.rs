@@ -204,10 +204,18 @@ pub fn execute_command(
 
         // Pad next data to 2048 bytes
         let unaligned_pos = f_data.stream_position()?;
-        if unaligned_pos & 0x7ff != 0 {
-            let remainder = unaligned_pos % 2048;
-            let aligned_pos = unaligned_pos + (2048 - remainder);
-            f_data.seek(std::io::SeekFrom::Start(aligned_pos))?;
+        let aligned_pos = (unaligned_pos + 0x7ff) & !0x7ff; /* swy: 2048 - 1 = 0x7ff */
+        let difference: usize = (aligned_pos - unaligned_pos).try_into().unwrap();
+        println!(
+            "{} {} remaining space: {:#x} - {:#x} = {:#x}",
+            i, vpath, unaligned_pos, aligned_pos, difference
+        );
+
+        if difference > 0 {
+            // swy: fill out the space with 'a's for now, at least this should make
+            //      the diff engines' life easier without an all-zeros pad buffer
+            let fill = b"a".repeat(difference);
+            f_data.write(&fill)?;
         }
     }
 
