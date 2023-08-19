@@ -42,10 +42,12 @@ pub fn execute_command(
         println!("Detected platform: {:?}", p);
     }
 
+    // swy: probably the worst thing I have ever read; enjoy:
     let mut scr_file: Option<File> = None;
-    let scr_path = Path::new(&output_folder).join(format!(
-        "FileList{}.scr",
-        platform.map(|p| p.shorthand().to_uppercase()).unwrap_or(String::new())
+    let scr_path = Path::new(&(output_folder.to_owned() + "/../"))
+    .canonicalize().expect("Why should this ever fail?")
+    .join(format!(
+        "FileList{}.scr", platform.map(|p| p.shorthand().to_uppercase()).unwrap_or(String::new())
     ));
 
     // swy: why does then_some() run when create_scr is false? another of life's mysteries
@@ -56,7 +58,7 @@ pub fn execute_command(
             scr_file = create_scr.then_some(
                 File::create(scr_path.clone()).context("Failed to create .scr file")?,
             );
-            println!("Creating an {} file", scr_path.file_name().and_then(|s| s.to_str()).unwrap()); // swy: what the heck is this garbage syntax?!
+            println!("Creating an «{}» file", scr_path.file_name().and_then(|s| s.to_str()).unwrap()); // swy: what the heck is this garbage syntax?!
         }
     }
 
