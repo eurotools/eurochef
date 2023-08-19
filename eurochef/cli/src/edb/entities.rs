@@ -60,7 +60,7 @@ pub fn execute_command(
         | Platform::GameCube
         | Platform::Wii => {}
         _ => {
-            anyhow::bail!("Entity extraction is only supported for PC, Xbox, Xbox360, PS2, GameCube and Wii platforms")
+            anyhow::bail!("Entity extraction is only supported for PC, Xbox, Xbox 360, PS2, GameCube and Wii platforms")
         }
     }
 

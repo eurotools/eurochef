@@ -1,7 +1,11 @@
-use std::{fmt::Display, path::Path};
-
+use std::{fmt::Display, path::Path, io::{BufReader, Seek}, fs::File};
+use anyhow::Context;
 use binrw::Endian;
 use tracing::error;
+use crate::{
+    binrw::BinReaderExt,
+    header::EXGeoHeader,
+};
 
 pub const EDB_VERSION_SPYRO_DEMO: u32 = 213;
 pub const EDB_VERSION_SPYRO: u32 = 240;
@@ -32,6 +36,49 @@ impl Platform {
     where
         P: AsRef<Path>,
     {
+        /* swy: feel free to refactor and tidy up; quirk and dirty proof-of-concept
+                without reshuffling things */
+
+        let trop: String = path.as_ref().display().to_string();
+        let crap: File = File::open(trop).context("Zig or Go.").unwrap();
+        let mut reader = BufReader::new(&crap);
+
+        let endian = if reader.read_ne::<u8>().unwrap() == 0x47 {
+            Endian::Big
+        } else {
+            Endian::Little
+        };
+        reader.rewind();
+        let header = reader.read_type::<EXGeoHeader>(endian).unwrap();
+
+        // swy: see here: https://sphinxandthecursedmummy.fandom.com/wiki/Filelist#File_format_data_structures
+        //          here: https://sphinxandthecursedmummy.fandom.com/wiki/EDB#File_format_data_structures
+        //      and here: https://sphinxandthecursedmummy.fandom.com/wiki/EngineX#Games
+
+        // swy: ignore 64-bit version Sphinx PC files; they have a very different format
+        if header.version == 182 && header.flags & (1 << 31) != 0 {
+            error!("64-bit EDB files are unsupported for the time being.");
+            return None;
+        }
+
+        if header.flags & (1 << 28) != 0 { // swy: marked as PS2; no problems so far
+            return Some(Self::Ps2);
+        }
+
+        if header.flags & (1 << 29) != 0 { // swy: marked as PC; GC and XB are unfortunately also flagged as this, so we need to be sneaky
+            if endian == Endian::Big { // swy: the only big-endian CPU using these files in this EDB version is on GameCube/Wii
+                return Some(Self::GameCube);
+            }
+
+            if header.platform_versions[0] > 0 { // swy: on Xbox the first one is set to 1, unlike for any other platform, which is normally set to zero
+                return Some(Self::Xbox);
+            }
+
+            return Some(Self::Pc);
+        }
+
+        /* -- */
+        
         let path_bin = path
             .as_ref()
             .iter()

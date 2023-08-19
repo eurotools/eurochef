@@ -34,7 +34,8 @@ pub struct EXGeoHeader {
     pub file_size: u32,
     pub base_file_size: u32,
 
-    // pub versions: [u32; 6],
+    pub platform_versions: [u32; 6], // 0x1C
+
     #[brw(seek_before = SeekFrom::Start(if version.lt(&248) { 0x54 } else { 0x40 } ))]
     pub section_list: EXGeoHashArray<()>, // 0x40
     pub refpointer_list: EXGeoHashArray<EXGeoRefPointerHeader>,
