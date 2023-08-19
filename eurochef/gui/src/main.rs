@@ -66,11 +66,11 @@ fn main() {
     wasm_bindgen_futures::spawn_local(async {
         eframe::WebRunner::new()
             .start(
-            "the_canvas_id", // hardcode it
-            web_options,
-            Box::new(|cc| Box::new(eurochef_gui::EurochefApp::new(None, None, cc))),
-        )
-        .await
-        .expect("failed to start eframe");
+                "the_canvas_id", // hardcode it
+                web_options,
+                Box::new(|cc| Box::new(eurochef_gui::EurochefApp::new(None, None, cc))),
+            )
+            .await
+            .expect("failed to start eframe");
     });
 }

@@ -15,7 +15,6 @@ use walkdir::WalkDir;
 
 use crate::filelist::TICK_STRINGS;
 use crate::PlatformArg;
-use core::cmp::max;
 
 pub fn execute_command(
     input_folder: String,
@@ -206,7 +205,6 @@ pub fn execute_command(
         // swy: write the actual file contents
         f_data.write_all(&filedata)?;
 
-
         // Pad next data to 2048 bytes
         let unaligned_pos = f_data.stream_position()?;
         let aligned_pos = (unaligned_pos + 0x7ff) & !0x7ff; /* swy: 2048 - 1 = 0x7ff */
@@ -221,8 +219,11 @@ pub fn execute_command(
         //      from the start, until its maximum size, anything that remains keeps the previous data, because that's what we like ¯\_(ツ)_/¯
         let filedata_len_plus_padding = filedata.len() + difference;
 
-        common_garbage_buf.resize(max(common_garbage_buf.len(), filedata_len_plus_padding), 0x00);
-        common_garbage_buf[0 .. filedata.len()].copy_from_slice(&filedata);
+        common_garbage_buf.resize(
+            common_garbage_buf.len().max(filedata_len_plus_padding),
+            0x00,
+        );
+        common_garbage_buf[0..filedata.len()].copy_from_slice(&filedata);
 
         println!(
             "{} {} remaining space: {:#x} - {:#x} = {:#x}",
@@ -230,11 +231,11 @@ pub fn execute_command(
         );
 
         if difference > 0 {
-            // swy: fill out the padding with the correct garbage at that offset, 
+            // swy: fill out the padding with the correct garbage at that offset,
             //      this should make the diff engines' life easier. and we should
             //      get a byte-by-byte perfect reconstruction for pristine files,
             //      (as long as they get stored in the same order with the help of a handy .scr spec file)
-            f_data.write(&common_garbage_buf[filedata.len() .. filedata_len_plus_padding])?;
+            f_data.write(&common_garbage_buf[filedata.len()..filedata_len_plus_padding])?;
         }
     }
 

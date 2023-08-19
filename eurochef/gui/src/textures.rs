@@ -1,4 +1,3 @@
-
 use egui::{Color32, Widget};
 use eurochef_shared::{textures::UXGeoTexture, IdentifiableResult};
 use fnv::FnvHashMap;
@@ -20,12 +19,13 @@ pub struct TextureList {
 
     enlarged_texture: Option<(usize, u32)>,
     enlarged_zoom: f32,
-    enlarged_zoom_default: f32,
 
     fallback_texture: egui::TextureHandle,
 }
 
 impl TextureList {
+    const ENLARGED_ZOOM_DEFAULT: f32 = 2.5;
+
     pub fn new(ctx: &egui::Context, textures: Vec<IdentifiableResult<UXGeoTexture>>) -> Self {
         let mut s = Self {
             textures,
@@ -36,26 +36,21 @@ impl TextureList {
             filter_animated: false,
 
             enlarged_texture: None,
-            enlarged_zoom_default: 2.5,
-            enlarged_zoom: 0.0,
+            enlarged_zoom: Self::ENLARGED_ZOOM_DEFAULT,
 
-            fallback_texture: ctx.load_texture("fallback", 
-            egui::ColorImage::from_rgba_unmultiplied(
-                [1, 1],
-                &[
-                    0, 0, 0, 0
-                ],
+            fallback_texture: ctx.load_texture(
+                "fallback",
+                egui::ColorImage::from_rgba_unmultiplied([1, 1], &[0, 0, 0, 0]),
+                egui::TextureOptions::default(),
             ),
-            egui::TextureOptions::default()),
         };
-        s.enlarged_zoom = s.enlarged_zoom_default; // swy: can't self-assign values from other fields above ???
+
         s.load_textures(ctx);
 
         s
     }
 
     pub fn load_textures(&mut self, ctx: &egui::Context) {
-
         for it in &self.textures {
             if let Ok(t) = &it.data {
                 let frames: Vec<egui::TextureHandle> = t
@@ -228,7 +223,7 @@ impl TextureList {
     }
 
     pub fn show_enlarged_window(&mut self, ctx: &egui::Context) {
-        let mut window_open: bool = self.enlarged_texture.is_some();
+        let mut window_open = self.enlarged_texture.is_some();
         if let Some(enlarged_texture) = self.enlarged_texture {
             let (i, _hashcode) = enlarged_texture;
             let it = &self.textures[i];
@@ -264,7 +259,7 @@ impl TextureList {
 
         if !window_open {
             self.enlarged_texture = None;
-            self.enlarged_zoom = self.enlarged_zoom_default; // swy: reset the zoom level each time we close a preview
+            self.enlarged_zoom = Self::ENLARGED_ZOOM_DEFAULT; // swy: reset the zoom level each time we close a preview
         }
     }
 }

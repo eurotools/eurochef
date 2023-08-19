@@ -37,7 +37,7 @@ impl RenderUniforms {
         time: f32,
     ) {
         let mut aspect_ratio_vert = (1.0 / aspect_ratio).max(1.0);
-        
+
         let mut projection = if orthographic {
             glam::Mat4::orthographic_rh_gl(
                 (-(aspect_ratio * aspect_ratio_vert) * -camera.zoom()) * 2.0,

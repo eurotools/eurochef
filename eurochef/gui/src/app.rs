@@ -487,8 +487,7 @@ impl eframe::App for EurochefApp {
 
         let load_clone = load_input.clone();
 
-        // swy: queue a load for the first drag-and-dropped file we encounter here;
-        //      Rust seems like a very sane language, not verbose at all ¯\_(ツ)_/¯
+        // swy: queue a load for the first drag-and-dropped file we encounter here
         ctx.input(|i| {
             if !i.raw.dropped_files.is_empty() {
                 for file in &i.raw.dropped_files {
@@ -500,11 +499,11 @@ impl eframe::App for EurochefApp {
                         "???".to_owned()
                     };
 
-                    println!("Dragged the following file into the main window: {}", info);
+                    info!("Dragged a into the main window: '{info}'");
 
                     // swy: put the path and its data inside load_input, load_clone is like a pointer
                     match File::open(&info) {
-                        Err(why) => println!("Couldn't read «{}», skipping: {}", info, why),
+                        Err(why) => warn!("Couldn't read '{info}', skipping: {why}"),
                         Ok(mut f) => {
                             let mut data = vec![];
                             f.read_to_end(&mut data).unwrap();

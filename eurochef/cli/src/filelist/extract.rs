@@ -42,25 +42,34 @@ pub fn execute_command(
         println!("Detected platform: {:?}", p);
     }
 
-    // swy: probably the worst thing I have ever read; enjoy:
-    let mut scr_file: Option<File> = None;
     let scr_path = Path::new(&(output_folder.to_owned() + "/../"))
-    .canonicalize().expect("Why should this ever fail?")
-    .join(format!(
-        "FileList{}.scr", platform.map(|p| p.shorthand().to_uppercase()).unwrap_or(String::new())
-    ));
+        .canonicalize()?
+        .join(format!(
+            "FileList{}.scr",
+            platform
+                .map(|p| p.shorthand().to_uppercase())
+                .unwrap_or_default()
+        ));
 
-    // swy: why does then_some() run when create_scr is false? another of life's mysteries
-    if create_scr != false {
+    let mut scr_file = if create_scr != false {
         if scr_path.is_file() {
-            println!("The file at «{}» already exists, move or rename it; we don't want to overwrite it", scr_path.display());
-        } else {
-            scr_file = create_scr.then_some(
-                File::create(scr_path.clone()).context("Failed to create .scr file")?,
+            println!(
+                "The file at '{}' already exists, move or rename it; .scr file will NOT be written",
+                scr_path.display()
             );
-            println!("Creating an «{}» file", scr_path.file_name().and_then(|s| s.to_str()).unwrap()); // swy: what the heck is this garbage syntax?!
+
+            None
+        } else {
+            println!(
+                "Creating an '{}' file",
+                scr_path.file_name().and_then(|s| s.to_str()).unwrap()
+            );
+
+            File::create(scr_path.clone())
+                .context("Failed to create .scr file")
+                .ok()
         }
-    }
+    };
 
     scr_file.as_mut().map(|f| {
         writeln!(
@@ -100,9 +109,9 @@ pub fn execute_command(
         let filename_fixed = filename.replace('\\', "/");
         let fpath = Path::new(&filename_fixed);
 
-        scr_file.as_mut().map(|f| {
+        if let Some(ref mut f) = scr_file {
             writeln!(f, "{}", filename).expect("Failed to write file name to .scr");
-        });
+        };
 
         if fpath.to_string_lossy().is_empty() {
             println!(

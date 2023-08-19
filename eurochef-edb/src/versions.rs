@@ -1,11 +1,13 @@
-use std::{fmt::Display, path::Path, io::{BufReader, Seek}, fs::File};
+use crate::{binrw::BinReaderExt, header::EXGeoHeader};
 use anyhow::Context;
 use binrw::Endian;
-use tracing::error;
-use crate::{
-    binrw::BinReaderExt,
-    header::EXGeoHeader,
+use std::{
+    fmt::Display,
+    fs::File,
+    io::{BufReader, Seek},
+    path::Path,
 };
+use tracing::error;
 
 pub const EDB_VERSION_SPYRO_DEMO: u32 = 213;
 pub const EDB_VERSION_SPYRO: u32 = 240;
@@ -37,13 +39,13 @@ impl Platform {
         P: AsRef<Path>,
     {
         /* swy: feel free to refactor and tidy up; quirk and dirty proof-of-concept
-                without reshuffling things */
+        without reshuffling things */
 
         let trop: String = path.as_ref().display().to_string();
-        let crap: File = File::open(trop).context("Zig or Go.").unwrap();
+        let crap: File = File::open(trop).ok()?;
         let mut reader = BufReader::new(&crap);
 
-        let endian = if reader.read_ne::<u8>().unwrap() == 0x47 {
+        let endian = if reader.read_ne::<u8>().ok()? == 0x47 {
             Endian::Big
         } else {
             Endian::Little
@@ -61,16 +63,20 @@ impl Platform {
             return None;
         }
 
-        if header.flags & (1 << 28) != 0 { // swy: marked as PS2; no problems so far
+        if header.flags & (1 << 28) != 0 {
+            // swy: marked as PS2; no problems so far
             return Some(Self::Ps2);
         }
 
-        if header.flags & (1 << 29) != 0 { // swy: marked as PC; GC and XB are unfortunately also flagged as this, so we need to be sneaky
-            if endian == Endian::Big { // swy: the only big-endian CPU using these files in this EDB version is on GameCube/Wii
+        if header.flags & (1 << 29) != 0 {
+            // swy: marked as PC; GC and XB are unfortunately also flagged as this, so we need to be sneaky
+            if endian == Endian::Big {
+                // swy: the only big-endian CPU using these files in this EDB version is on GameCube/Wii
                 return Some(Self::GameCube);
             }
 
-            if header.platform_versions[0] > 0 { // swy: on Xbox the first one is set to 1, unlike for any other platform, which is normally set to zero
+            if header.platform_versions[0] > 0 {
+                // swy: on Xbox the first one is set to 1, unlike for any other platform, which is normally set to zero
                 return Some(Self::Xbox);
             }
 
@@ -78,7 +84,7 @@ impl Platform {
         }
 
         /* -- */
-        
+
         let path_bin = path
             .as_ref()
             .iter()
