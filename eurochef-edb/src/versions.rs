@@ -1,5 +1,5 @@
 use crate::{binrw::BinReaderExt, header::EXGeoHeader};
-use anyhow::Context;
+
 use binrw::Endian;
 use std::{
     fmt::Display,
@@ -38,19 +38,22 @@ impl Platform {
     where
         P: AsRef<Path>,
     {
-        /* swy: feel free to refactor and tidy up; quirk and dirty proof-of-concept
-        without reshuffling things */
+        // swy: feel free to refactor and tidy up; quick and dirty proof-of-concept
+        //      without reshuffling things
 
         let trop: String = path.as_ref().display().to_string();
         let crap: File = File::open(trop).ok()?;
         let mut reader = BufReader::new(&crap);
 
-        let endian = if reader.read_ne::<u8>().ok()? == 0x47 {
+        // swy: the magic value is the four-byte GEOM tag, for big endian the G '0x47' shows first,
+        //      otherwise it's the M (0x4D) of MOEG; looks reversed to humans, little-endian
+        let endian = if reader.read_ne::<u8>().ok()? == b'G' /* 0x47 */ {
             Endian::Big
-        } else {
+        } else { // 'M' /* 0x4D */
             Endian::Little
         };
-        reader.rewind();
+        
+        reader.rewind().ok();
         let header = reader.read_type::<EXGeoHeader>(endian).unwrap();
 
         // swy: see here: https://sphinxandthecursedmummy.fandom.com/wiki/Filelist#File_format_data_structures
