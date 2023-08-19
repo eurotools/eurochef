@@ -51,24 +51,28 @@ pub fn execute_command(
                 .unwrap_or_default()
         ));
 
-    let mut scr_file = if create_scr != false {
+    let mut scr_file = if create_scr {
         if scr_path.is_file() {
+            // swy: let's avoid writing on top of potentially edited, or vastly-improved .scr descriptor files
             println!(
-                "The file at '{}' already exists, move or rename it; .scr file will NOT be written",
+                "The file at '{}' already exists, move or rename it first; .scr file will NOT be written",
                 scr_path.display()
             );
 
             None
         } else {
+            // swy: nothing seemingly there, let's go ahead and write as requested
             println!(
-                "Creating an '{}' file",
+                "Creating an accompanying '{}' file",
                 scr_path.file_name().and_then(|s| s.to_str()).unwrap()
             );
 
             File::create(scr_path.clone())
-                .context("Failed to create .scr file")
+                .context("Failed to create the .scr file")
                 .ok()
         }
+    } else {
+        None // swy: the user explicitly asked not to write the .scr file at all
     };
 
     scr_file.as_mut().map(|f| {
