@@ -30,7 +30,7 @@ pub enum Platform {
 }
 
 pub fn transform_windows_path<P: AsRef<str>>(path: P) -> String {
-    path.as_ref().replace("\\", "/")
+    path.as_ref().replace('\\', "/")
 }
 
 impl Platform {
@@ -47,12 +47,15 @@ impl Platform {
 
         // swy: the magic value is the four-byte GEOM tag, for big endian the G '0x47' shows first,
         //      otherwise it's the M (0x4D) of MOEG; looks reversed to humans, little-endian
-        let endian = if reader.read_ne::<u8>().ok()? == b'G' /* 0x47 */ {
+        let endian = if reader.read_ne::<u8>().ok()? == b'G'
+        /* 0x47 */
+        {
             Endian::Big
-        } else { // 'M' /* 0x4D */
+        } else {
+            // 'M' /* 0x4D */
             Endian::Little
         };
-        
+
         reader.rewind().ok();
         let header = reader.read_type::<EXGeoHeader>(endian).unwrap();
 

@@ -3,7 +3,7 @@ use nohash_hasher::IntMap;
 use tracing::info;
 
 pub fn parse_hashcodes(string: &str) -> IntMap<Hashcode, String> {
-    let res: IntMap<Hashcode, String> = string.lines().filter_map(|l| parse_hashcode(l)).collect();
+    let res: IntMap<Hashcode, String> = string.lines().filter_map(parse_hashcode).collect();
 
     let base_count = res
         .values()

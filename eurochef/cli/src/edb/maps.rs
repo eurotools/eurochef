@@ -26,11 +26,7 @@ pub fn execute_command(
 ) -> anyhow::Result<()> {
     let output_folder = output_folder.unwrap_or(format!(
         "./maps/{}/",
-        Path::new(&filename)
-            .file_name()
-            .unwrap()
-            .to_string_lossy()
-            .to_string(),
+        Path::new(&filename).file_name().unwrap().to_string_lossy()
     ));
 
     let trigger_typemap = if let Some(path) = trigger_defs_file {

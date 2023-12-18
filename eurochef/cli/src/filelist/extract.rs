@@ -75,7 +75,7 @@ pub fn execute_command(
         None // swy: the user explicitly asked not to write the .scr file at all
     };
 
-    scr_file.as_mut().map(|f| {
+    if let Some(f) = scr_file.as_mut() {
         writeln!(
             f,
             "[FileInfomation]
@@ -83,7 +83,7 @@ pub fn execute_command(
 [FileList]\n"
         )
         .expect("Failed to write scr file header");
-    });
+    }
 
     let file_base = &filename[..filename.len() - 3];
     let mut data_files = vec![];
@@ -105,7 +105,7 @@ pub fn execute_command(
         )
         .unwrap()
         .progress_chars("##-")
-        .tick_chars(&TICK_STRINGS),
+        .tick_chars(TICK_STRINGS),
     );
     pb.set_message("Extracting files");
 
@@ -151,7 +151,7 @@ pub fn execute_command(
         std::fs::create_dir_all(fpath_noprefix.parent().unwrap())?;
         File::create(&fpath_noprefix)
             .context(format!("Failed to create output file {fpath_noprefix:?}"))?
-            .write(&data)?;
+            .write_all(&data)?;
     }
 
     println!("Successfully extracted {} files", filelist.files.len());

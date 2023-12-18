@@ -71,7 +71,7 @@ pub struct SelectCubeRenderer {
 }
 
 impl SelectCubeRenderer {
-    const VERTEX_DATA: &[[f32; 3]] = &[
+    const VERTEX_DATA: &'static [[f32; 3]] = &[
         [0.5, -0.5, 0.5],   // Bottom, NE (0)
         [0.5, -0.5, -0.5],  // Bottom, SE (1)
         [-0.5, -0.5, -0.5], // Bottom, SW (2)
@@ -82,7 +82,7 @@ impl SelectCubeRenderer {
         [-0.5, 0.5, 0.5],   // Top, NW (7)
     ];
 
-    const INDEX_DATA: &[u8] = &[
+    const INDEX_DATA: &'static [u8] = &[
         0, 1, 1, 2, 2, 3, 3, 0, 4, 5, 5, 6, 6, 7, 7, 4, 0, 4, 1, 5, 2, 6, 3, 7,
     ];
 
@@ -267,21 +267,21 @@ impl CollisionDatumRenderer {
             gl.bind_buffer(glow::ARRAY_BUFFER, Some(vertex_buffer));
             gl.buffer_data_u8_slice(
                 glow::ARRAY_BUFFER,
-                bytemuck::cast_slice(&vertices),
+                bytemuck::cast_slice(vertices),
                 glow::STATIC_DRAW,
             );
             let index_buffer_tris = gl.create_buffer().unwrap();
             gl.bind_buffer(glow::ELEMENT_ARRAY_BUFFER, Some(index_buffer_tris));
             gl.buffer_data_u8_slice(
                 glow::ELEMENT_ARRAY_BUFFER,
-                bytemuck::cast_slice(&indices),
+                bytemuck::cast_slice(indices),
                 glow::STATIC_DRAW,
             );
             let index_buffer_lines = gl.create_buffer().unwrap();
             gl.bind_buffer(glow::ELEMENT_ARRAY_BUFFER, Some(index_buffer_lines));
             gl.buffer_data_u8_slice(
                 glow::ELEMENT_ARRAY_BUFFER,
-                bytemuck::cast_slice(&indices_outline),
+                bytemuck::cast_slice(indices_outline),
                 glow::STATIC_DRAW,
             );
 

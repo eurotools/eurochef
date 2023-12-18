@@ -63,7 +63,7 @@ impl TextureDecoder for XenonTextureDecoder {
                     let g = bytes[1] >> 4;
                     let b = bytes[0] & 0x0f;
                     let a = bytes[0] >> 4;
-                    buffer[i * 4 + 0] = (b << 4) | b;
+                    buffer[i * 4] = (b << 4) | b;
                     buffer[i * 4 + 1] = (g << 4) | g;
                     buffer[i * 4 + 2] = (r << 4) | r;
                     buffer[i * 4 + 3] = (a << 4) | a;
@@ -75,7 +75,7 @@ impl TextureDecoder for XenonTextureDecoder {
                     let r = bytes[1] & 0x1f;
                     let g = (bytes[1] >> 5) | ((bytes[0] & 0x07) << 3);
                     let b = bytes[0] >> 3;
-                    buffer[i * 4 + 0] = (b << 3) | (b >> 2);
+                    buffer[i * 4] = (b << 3) | (b >> 2);
                     buffer[i * 4 + 1] = (g << 2) | (g >> 4);
                     buffer[i * 4 + 2] = (r << 3) | (r >> 2);
                     buffer[i * 4 + 3] = 255;
@@ -83,7 +83,7 @@ impl TextureDecoder for XenonTextureDecoder {
             }
             InternalFormat::ARGB8 => {
                 for (i, bytes) in input.chunks_exact(4).enumerate() {
-                    buffer[i * 4 + 0] = bytes[1];
+                    buffer[i * 4] = bytes[1];
                     buffer[i * 4 + 1] = bytes[2];
                     buffer[i * 4 + 2] = bytes[3];
                     buffer[i * 4 + 3] = bytes[0];
@@ -100,9 +100,7 @@ impl TextureDecoder for XenonTextureDecoder {
 
 fn swap_endianness16(buffer: &mut [u8]) {
     for i in (0..buffer.len()).step_by(2) {
-        let a = buffer[i];
-        buffer[i] = buffer[i + 1];
-        buffer[i + 1] = a;
+        buffer.swap(i, i + 1);
     }
 }
 

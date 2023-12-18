@@ -20,11 +20,7 @@ pub fn execute_command(
 ) -> anyhow::Result<()> {
     let output_folder = output_folder.unwrap_or(format!(
         "./textures/{}/",
-        Path::new(&filename)
-            .file_name()
-            .unwrap()
-            .to_string_lossy()
-            .to_string(),
+        Path::new(&filename).file_name().unwrap().to_string_lossy(),
     ));
     let output_folder = Path::new(&output_folder);
     std::fs::create_dir_all(output_folder)?;
@@ -47,7 +43,7 @@ pub fn execute_command(
         )
         .unwrap()
         .progress_chars("##-")
-        .tick_chars(&TICK_STRINGS),
+        .tick_chars(TICK_STRINGS),
     );
     pb.set_message("Extracting textures");
 
@@ -98,13 +94,10 @@ pub fn execute_command(
                             }),
                         )?;
                         encoder.finish_encode()?;
-                    } else {
-                        if let Some(f) = t.frames.into_iter().nth(0) {
-                            let image =
-                                image::RgbaImage::from_vec(t.width as u32, t.height as u32, f)
-                                    .unwrap();
-                            image.save(filename)?;
-                        }
+                    } else if let Some(f) = t.frames.into_iter().next() {
+                        let image =
+                            image::RgbaImage::from_vec(t.width as u32, t.height as u32, f).unwrap();
+                        image.save(filename)?;
                     }
                 } else {
                     for (i, f) in t.frames.into_iter().enumerate() {

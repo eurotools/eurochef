@@ -219,7 +219,7 @@ impl MapFrame {
         let exe_path = std::env::current_exe().unwrap();
         let exe_dir = exe_path.parent().unwrap();
         let v = std::fs::read_to_string(
-            exe_dir.join(&format!("./assets/{}", self.selected_triginfo_path)),
+            exe_dir.join(format!("./assets/{}", self.selected_triginfo_path)),
         )?;
         self.trigger_info =
             serde_yaml::from_str(&v).context("Failed to load trigger definition file")?;
@@ -269,11 +269,11 @@ impl MapFrame {
             self.textfield_focused = response.has_focus();
 
             if let Ok(hashcode) = u32::from_str_radix(&self.sky_ent, 16) {
-                if !self
+                if self
                     .render_store
                     .read()
                     .get_entity(self.file, hashcode)
-                    .is_some()
+                    .is_none()
                 {
                     ui.strong(font_awesome::EXCLAMATION_TRIANGLE.to_string())
                         .on_hover_ui(|ui| {
@@ -410,7 +410,7 @@ impl MapFrame {
             }
         }
 
-        self.draw_trigger_inspector(context, &map);
+        self.draw_trigger_inspector(context, map);
 
         let time: f64 = ui.input(|t| t.time);
 
@@ -439,7 +439,7 @@ impl MapFrame {
         // TODO(cohae): How do we get out of this situation
         let map = map.clone(); // FIXME(cohae): ugh.
         let sky_ent = u32::from_str_radix(&self.sky_ent, 16).unwrap_or(u32::MAX);
-        let default_trigger_icon = self.default_trigger_icon.clone();
+        let default_trigger_icon = self.default_trigger_icon;
         let billboard_renderer = self.billboard_renderer.clone();
         let link_renderer = self.link_renderer.clone();
         let selected_trigger = self.selected_trigger;
@@ -742,8 +742,7 @@ impl MapFrame {
                     if let Some(coll) = t
                         .engine_options
                         .collision_index
-                        .map(|c| map.trigger_collisions.get(c as usize))
-                        .flatten()
+                        .and_then(|c| map.trigger_collisions.get(c as usize))
                     {
                         if coll.dtype == 0 || coll.dtype == 3 {
                             collision_renderer.render(
@@ -886,8 +885,7 @@ impl MapFrame {
                                 if let Some(coll) = trig
                                     .engine_options
                                     .collision_index
-                                    .map(|c| map.trigger_collisions.get(c as usize))
-                                    .flatten()
+                                    .and_then(|c| map.trigger_collisions.get(c as usize))
                                 {
                                     ui.label("Collision");
                                     match coll.dtype {
@@ -1016,7 +1014,7 @@ impl MapFrame {
                                 });
                             }
 
-                            if trig.links.iter().find(|v| **v != -1).is_some() {
+                            if trig.links.iter().any(|v| *v != -1) {
                                 ui.separator();
                                 ui.strong("Outgoing Links");
 

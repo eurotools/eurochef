@@ -79,15 +79,12 @@ impl Camera3D for ArcBallCamera {
     fn update(&mut self, ui: &egui::Ui, response: Option<&egui::Response>, _delta: f32) {
         if let Some(multi_touch) = ui.ctx().multi_touch() {
             self.zoom += -(multi_touch.zoom_delta - 1.0);
-        } else {
-            if let Some(response) = &response {
-                if response.dragged_by(egui::PointerButton::Primary)
-                    || response.dragged_by(egui::PointerButton::Middle)
-                {
-                    let mouse_delta = response.drag_delta();
-                    self.orientation +=
-                        Vec2::new(mouse_delta.y as f32 * 0.8, mouse_delta.x as f32) * 0.15;
-                }
+        } else if let Some(response) = &response {
+            if response.dragged_by(egui::PointerButton::Primary)
+                || response.dragged_by(egui::PointerButton::Middle)
+            {
+                let mouse_delta = response.drag_delta();
+                self.orientation += Vec2::new(mouse_delta.y * 0.8, mouse_delta.x) * 0.15;
             }
         }
 
@@ -227,7 +224,7 @@ impl Camera3D for FpsCamera {
             }
 
             let mouse_delta = response.drag_delta();
-            self.orientation += Vec2::new(mouse_delta.y as f32 * 0.8, mouse_delta.x as f32) * 0.15;
+            self.orientation += Vec2::new(mouse_delta.y * 0.8, mouse_delta.x) * 0.15;
         }
 
         let mut speed = delta * zoom_factor(self.speed_mul) * 10.0;

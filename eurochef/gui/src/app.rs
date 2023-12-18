@@ -142,7 +142,7 @@ impl EurochefApp {
             match s.load_file_with_path(path) {
                 Ok(_) => {}
                 Err(e) => {
-                    s.state = AppState::Error(e.into());
+                    s.state = AppState::Error(e);
                 }
             }
         }
@@ -212,11 +212,11 @@ impl EurochefApp {
         file_ref: Hashcode,
         platform: Platform,
     ) -> anyhow::Result<()> {
-        let ref mut edb = if let Some(path) = self.path_cache.get(&file_ref) {
+        let edb = &mut (if let Some(path) = self.path_cache.get(&file_ref) {
             match file_map.entry(file_ref) {
                 hash_map::Entry::Occupied(e) => e.into_mut(),
                 hash_map::Entry::Vacant(a) => {
-                    let file = File::open(&path)?;
+                    let file = File::open(path)?;
                     let reader = BufReader::new(file);
 
                     a.insert(EdbFile::new(Box::new(reader), platform)?)
@@ -224,12 +224,12 @@ impl EurochefApp {
             }
         } else {
             return Ok(());
-        };
+        });
 
         let header = edb.header.clone();
 
         let mut rs_lock = self.render_store.write();
-        let scripts = UXGeoScript::read_hashcodes(edb, &references)?;
+        let scripts = UXGeoScript::read_hashcodes(edb, references)?;
         for s in &scripts {
             rs_lock.insert_script(header.hashcode, s.clone());
         }
@@ -240,7 +240,7 @@ impl EurochefApp {
             .internal_references
             .iter()
             .filter(|v| !rs_lock.is_object_loaded(header.hashcode, **v))
-            .map(|v| *v)
+            .copied()
             .collect();
         let internal_refs = [references, &interal_references_filtered].concat();
         let (entities, _, _) = entities::read_from_file(edb, Some(&internal_refs))?;
@@ -321,7 +321,7 @@ impl EurochefApp {
         self.fileinfo = Some(fileinfo::FileInfoPanel::new(edb.header.clone()));
 
         let spreadsheets = UXGeoSpreadsheet::read_all(&mut edb)?;
-        if spreadsheets.len() > 0 {
+        if !spreadsheets.is_empty() {
             self.spreadsheetlist = Some(spreadsheet::TextItemList::new(spreadsheets.clone()));
         }
 
@@ -349,7 +349,7 @@ impl EurochefApp {
                 rs_lock.insert_script(header.hashcode, s.clone());
             }
 
-            if scripts.len() > 0 {
+            if !scripts.is_empty() {
                 self.scripts = Some(scripts::ScriptListPanel::new(
                     header.hashcode,
                     &self.gl,
@@ -452,7 +452,7 @@ impl eframe::App for EurochefApp {
             });
 
         if let Some((data, load_path)) = self.load_input.take() {
-            let platform = Platform::from_path(&load_path);
+            let platform = Platform::from_path(load_path);
             self.pending_file = Some((data, platform));
         }
 
@@ -462,7 +462,7 @@ impl eframe::App for EurochefApp {
                 match self.load_file(*platform, Box::new(cur), ctx) {
                     Ok(_) => {}
                     Err(e) => {
-                        self.state = AppState::Error(e.into());
+                        self.state = AppState::Error(e);
                     }
                 }
                 self.pending_file = None;
@@ -491,7 +491,7 @@ impl eframe::App for EurochefApp {
         ctx.input(|i| {
             if !i.raw.dropped_files.is_empty() {
                 for file in &i.raw.dropped_files {
-                    let mut info = if let Some(path) = &file.path {
+                    let info = if let Some(path) = &file.path {
                         path.display().to_string()
                     } else if !file.name.is_empty() {
                         file.name.clone()
@@ -808,11 +808,12 @@ impl eframe::App for EurochefApp {
                 Panel::Textures => textures.as_mut().map(|s| s.show(ui)),
                 Panel::Entities => entities.as_mut().map(|s| s.show(ctx, ui)),
                 Panel::Spreadsheets => spreadsheetlist.as_mut().map(|s| s.show(ui)),
-                Panel::Maps => Some({
+                Panel::Maps => {
                     if let Some(Err(e)) = maps.as_mut().map(|s| s.show(ctx, ui)) {
                         self.state = AppState::Error(e);
-                    }
-                }),
+                    };
+                    Some(())
+                }
                 Panel::Scripts => scripts.as_mut().map(|s| s.show(ui)),
             };
         });
@@ -827,7 +828,7 @@ impl eframe::App for EurochefApp {
 
 fn remove_stacktrace(s: &str) -> &str {
     if let Some(v) = s.to_lowercase().find("stack backtrace:") {
-        &s[..v].trim()
+        s[..v].trim()
     } else {
         s
     }

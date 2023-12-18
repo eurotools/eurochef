@@ -49,7 +49,7 @@ impl UXGeoTexture {
                 i,
                 IdentifiableResult::new(
                     t.common.hashcode,
-                    Self::read(t.common.address, edb, &texture_decoder, t.flags),
+                    Self::read(t.common.address, edb, texture_decoder.as_ref(), t.flags),
                 ),
             ))
         }
@@ -77,7 +77,7 @@ impl UXGeoTexture {
                 i,
                 IdentifiableResult::new(
                     t.common.hashcode,
-                    Self::read(t.common.address, edb, &texture_decoder, t.flags),
+                    Self::read(t.common.address, edb, texture_decoder.as_ref(), t.flags),
                 ),
             ))
         }
@@ -88,7 +88,7 @@ impl UXGeoTexture {
     pub fn read(
         address: u32,
         edb: &mut EdbFile,
-        texture_decoder: &Box<dyn TextureDecoder>,
+        texture_decoder: &dyn TextureDecoder,
         flags: u32,
     ) -> anyhow::Result<Self> {
         edb.seek(std::io::SeekFrom::Start(address as u64))?;
@@ -167,7 +167,7 @@ impl UXGeoTexture {
             edb.read_exact(&mut data)
                 .context(format!("Failed to read frame {i}"))?;
 
-            if edb.header.version == 156 && clut.len() == 0 {
+            if edb.header.version == 156 && clut.is_empty() {
                 let clut_size = texture_decoder.get_clut_size(tex.format)?;
                 clut.resize(clut_size, 0);
                 edb.read_exact(&mut clut)
@@ -177,7 +177,7 @@ impl UXGeoTexture {
             texture_decoder
                 .decode(
                     &data,
-                    if clut.len() > 0 { Some(&clut) } else { None },
+                    if !clut.is_empty() { Some(&clut) } else { None },
                     &mut output,
                     tex.width as u32,
                     tex.height as u32,

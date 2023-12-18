@@ -44,16 +44,15 @@ impl EXFileList4 {
         }
 
         // FIXME: If the strings arent encoded linearly this will be a bit inefficient
-        for (_, (start, end)) in filename_offsets
+        for (start, end) in filename_offsets
             .iter()
             .chain([res.header.filesize as u64].iter())
             .tuple_windows()
-            .enumerate()
         {
             let size = end - start;
             let mut data = vec![0u8; size as usize];
             reader.seek(std::io::SeekFrom::Start(*start))?;
-            reader.read(&mut data)?;
+            reader.read_exact(&mut data)?;
 
             let null_pos = data.iter().position(|&p| p == 0).unwrap_or(data.len());
             res.filenames
@@ -64,16 +63,16 @@ impl EXFileList4 {
     }
 }
 
-impl Into<UXFileList> for EXFileList4 {
-    fn into(self) -> UXFileList {
+impl From<EXFileList4> for UXFileList {
+    fn from(val: EXFileList4) -> Self {
         UXFileList {
             num_filelists: None,
             build_type: None,
-            endian: self.endian,
-            files: self
+            endian: val.endian,
+            files: val
                 .filenames
                 .into_iter()
-                .zip(self.header.fileinfo)
+                .zip(val.header.fileinfo)
                 .map(|(filename, info)| {
                     (
                         filename,

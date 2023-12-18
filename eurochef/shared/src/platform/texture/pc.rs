@@ -86,7 +86,7 @@ impl TextureDecoder for PcTextureDecoder {
                     let r = (byte[1] & 0x7c) >> 2;
                     let a = byte[1] >> 7;
 
-                    output[(x, y)] = [r as u8 * 8, g as u8 * 8, b as u8 * 8, a as u8 * 255].into();
+                    output[(x, y)] = [r * 8, g * 8, b * 8, a * 255].into();
                 }
             }
             _ => {

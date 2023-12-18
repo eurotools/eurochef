@@ -24,10 +24,8 @@ impl<R: Read + Seek + Sized> DatabaseReader for R {
             let ptr: *mut EdbFile = transmute(self as *mut _);
 
             // Check alignment and safety marker
-            if (transmute::<_, usize>(ptr) & 0x7) == 0
-                && (*ptr).safety_marker == EdbFile::SAFETY_MARKER
-            {
-                Some(transmute(ptr))
+            if (ptr as usize & 0x7) == 0 && (*ptr).safety_marker == EdbFile::SAFETY_MARKER {
+                Some(&mut *ptr)
             } else {
                 if cfg!(debug_assertions) {
                     warn!("Couldn't verify EdbFile marker and alignment!");
@@ -76,7 +74,7 @@ impl EdbFile {
             ));
         }
 
-        if version < 182 || version > 263 {
+        if !(182..=263).contains(&version) {
             return Err(crate::error::EurochefError::Unsupported(
                 crate::error::UnsupportedError::Version(version),
             ));
@@ -109,10 +107,8 @@ impl EdbFile {
     pub fn add_reference(&mut self, file: Hashcode, reference: Hashcode) {
         if file == u32::MAX || reference.is_local() {
             self.add_reference_internal(reference);
-        } else {
-            if !self.external_references.contains(&(file, reference)) {
-                self.external_references.push((file, reference))
-            }
+        } else if !self.external_references.contains(&(file, reference)) {
+            self.external_references.push((file, reference))
         }
     }
 

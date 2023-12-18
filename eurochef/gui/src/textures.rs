@@ -61,7 +61,7 @@ impl TextureList {
                             format!("{:08x}", it.hashcode),
                             egui::ColorImage::from_rgba_unmultiplied(
                                 [t.width as usize, t.height as usize],
-                                &f,
+                                f,
                             ),
                             egui::TextureOptions::default(),
                         )
@@ -108,14 +108,12 @@ impl TextureList {
                                 let frame_time = (1. / t.framerate as f32) * frametime_scale;
 
                                 let frames = &self.egui_textures[&it.hashcode];
-                                let current = if frames.len() == 0 {
+                                let current = if frames.is_empty() {
                                     &self.fallback_texture
+                                } else if frames.len() > 1 {
+                                    &frames[(time / frame_time) as usize % frames.len()]
                                 } else {
-                                    if frames.len() > 1 {
-                                        &frames[(time / frame_time) as usize % frames.len()]
-                                    } else {
-                                        &frames[0]
-                                    }
+                                    &frames[0]
                                 };
 
                                 let diagnostics = t.diagnostics.to_strings();
@@ -164,20 +162,19 @@ impl TextureList {
 
                                 let (rect, response) =
                                 ui.allocate_exact_size(egui::vec2(128., 128.) * self.zoom, egui::Sense::click());
-    
-                                ui.painter().rect_filled( 
+                                ui.painter().rect_filled(
                                     rect,
                                     egui::Rounding::none(),
                                     Color32::BLACK,
                                 );
-        
-                                ui.painter().text(
-                                    rect.left_top() + egui::vec2(24., 24.),
+
+                                ui.painter().text(rect.left_top() + egui::vec2(24., 24.),
                                     egui::Align2::CENTER_CENTER,
                                     font_awesome::LINK,
                                     egui::FontId::proportional(24.),
                                     Color32::RED,
                                 );
+                                
                                 response.on_hover_ui(|ui| {
                                     ui.colored_label(Color32::LIGHT_RED, format!(
                                         "Texture {:08x} is a reference to texture {:08x} in file {:08x}",
@@ -191,15 +188,12 @@ impl TextureList {
                                     continue;
                                 }
 
-                                let (rect, response) =
-                                ui.allocate_exact_size(egui::vec2(128., 128.) * self.zoom, egui::Sense::click());
-    
-                                ui.painter().rect_filled( 
-                                    rect,
+                                let (rect, response) = ui.allocate_exact_size(egui::vec2(128., 128.) * self.zoom, egui::Sense::click());
+                                ui.painter().rect_filled(rect,
                                     egui::Rounding::none(),
                                     Color32::BLACK,
                                 );
-        
+
                                 ui.painter().text(
                                     rect.left_top() + egui::vec2(24., 24.),
                                     egui::Align2::CENTER_CENTER,
@@ -207,14 +201,14 @@ impl TextureList {
                                     egui::FontId::proportional(24.),
                                     Color32::RED,
                                 );
-        
-                                    response.on_hover_ui(|ui| {
-                                        ui.label(format!(
-                                            "Texture {:08x} failed:",
-                                            it.hashcode
-                                        ));
-                                        ui.colored_label(Color32::LIGHT_RED, cutoff_string(strip_ansi_codes(&format!("{e:?}")), 1024));
-                                    });
+
+                                response.on_hover_ui(|ui| {
+                                    ui.label(format!(
+                                        "Texture {:08x} failed:",
+                                        it.hashcode
+                                    ));
+                                    ui.colored_label(Color32::LIGHT_RED, cutoff_string(strip_ansi_codes(&format!("{e:?}")), 1024));
+                                });
                             },
                         }
                     }
@@ -233,22 +227,20 @@ impl TextureList {
                 egui::Window::new("Texture Viewer")
                     .open(&mut window_open)
                     .collapsible(false)
-                    .default_height(ctx.available_rect().height() * 0.70 as f32)
+                    .default_height(ctx.available_rect().height() * 0.70_f32)
                     .show(ctx, |ui| {
                         let time = self.start_time.elapsed().as_secs_f32();
                         let frametime_scale = t.frame_count as f32 / t.frames.len() as f32;
                         let frame_time = (1. / t.framerate as f32) * frametime_scale;
 
                         let frames = &self.egui_textures[&it.hashcode];
-                        let current = if frames.len() > 0 {
+                        let current = if !frames.is_empty() {
                             &frames[(time / frame_time) as usize % frames.len()]
                         } else {
                             &frames[0]
                         };
 
-                        if let pos = ctx.input(|i| i.zoom_delta()) {
-                            self.enlarged_zoom *= pos;
-                        }
+                        self.enlarged_zoom *= ctx.input(|i| i.zoom_delta());
 
                         egui::Image::new(current, current.size_vec2() * self.enlarged_zoom).ui(ui);
 

@@ -69,14 +69,14 @@ pub fn execute_command(
             ProgressStyle::with_template("{spinner:.green} [{elapsed_precise}] {msg}")
                 .unwrap()
                 .progress_chars("##-")
-                .tick_chars(&TICK_STRINGS),
+                .tick_chars(TICK_STRINGS),
         );
         pb.set_message("Locating files");
 
         for p in &file_paths_temp {
             // Join path to root folder and change globbing pattern to be `glob`-compatible
             let path_on_disk =
-                Path::new(&input_folder).join(transform_windows_path(&p[3..].replace("#", "?")));
+                Path::new(&input_folder).join(transform_windows_path(&p[3..].replace('#', "?")));
 
             let mut found_files = false;
             #[allow(for_loops_over_fallibles)]
@@ -110,7 +110,7 @@ pub fn execute_command(
             ProgressStyle::with_template("{spinner:.green} [{elapsed_precise}] {msg}")
                 .unwrap()
                 .progress_chars("##-")
-                .tick_chars(&TICK_STRINGS),
+                .tick_chars(TICK_STRINGS),
         );
         pb.set_message("Locating files");
 
@@ -144,7 +144,7 @@ pub fn execute_command(
         )
         .unwrap()
         .progress_chars("##-")
-        .tick_chars(&TICK_STRINGS),
+        .tick_chars(TICK_STRINGS),
     );
     pb.set_message("Packing files");
 
@@ -235,7 +235,7 @@ pub fn execute_command(
             //      this should make the diff engines' life easier. and we should
             //      get a byte-by-byte perfect reconstruction for pristine files,
             //      (as long as they get stored in the same order with the help of a handy .scr spec file)
-            f_data.write(&common_garbage_buf[filedata.len()..filedata_len_plus_padding])?;
+            f_data.write_all(&common_garbage_buf[filedata.len()..filedata_len_plus_padding])?;
         }
     }
 
@@ -317,7 +317,7 @@ fn parse_scr_filelist<P: AsRef<Path>>(path: P) -> anyhow::Result<Vec<String>> {
 
         if line == "[FileList]" {
             in_filesection = true;
-        } else if line.starts_with("[") {
+        } else if line.starts_with('[') {
             in_filesection = false;
         }
     }

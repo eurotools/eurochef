@@ -98,7 +98,9 @@ impl TriggerValue {
 
 #[derive(Copy, Clone, Debug, Deserialize)]
 #[serde(rename_all = "lowercase")]
+#[derive(Default)]
 pub enum DefinitionDataType {
+    #[default]
     Unknown32,
     U32,
     Float,
@@ -164,19 +166,11 @@ pub fn format_hashcode(hashcodes: &IntMap<Hashcode, String>, hc: Hashcode) -> St
             } else {
                 format!("{hc_base_stripped}_Unknown_{hc:08x}")
             }
+        } else if is_local {
+            format!("HT_Local_Invalid_{hc:08x}")
         } else {
-            if is_local {
-                format!("HT_Local_Invalid_{hc:08x}")
-            } else {
-                format!("HT_Invalid_{hc:08x}")
-            }
+            format!("HT_Invalid_{hc:08x}")
         }
-    }
-}
-
-impl Default for DefinitionDataType {
-    fn default() -> Self {
-        DefinitionDataType::Unknown32
     }
 }
 
@@ -194,5 +188,5 @@ fn human_num(v: u32) -> String {
     if f > 0.003 && f < 1e7 {
         return format!("{f:.2}");
     }
-    return format!("0x{v:x}/{f:.2}");
+    format!("0x{v:x}/{f:.2}")
 }

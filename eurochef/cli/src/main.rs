@@ -27,9 +27,9 @@ pub enum PlatformArg {
     WiiU,
 }
 
-impl Into<Platform> for PlatformArg {
-    fn into(self) -> Platform {
-        match self {
+impl From<PlatformArg> for Platform {
+    fn from(val: PlatformArg) -> Self {
+        match val {
             PlatformArg::Pc => Platform::Pc,
             PlatformArg::Xbox | PlatformArg::Xb => Platform::Xbox,
             PlatformArg::Xbox360 => Platform::Xbox360,

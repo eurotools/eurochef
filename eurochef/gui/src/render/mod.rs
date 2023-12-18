@@ -36,7 +36,7 @@ impl RenderUniforms {
         aspect_ratio: f32,
         time: f32,
     ) {
-        let mut aspect_ratio_vert = (1.0 / aspect_ratio).max(1.0);
+        let aspect_ratio_vert = (1.0 / aspect_ratio).max(1.0);
 
         let mut projection = if orthographic {
             glam::Mat4::orthographic_rh_gl(
@@ -154,9 +154,9 @@ impl RenderStore {
         }
     }
 
-    pub fn is_file_loaded(&self, file: Hashcode) -> bool {
-        self.files.contains_key(&file)
-    }
+    // pub fn is_file_loaded(&self, file: Hashcode) -> bool {
+    //     self.files.contains_key(&file)
+    // }
 
     pub fn is_object_loaded(&self, file: Hashcode, hashcode: Hashcode) -> bool {
         match hashcode.base() {

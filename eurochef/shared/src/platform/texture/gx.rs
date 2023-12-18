@@ -97,7 +97,7 @@ impl TextureDecoder for GxTextureDecoder {
                 let mut index = 0;
                 for y in 0..height {
                     for x in 0..width {
-                        let alpha = input[index * 2 + 0];
+                        let alpha = input[index * 2];
                         let illuminance = input[index * 2 + 1];
                         buffer[(x, y)] = [illuminance, illuminance, illuminance, alpha].into();
 
@@ -157,9 +157,9 @@ impl TextureDecoder for GxTextureDecoder {
                 ensure!(output.len() == buffer.len());
                 output.copy_from_slice(&buffer);
             }
-            InternalFormat::CMPR => {
+            InternalFormat::Cmpr => {
                 if rounded_width != width || rounded_height != height {
-                    anyhow::bail!("Odd resolutions on CMPR are not supported yet!");
+                    anyhow::bail!("Odd resolutions on Cmpr are not supported yet!");
                 }
 
                 let mut index = 0;
@@ -204,11 +204,11 @@ impl TextureDecoder for GxTextureDecoder {
             }
         }
 
-        if fmt != InternalFormat::CMPR && fmt != InternalFormat::RGBA8 {
+        if fmt != InternalFormat::Cmpr && fmt != InternalFormat::RGBA8 {
             let mut src_index = 0;
             let (blockw, blockh) = fmt.block_size();
-            for y in (0..height as u32).step_by(blockh) {
-                for x in (0..width as u32).step_by(blockw) {
+            for y in (0..height).step_by(blockh) {
+                for x in (0..width).step_by(blockw) {
                     for by in 0..blockh as u32 {
                         for bx in 0..blockw as u32 {
                             let (sx, sy) = (src_index % width, src_index / width);
@@ -244,7 +244,7 @@ enum InternalFormat {
     C4 = 8,
     C8 = 9,
     C14X2 = 10,
-    CMPR = 14,
+    Cmpr = 14,
 }
 
 impl InternalFormat {
@@ -260,7 +260,7 @@ impl InternalFormat {
             Self::C4 => 4,
             Self::C8 => 8,
             Self::C14X2 => 16,
-            Self::CMPR => 4,
+            Self::Cmpr => 4,
         }
     }
 
@@ -276,13 +276,13 @@ impl InternalFormat {
             Self::C4 => (8, 8),
             Self::C8 => (8, 4),
             Self::C14X2 => (4, 4),
-            Self::CMPR => (8, 8),
+            Self::Cmpr => (8, 8),
         }
     }
 
     pub fn from_exformat(fmt: u8) -> anyhow::Result<Self> {
         Ok(match fmt {
-            0 => Self::CMPR,
+            0 => Self::Cmpr,
             1 => Self::RGBA8,
             3 => Self::RGB5A3,
             4 => Self::I4,
@@ -343,7 +343,7 @@ fn decode_dxt_block(dst: &mut [u8], src: &[u8], pitch: u32) -> anyhow::Result<()
     for y in 0..4 {
         let mut val = lines[y];
         for x in 0..4 {
-            let offset = (y as usize * pitch as usize + x) * 4;
+            let offset = (y * pitch as usize + x) * 4;
 
             // ensure!(offset + 4 < dst.len());
 

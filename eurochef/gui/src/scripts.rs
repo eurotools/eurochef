@@ -369,7 +369,7 @@ impl ScriptListPanel {
                     *file,
                 ),
                 UXGeoScriptCommandData::Event { event_type, data } => {
-                    extra_info = hex::encode(&data);
+                    extra_info = hex::encode(data);
                     (
                         Self::COMMAND_COLOR_EVENT,
                         format!("Event {}", format_hashcode(&self.hashcodes, *event_type)),
@@ -381,7 +381,7 @@ impl ScriptListPanel {
                         continue;
                     }
 
-                    extra_info = hex::encode(&data);
+                    extra_info = hex::encode(data);
                     (
                         Self::COMMAND_COLOR_UNKNOWN,
                         format!("Unknown 0x{cmd:x}"),

@@ -99,7 +99,7 @@ impl MapViewerPanel {
         file: Hashcode,
         gl: &glow::Context,
         maps: &[ProcessedMap],
-        ref_entities: &Vec<IdentifiableResult<(EXGeoEntity, ProcessedEntityMesh)>>,
+        ref_entities: &[IdentifiableResult<(EXGeoEntity, ProcessedEntityMesh)>],
         platform: Platform,
     ) -> Vec<(u32, Arc<Mutex<EntityRenderer>>)> {
         let mut ref_renderers = vec![];
@@ -217,12 +217,7 @@ pub fn read_from_file(edb: &mut EdbFile) -> Vec<ProcessedMap> {
                     continue;
                 }
 
-                if map.triggers[ei]
-                    .links
-                    .iter()
-                    .find(|v| **v == i as i32)
-                    .is_some()
-                {
+                if map.triggers[ei].links.iter().any(|v| *v == i as i32) {
                     map.triggers[i].incoming_links.push(ei as i32);
                 }
             }

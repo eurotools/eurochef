@@ -228,7 +228,7 @@ impl BinRead for EXGeoTriggerEngineOptions {
         let mut res: EXGeoTriggerEngineOptions = Default::default();
 
         const FLAG_BASE: usize = 24;
-        if trig_flags.is_set(FLAG_BASE + 0) {
+        if trig_flags.is_set(FLAG_BASE) {
             res.visual_object = Some(reader.read_type(endian)?);
         }
         if trig_flags.is_set(FLAG_BASE + 1) {

@@ -28,11 +28,7 @@ pub fn execute_command(
 
     let output_folder = output_folder.unwrap_or(format!(
         "./entities/{}/",
-        Path::new(&filename)
-            .file_name()
-            .unwrap()
-            .to_string_lossy()
-            .to_string(),
+        Path::new(&filename).file_name().unwrap().to_string_lossy()
     ));
     let output_folder = Path::new(&output_folder);
 
@@ -66,7 +62,7 @@ pub fn execute_command(
         )
         .unwrap()
         .progress_chars("##-")
-        .tick_chars(&TICK_STRINGS),
+        .tick_chars(TICK_STRINGS),
     );
     pb.set_message("Extracting textures");
 
@@ -77,7 +73,7 @@ pub fn execute_command(
         let _span_enter = _span.enter();
 
         if let Ok(t) = it.data {
-            if t.frames.len() == 0 {
+            if t.frames.is_empty() {
                 error!("Skipping texture with no frames");
                 continue;
             }
@@ -118,7 +114,7 @@ pub fn execute_command(
         )
         .unwrap()
         .progress_chars("##-")
-        .tick_chars(&TICK_STRINGS),
+        .tick_chars(TICK_STRINGS),
     );
     pb.set_message("Extracting animskins");
 
@@ -190,7 +186,7 @@ pub fn execute_command(
                 }
             }
 
-            if vertex_data.len() == 0 {
+            if vertex_data.is_empty() {
                 warn!(
                     "Processed entity doesnt have vertex data! (v={}/i={}/t={})",
                     vertex_data.len(),
@@ -199,7 +195,7 @@ pub fn execute_command(
                 );
             }
 
-            if strips.len() <= 0 {
+            if strips.is_empty() {
                 continue;
             }
 

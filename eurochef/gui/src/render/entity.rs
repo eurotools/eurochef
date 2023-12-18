@@ -330,7 +330,7 @@ impl EntityRenderer {
 
             scroll = tex.scroll * time as f32;
 
-            if tex.frames.len() > 0 {
+            if !tex.frames.is_empty() {
                 gl.bind_texture(
                     glow::TEXTURE_2D,
                     Some(tex.frames[(time as f32 / frame_time) as usize % tex.frames.len()]),

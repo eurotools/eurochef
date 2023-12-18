@@ -204,16 +204,16 @@ pub fn add_mesh_to_scene(
     let mut material_map: HashMap<u32, u32> = HashMap::new();
     // Restore material map
     for (i, m) in root.materials.iter().enumerate() {
-        let msplit = m.name.as_ref().unwrap().split('_').nth(0).unwrap();
+        let msplit = m.name.as_ref().unwrap().split('_').next().unwrap();
         let mhashcode = u32::from_str_radix(msplit, 16).unwrap();
         material_map.insert(mhashcode, i as u32);
     }
 
     for t in strips {
-        if !material_map.contains_key(&t.texture_index) {
+        if let std::collections::hash_map::Entry::Vacant(e) = material_map.entry(t.texture_index) {
             let (img_uri, transparency) = texture_map
                 .get(&t.texture_index)
-                .map(|v| v.clone())
+                .cloned()
                 .unwrap_or((format!("{:08x}.png", t.texture_index), Transparency::Opaque));
 
             root.images.push(gjson::Image {
@@ -283,7 +283,7 @@ pub fn add_mesh_to_scene(
             });
 
             let material_index = root.materials.len() as u32 - 1;
-            material_map.insert(t.texture_index, material_index);
+            e.insert(material_index);
         }
 
         let material_id = material_map.get(&t.texture_index).unwrap();

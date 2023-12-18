@@ -35,7 +35,7 @@ impl<T: BinRead> EXGeoHashArray<T> {
     }
 
     pub fn data(&self) -> &Vec<T> {
-        return &self.data;
+        &self.data
     }
 }
 
@@ -161,7 +161,7 @@ impl<T: BinRead> EXRelArray<T> {
     }
 
     pub fn data(&self) -> &Vec<T> {
-        return &self.data;
+        &self.data
     }
 }
 

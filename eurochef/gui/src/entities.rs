@@ -134,7 +134,7 @@ impl EntityListPanel {
                             gl,
                             t.width as i32,
                             t.height as i32,
-                            &d,
+                            d,
                             glow::RGBA,
                             t.flags,
                         );
@@ -298,14 +298,14 @@ impl EntityListPanel {
                                 ui.label(format!("Entity {i:x} failed:"));
                                 ui.colored_label(
                                     Color32::LIGHT_RED,
-                                    cutoff_string(strip_ansi_codes(&err), 1024),
+                                    cutoff_string(strip_ansi_codes(err), 1024),
                                 );
                             });
 
                             return;
                         }
 
-                        let response = if let Some(Some(tex)) = self.entity_previews.get(&i) {
+                        let response = if let Some(Some(tex)) = self.entity_previews.get(i) {
                             egui::Image::new(tex.id(), [256., 256.])
                                 .uv(egui::Rect::from_min_size(
                                     egui::Pos2::ZERO,
@@ -468,27 +468,25 @@ impl EntityListPanel {
                     .map(|v| v.data.as_ref())
                 {
                     meshes.push(mesh)
-                } else {
-                    if let Some(Ok(skin)) = self
-                        .skins
+                } else if let Some(Ok(skin)) = self
+                    .skins
+                    .iter()
+                    .find(|ir| ir.hashcode == *hc)
+                    .map(|v| &v.data)
+                {
+                    let entity_indices: Vec<u32> = skin
+                        .entities
                         .iter()
-                        .find(|ir| ir.hashcode == *hc)
-                        .map(|v| &v.data)
-                    {
-                        let entity_indices: Vec<u32> = skin
-                            .entities
-                            .iter()
-                            .chain(skin.more_entities.iter())
-                            .map(|d| d.entity_index & 0x00ffffff)
-                            .collect();
-                        for i in entity_indices {
-                            if let Ok((_, mesh)) = &self.entities[i as usize].data.as_ref() {
-                                meshes.push(mesh);
-                            }
+                        .chain(skin.more_entities.iter())
+                        .map(|d| d.entity_index & 0x00ffffff)
+                        .collect();
+                    for i in entity_indices {
+                        if let Ok((_, mesh)) = &self.entities[i as usize].data.as_ref() {
+                            meshes.push(mesh);
                         }
-                    } else {
-                        unreachable!("Thumbnail requested for nonexistent entity {hc:x}");
                     }
+                } else {
+                    unreachable!("Thumbnail requested for nonexistent entity {hc:x}");
                 }
 
                 let mut bb = (Vec3::splat(f32::MAX), Vec3::splat(f32::MIN));

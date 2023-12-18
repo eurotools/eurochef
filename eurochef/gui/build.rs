@@ -1,7 +1,7 @@
 use std::process::Command;
 
 fn main() {
-    let git_hash = if let Ok(output) = Command::new("git").args(&["rev-parse", "HEAD"]).output() {
+    let git_hash = if let Ok(output) = Command::new("git").args(["rev-parse", "HEAD"]).output() {
         String::from_utf8(output.stdout).unwrap()
     } else {
         "unknown".to_string()
@@ -15,7 +15,7 @@ fn main() {
         date_time.format("%Y-%m-%d %H:%M:%S")
     );
 
-    let output = Command::new("rustc").args(&["--version"]).output().unwrap();
+    let output = Command::new("rustc").args(["--version"]).output().unwrap();
     let rustc_version = String::from_utf8(output.stdout).unwrap();
     println!("cargo:rustc-env=RUSTC_VERSION={}", rustc_version);
 }

@@ -59,7 +59,7 @@ impl TextureDecoder for XboxTextureDecoder {
             }
             InternalFormat::ARGB8 | InternalFormat::ARGB8Linear => {
                 for (i, bytes) in input.chunks_exact(4).enumerate() {
-                    buffer[i * 4 + 0] = bytes[2];
+                    buffer[i * 4] = bytes[2];
                     buffer[i * 4 + 1] = bytes[1];
                     buffer[i * 4 + 2] = bytes[0];
                     buffer[i * 4 + 3] = bytes[3];
@@ -71,7 +71,7 @@ impl TextureDecoder for XboxTextureDecoder {
                     let g = bytes[0] >> 4;
                     let b = bytes[1] & 0x0f;
                     let a = bytes[1] >> 4;
-                    buffer[i * 4 + 0] = (b << 4) | b;
+                    buffer[i * 4] = (b << 4) | b;
                     buffer[i * 4 + 1] = (g << 4) | g;
                     buffer[i * 4 + 2] = (r << 4) | r;
                     buffer[i * 4 + 3] = (a << 4) | a;
@@ -83,7 +83,7 @@ impl TextureDecoder for XboxTextureDecoder {
                     let b = bytes[0] & 0x1f;
                     let g = (bytes[0] >> 5) | ((bytes[1] & 0x07) << 3);
                     let r = bytes[1] >> 3;
-                    buffer[i * 4 + 0] = (b << 3) | (b >> 2);
+                    buffer[i * 4] = (b << 3) | (b >> 2);
                     buffer[i * 4 + 1] = (g << 2) | (g >> 4);
                     buffer[i * 4 + 2] = (r << 3) | (r >> 2);
                     buffer[i * 4 + 3] = 255;
@@ -97,10 +97,10 @@ impl TextureDecoder for XboxTextureDecoder {
                     let r = (byte[1] & 0x7c) >> 2;
                     let a = byte[1] >> 7;
 
-                    buffer[i * 4 + 0] = r as u8 * 8;
-                    buffer[i * 4 + 1] = g as u8 * 8;
-                    buffer[i * 4 + 2] = b as u8 * 8;
-                    buffer[i * 4 + 3] = a as u8 * 255;
+                    buffer[i * 4] = r * 8;
+                    buffer[i * 4 + 1] = g * 8;
+                    buffer[i * 4 + 2] = b * 8;
+                    buffer[i * 4 + 3] = a * 255;
                 }
             }
             InternalFormat::P8 => {
@@ -122,8 +122,7 @@ impl TextureDecoder for XboxTextureDecoder {
         if fmt.is_swizzled() {
             for y in 0..height {
                 for x in 0..width {
-                    let load_offset =
-                        deswizzle(x as u32, y as u32, width as u32, height as u32) as usize;
+                    let load_offset = deswizzle(x, y, width, height) as usize;
 
                     let pixel = &buffer[load_offset * 4..load_offset * 4 + 4];
 
@@ -153,7 +152,7 @@ fn deswizzle(x: u32, y: u32, width: u32, height: u32) -> u32 {
 
     // At least one of width and height will  have run out of most-significant bits
     offset |= ((x | y) >> shift) << (shift * 2);
-    return offset;
+    offset
 }
 
 #[derive(Debug, N)]

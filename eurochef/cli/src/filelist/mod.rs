@@ -1,4 +1,4 @@
-const TICK_STRINGS: &'static str = "⠁⠂⠄⡀⢀⠠⠐⠈";
+const TICK_STRINGS: &str = "⠁⠂⠄⡀⢀⠠⠐⠈";
 
 pub mod create;
 pub mod extract;

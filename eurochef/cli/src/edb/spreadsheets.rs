@@ -12,11 +12,7 @@ use eurochef_shared::spreadsheets::{SpreadsheetDefinitions, UXGeoSpreadsheet};
 pub fn execute_command(filename: String, output_folder: Option<String>) -> anyhow::Result<()> {
     let output_folder = output_folder.unwrap_or(format!(
         "./spreadsheets/{}/",
-        Path::new(&filename)
-            .file_name()
-            .unwrap()
-            .to_string_lossy()
-            .to_string(),
+        Path::new(&filename).file_name().unwrap().to_string_lossy()
     ));
     let output_folder = Path::new(&output_folder);
     std::fs::create_dir_all(output_folder)?;
@@ -29,10 +25,9 @@ pub fn execute_command(filename: String, output_folder: Option<String>) -> anyho
         if let Some(dissected_path) = DissectedFilelistPath::dissect(&filename) {
             let exe_path = std::env::current_exe().unwrap();
             let exe_dir = exe_path.parent().unwrap();
-            let v = std::fs::read_to_string(exe_dir.join(&format!(
-                "./assets/spreadsheets_{}.yml",
-                dissected_path.game
-            )))
+            let v = std::fs::read_to_string(
+                exe_dir.join(format!("./assets/spreadsheets_{}.yml", dissected_path.game)),
+            )
             .unwrap_or_default();
 
             let spreadsheet_definitions: SpreadsheetDefinitions = match serde_yaml::from_str(&v) {
@@ -59,7 +54,7 @@ pub fn execute_command(filename: String, output_folder: Option<String>) -> anyho
 
     for (file_hashcode, sfile) in &spreadsheet_definitions {
         for (hashcode, spreadsheet) in &sfile.0 {
-            for (_sheet_num, sheet) in &spreadsheet.0 {
+            for sheet in spreadsheet.0.values() {
                 if sheet.columns.is_empty() {
                     continue;
                 }
@@ -92,7 +87,7 @@ pub fn execute_command(filename: String, output_folder: Option<String>) -> anyho
             UXGeoSpreadsheet::Data(data) => {
                 for (sheet_num, sheet) in data.iter().enumerate() {
                     edb.seek(SeekFrom::Start(sheet.address as u64))?;
-                    let sheet_definition = match spreadsheet_definition.0.get(&hashcode) {
+                    let sheet_definition = match spreadsheet_definition.0.get(hashcode) {
                         None => {
                             error!("Missing spreadsheet definition for file {:08x} spreadsheet {hashcode:08x} sheet #{sheet_num} (address 0x{:x})", edb.header.hashcode, sheet.address);
                             continue;

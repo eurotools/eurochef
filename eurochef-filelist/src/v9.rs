@@ -55,7 +55,7 @@ impl EXFileList9 {
             let size = end - start;
             let mut data = vec![0u8; size as usize];
             reader.seek(std::io::SeekFrom::Start(*start))?;
-            reader.read(&mut data)?;
+            reader.read_exact(&mut data)?;
 
             if res.header.version >= 10 {
                 unscramble_filename_v10(i as u32, &mut data);
@@ -73,16 +73,16 @@ impl EXFileList9 {
 }
 
 // TODO: Make a trait for filelists bundling both the read and from/into functions so that they can be used genericly
-impl Into<UXFileList> for EXFileList9 {
-    fn into(self) -> UXFileList {
+impl From<EXFileList9> for UXFileList {
+    fn from(val: EXFileList9) -> Self {
         UXFileList {
-            num_filelists: Some(self.header.num_filelists),
-            build_type: Some(self.header.build_type),
-            endian: self.endian,
-            files: self
+            num_filelists: Some(val.header.num_filelists),
+            build_type: Some(val.header.build_type),
+            endian: val.endian,
+            files: val
                 .filenames
                 .into_iter()
-                .zip(self.header.fileinfo)
+                .zip(val.header.fileinfo)
                 .map(|(filename, info)| {
                     (
                         filename,
