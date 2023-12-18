@@ -75,7 +75,8 @@ pub struct EXGeoAnimSkinHierData {
 
 #[binrw::parser(reader, endian)]
 fn parse_late_skindata(
-    (ptr, length): (&EXRelPtr, u32),
+    ptr: &EXRelPtr,
+    length: u32,
 ) -> BinResult<EXRelPtr<Vec<EXRelPtr<EXGeoAnimSkinUnkWeightData>>>> {
     let pos_saved = reader.stream_position()?;
     reader.seek(std::io::SeekFrom::Start(ptr.offset_absolute()))?;

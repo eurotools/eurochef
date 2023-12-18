@@ -194,7 +194,7 @@ pub struct EXGeoTriggerEngineOptions {
 }
 
 #[binrw::parser(reader, endian)]
-fn parse_trigdata_values((trig_flags,): (u32,)) -> BinResult<[Option<u32>; 16]> {
+fn parse_trigdata_values(trig_flags: u32) -> BinResult<[Option<u32>; 16]> {
     let mut res = [None; 16];
     for i in 0..16 {
         if trig_flags.is_set(i) {
@@ -206,7 +206,7 @@ fn parse_trigdata_values((trig_flags,): (u32,)) -> BinResult<[Option<u32>; 16]> 
 }
 
 #[binrw::parser(reader, endian)]
-fn parse_trigdata_link((trig_flags,): (u32,)) -> BinResult<[i32; 8]> {
+fn parse_trigdata_link(trig_flags: u32) -> BinResult<[i32; 8]> {
     let mut res = [-1; 8];
     for i in 16..24 {
         if trig_flags.is_set(i) {
