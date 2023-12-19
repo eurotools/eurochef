@@ -91,7 +91,7 @@ pub fn add_mesh_to_scene(
     let (min, max) = bounding_coords(vertices);
 
     let vertex_buffer = gjson::Buffer {
-        byte_length: vdata.len() as u32,
+        byte_length: vdata.len().into(),
         extensions: Default::default(),
         extras: Default::default(),
         name: None,
@@ -105,7 +105,7 @@ pub fn add_mesh_to_scene(
         buffer: gjson::Index::new(vertex_buffer_index),
         byte_length: vertex_buffer.byte_length,
         byte_offset: None,
-        byte_stride: Some(std::mem::size_of::<UXVertex>() as u32),
+        byte_stride: Some(gjson::buffer::Stride(std::mem::size_of::<UXVertex>())),
         extensions: Default::default(),
         extras: Default::default(),
         name: None,
@@ -116,7 +116,7 @@ pub fn add_mesh_to_scene(
     root.buffer_views.push(vertex_buffer_view);
 
     let index_buffer = gjson::Buffer {
-        byte_length: idata.len() as u32,
+        byte_length: idata.len().into(),
         extensions: Default::default(),
         extras: Default::default(),
         name: None,
@@ -128,8 +128,8 @@ pub fn add_mesh_to_scene(
 
     let positions = gjson::Accessor {
         buffer_view: Some(gjson::Index::new(vertex_buffer_view_index)),
-        byte_offset: 0,
-        count: vertices.len() as u32,
+        byte_offset: None,
+        count: vertices.len().into(),
         component_type: Checked::Valid(gjson::accessor::GenericComponentType(
             gjson::accessor::ComponentType::F32,
         )),
@@ -144,8 +144,8 @@ pub fn add_mesh_to_scene(
     };
     let normals = gjson::Accessor {
         buffer_view: Some(gjson::Index::new(vertex_buffer_view_index)),
-        byte_offset: (3 * std::mem::size_of::<f32>()) as u32,
-        count: vertices.len() as u32,
+        byte_offset: Some((3 * std::mem::size_of::<f32>()).into()),
+        count: vertices.len().into(),
         component_type: Checked::Valid(gjson::accessor::GenericComponentType(
             gjson::accessor::ComponentType::F32,
         )),
@@ -160,8 +160,8 @@ pub fn add_mesh_to_scene(
     };
     let uvs = gjson::Accessor {
         buffer_view: Some(gjson::Index::new(vertex_buffer_view_index)),
-        byte_offset: (6 * std::mem::size_of::<f32>()) as u32,
-        count: vertices.len() as u32,
+        byte_offset: Some((6 * std::mem::size_of::<f32>()).into()),
+        count: vertices.len().into(),
         component_type: Checked::Valid(gjson::accessor::GenericComponentType(
             gjson::accessor::ComponentType::F32,
         )),
@@ -176,8 +176,8 @@ pub fn add_mesh_to_scene(
     };
     let colors = gjson::Accessor {
         buffer_view: Some(gjson::Index::new(vertex_buffer_view_index)),
-        byte_offset: (8 * std::mem::size_of::<f32>()) as u32,
-        count: vertices.len() as u32,
+        byte_offset: Some((8 * std::mem::size_of::<f32>()).into()),
+        count: vertices.len().into(),
         component_type: Checked::Valid(gjson::accessor::GenericComponentType(
             gjson::accessor::ComponentType::F32,
         )),
@@ -290,8 +290,8 @@ pub fn add_mesh_to_scene(
 
         let index_buffer_view = gjson::buffer::View {
             buffer: gjson::Index::new(index_buffer_index),
-            byte_length: t.index_count * std::mem::size_of::<u32>() as u32,
-            byte_offset: Some(t.start_index * std::mem::size_of::<u32>() as u32),
+            byte_length: (t.index_count as usize * std::mem::size_of::<u32>()).into(),
+            byte_offset: Some((t.start_index as usize * std::mem::size_of::<u32>()).into()),
             byte_stride: None,
             extensions: Default::default(),
             extras: Default::default(),
@@ -302,8 +302,8 @@ pub fn add_mesh_to_scene(
 
         let index_accessor = gjson::Accessor {
             buffer_view: Some(gjson::Index::new(root.buffer_views.len() as u32 - 1)),
-            byte_offset: 0,
-            count: t.index_count,
+            byte_offset: None,
+            count: (t.index_count as u64).into(),
             component_type: Checked::Valid(gjson::accessor::GenericComponentType(
                 gjson::accessor::ComponentType::U32,
             )),
@@ -320,7 +320,7 @@ pub fn add_mesh_to_scene(
 
         let primitive = gjson::mesh::Primitive {
             attributes: {
-                let mut map = std::collections::HashMap::new();
+                let mut map = std::collections::BTreeMap::new();
                 map.insert(
                     Checked::Valid(gjson::mesh::Semantic::Positions),
                     gjson::Index::new(a_position_index),
