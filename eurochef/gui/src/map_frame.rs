@@ -503,6 +503,7 @@ impl MapFrame {
                         time as f32 % (length as f32 / framerate),
                         &render_store.read(),
                         &mut |q| render_queue.push(q),
+                        vec![],
                     )
                 }
                 _ => {}
@@ -586,6 +587,7 @@ impl MapFrame {
                                     },
                                     &render_store.read(),
                                     &mut |q| render_queue.push(q),
+                                    vec![],
                                 )
                             }
                             _ => {}

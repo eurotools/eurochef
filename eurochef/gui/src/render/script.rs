@@ -15,6 +15,7 @@ pub fn render_script<F>(
     current_time: f32,
     render_store: &RenderStore,
     render: &mut F,
+    hashcode_stack: Vec<u32>,
 ) where
     F: FnMut(QueuedEntityRender),
 {
@@ -144,6 +145,10 @@ pub fn render_script<F>(
                 scale: scale * transform.2,
             }),
             UXGeoScriptCommandData::SubScript { hashcode, file } => {
+                if hashcode == script_hashcode || hashcode_stack.contains(&hashcode) {
+                    return;
+                }
+
                 render_script(
                     position + (rotation.mul_vec3(transform.0)),
                     rotation * transform.1,
@@ -153,6 +158,7 @@ pub fn render_script<F>(
                     current_time,
                     render_store,
                     render,
+                    [hashcode_stack.as_slice(), &[hashcode]].concat(),
                 );
             }
             _ => {}

@@ -202,6 +202,7 @@ impl ScriptListPanel {
                 current_time,
                 &render_store.read(),
                 &mut |q| render_queue.push(q),
+                vec![],
             );
 
             for r in render_queue.iter() {
