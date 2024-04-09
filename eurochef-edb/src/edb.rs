@@ -74,7 +74,7 @@ impl EdbFile {
             ));
         }
 
-        if !(182..=263).contains(&version) {
+        if !(170..=263).contains(&version) {
             return Err(crate::error::EurochefError::Unsupported(
                 crate::error::UnsupportedError::Version(version),
             ));
