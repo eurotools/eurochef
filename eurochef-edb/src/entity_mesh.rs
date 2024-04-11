@@ -87,7 +87,7 @@ impl BinRead for EXGeoMeshEntity {
                 });
             } else {
                 match version {
-                    252 | 250 | 251 | 240 | 221 => {
+                    252 | 250 | 251 | 240 | 221 | 170 => {
                         let d = reader.read_type::<(EXVector3, u32, EXVector2)>(endian)?;
                         vertices.push(UXGeoMeshVertex {
                             pos: d.0,

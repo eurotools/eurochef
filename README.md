@@ -27,6 +27,7 @@ _(Priority currently lies with Spyro and G-Force)_
 | Game (EDB Version)                             | Textures <sup>[1]</sup> | Maps | Scripts | Entities | Animations | Particles | Spreadsheets |
 | ---------------------------------------------- | ----------------------- | ---- | ------- | -------- | ---------- | --------- | ------------ |
 | Sphinx and the Shadow of Set Demo Disc (156)   | ✅/❌                     | ❌    | ❌       | ✅/❌      | ❌          | ❌         | ✅/❌          |
+| Buffy The Vampire Slayer: Chaos Bleeds (170)   | ✅/❌                     | ❌    | ❌       | ✅/❌      | ❌          | ❌         | ❔/❌          |
 | Sphinx and the Cursed Mummy (182)              | ✅/❌                     | ❌    | ❌       | ✅/❌      | ❌          | ❌         | ✅/❌          |
 | Spyro: A Hero's Tail (240)                     | ✅/❌                     | ✅/❌  | ❌       | ✅/❌      | ❌          | ❌         | ✅/❌          |
 | Robots (248)                                   | ✅/❌                     | ✅/❌  | ❌       | ✅/❌      | ❌          | ❌         | ✅/❌          |

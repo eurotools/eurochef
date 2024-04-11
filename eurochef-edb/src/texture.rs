@@ -62,8 +62,9 @@ pub struct EXGeoTexture {
     pub clut_offset: Option<EXRelPtr>,
 
     /// Certain platforms such as PC and PS2 calculate data size from other parameters.
+    /// Some games (e.g. Chaos Bleeds on Xbox) also seem to do this.
     /// For general usage it is not recommended to rely on this field exlusively for data size.
-    #[brw(if(platform != Platform::Pc && platform != Platform::Ps2))]
+    #[brw(if(platform != Platform::Pc && platform != Platform::Ps2 && !(version == 170 && platform == Platform::Xbox)))]
     pub data_size: Option<u32>,
 
     #[br(count = image_count)]
