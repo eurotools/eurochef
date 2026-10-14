@@ -765,7 +765,7 @@ pub fn read_from_file(
         for s in header.animskin_list.iter() {
             edb.seek(std::io::SeekFrom::Start(s.common.address as u64))?;
 
-            let skin = edb.read_type_args::<EXGeoBaseAnimSkin>(edb.endian, (edb.header.version,));
+            let skin = edb.read_type_args::<EXGeoBaseAnimSkin>(edb.endian, (edb.header.version as u32,));
             skins.push(IdentifiableResult::new(
                 s.common.hashcode,
                 match skin {
@@ -785,7 +785,7 @@ fn read_entity_identifiable(
 ) -> anyhow::Result<(EXGeoEntity, ProcessedEntityMesh)> {
     edb.seek(std::io::SeekFrom::Start(address as u64))?;
 
-    let ent = edb.read_type_args(edb.endian, (edb.header.version, edb.platform))?;
+    let ent = edb.read_type_args(edb.endian, (edb.header.version as u32, edb.platform))?;
 
     let mut vertex_data = vec![];
     let mut indices = vec![];

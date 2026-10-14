@@ -102,3 +102,44 @@ pub struct FileLoc9 {
     pub addr: u32,
     pub filelist_num: u32,
 }
+
+// Version 13 (seen in Disney Universe, 2011+ EngineX games).
+//
+// Unlike every earlier version, v13 does not embed filenames or per-file
+// addresses in the catalog at all. Files are packed sequentially in the data
+// file(s), each padded up to the next 0x800-byte boundary; the real address
+// of each entry has to be resolved by scanning the data file for the next
+// chunk whose self-embedded hashcode matches (see EXFileList13::resolve_addresses
+// in v13.rs). `fileloc` below is read for byte-layout compatibility with the
+// older FileLoc5 shape, but its contents are not meaningful addresses for v13.
+#[binrw]
+#[derive(Debug)]
+pub struct EXFileListHeader13 {
+    #[brw(assert(version.eq(&13)))]
+    pub version: u32,
+    pub filesize: u32,
+    #[bw(calc = fileinfo.len() as i32)]
+    pub num_files: i32,
+    pub build_type: u16,
+    pub num_filelists: u16,
+    pub filename_list_offset: u32,
+    #[br(count = num_files)]
+    pub fileinfo: Vec<FileInfo13>,
+}
+
+#[binrw]
+#[derive(Debug, Clone)]
+pub struct FileInfo13 {
+    pub unk0: u32,
+    pub length: u32,
+    pub hashcode: u32,
+    pub flags: u32,
+    pub unk1: u32,
+    pub unk2: u32,
+
+    #[bw(calc = fileloc.len() as u32)]
+    pub num_fileloc: u32,
+
+    #[br(count = num_fileloc)]
+    pub fileloc: Vec<FileLoc5>,
+}

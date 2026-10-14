@@ -125,7 +125,7 @@ pub fn execute_command(
         edb.seek(std::io::SeekFrom::Start(a.common.address as u64))?;
 
         let skin = edb
-            .read_type_args::<EXGeoBaseAnimSkin>(edb.endian, (header.version,))
+            .read_type_args::<EXGeoBaseAnimSkin>(edb.endian, (header.version as u32,))
             .context("Failed to read animation")?;
 
         let entity_indices: Vec<u32> = skin
@@ -145,7 +145,7 @@ pub fn execute_command(
 
             edb.seek(std::io::SeekFrom::Start(e.common.address as u64))?;
 
-            let ent = edb.read_type_args::<EXGeoEntity>(edb.endian, (header.version, platform));
+            let ent = edb.read_type_args::<EXGeoEntity>(edb.endian, (header.version as u32, platform));
 
             if let Err(err) = ent {
                 error!("Failed to read entity: {err}");

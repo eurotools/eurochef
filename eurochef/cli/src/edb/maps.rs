@@ -67,7 +67,7 @@ pub fn execute_command(
         edb.seek(std::io::SeekFrom::Start(m.address as u64))?;
 
         let map = edb
-            .read_type_args::<EXGeoMap>(edb.endian, (header.version,))
+            .read_type_args::<EXGeoMap>(edb.endian, (header.version as u32,))
             .context("Failed to read map")?;
 
         let mut export = EurochefMapExport {
@@ -83,7 +83,7 @@ pub fn execute_command(
             edb.seek(std::io::SeekFrom::Start(entity_offset as u64))
                 .context("Mapzone refptr pointer to a non-entity object!")?;
 
-            let ent = edb.read_type_args::<EXGeoEntity>(edb.endian, (header.version, platform))?;
+            let ent = edb.read_type_args::<EXGeoEntity>(edb.endian, (header.version as u32, platform))?;
 
             if let EXGeoEntity::MapZone(mapzone) = ent {
                 export.mapzone_entities.push(mapzone);

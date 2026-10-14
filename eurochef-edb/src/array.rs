@@ -48,6 +48,129 @@ impl<T: BinRead, I: SliceIndex<[T]>> Index<I> for EXGeoHashArray<T> {
     }
 }
 
+/// EngineXT (Disney Universe and later) list descriptor: a plain (count, absolute
+/// offset) pair - 8 bytes total, no hash_size field and no self-relative pointer
+/// encoding like EXGeoHashArray's older EXRelPtr. The offset is an absolute byte
+/// position from the start of the GEOM chunk, deferred-patched at build time by
+/// the original ResourceBuilderXT tool (confirmed via decompiling
+/// CXTTargetFile::DWordOffsetArray / ECTargetFile::AbsDWordOffset).
+#[derive(Clone)]
+pub struct EXGeoAbsArray<T: BinRead + 'static> {
+    pub count: u32,
+    pub offset_absolute: u32,
+    data: Vec<T>,
+}
+
+impl<T: BinRead> EXGeoAbsArray<T> {
+    pub fn iter(&self) -> Iter<'_, T> {
+        self.data.iter()
+    }
+
+    pub fn len(&self) -> usize {
+        self.data.len()
+    }
+
+    pub fn data(&self) -> &Vec<T> {
+        &self.data
+    }
+}
+
+impl<T: BinRead, I: SliceIndex<[T]>> Index<I> for EXGeoAbsArray<T> {
+    type Output = I::Output;
+
+    #[inline]
+    fn index(&self, index: I) -> &Self::Output {
+        self.data.index(index)
+    }
+}
+
+impl<T: BinRead> BinRead for EXGeoAbsArray<T>
+where
+    for<'a> <T as BinRead>::Args<'a>: Clone,
+{
+    type Args<'a> = T::Args<'a>;
+    fn read_options<R: std::io::Read + std::io::Seek>(
+        reader: &mut R,
+        endian: binrw::Endian,
+        args: Self::Args<'_>,
+    ) -> binrw::BinResult<Self> {
+        let count: u32 = BinRead::read_options(reader, endian, ())?;
+        let offset_absolute: u32 = BinRead::read_options(reader, endian, ())?;
+
+        let mut data = vec![];
+        if count > 0 && size_of::<T>() != 0 {
+            let pos_saved = reader.stream_position()?;
+            reader.seek(std::io::SeekFrom::Start(offset_absolute as u64))?;
+
+            for _ in 0..count {
+                data.push(T::read_options(reader, endian, args.clone())?)
+            }
+
+            reader.seek(std::io::SeekFrom::Start(pos_saved))?;
+        }
+
+        Ok(Self {
+            count,
+            offset_absolute,
+            data,
+        })
+    }
+}
+
+impl<T: BinRead> BinWrite for EXGeoAbsArray<T> {
+    type Args<'a> = ();
+    fn write_options<W: std::io::Write + std::io::Seek>(
+        &self,
+        _writer: &mut W,
+        _endian: binrw::Endian,
+        _args: Self::Args<'_>,
+    ) -> binrw::BinResult<()> {
+        todo!()
+    }
+}
+
+impl<'a, T: BinRead> IntoIterator for &'a EXGeoAbsArray<T> {
+    type Item = &'a T;
+    type IntoIter = Iter<'a, T>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.data.iter()
+    }
+}
+
+impl<T: BinRead + Debug> Debug for EXGeoAbsArray<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("EXGeoAbsArray(")?;
+        f.debug_list().entries(self.data.iter()).finish()?;
+        f.write_str(
+            format!(
+                ", count={}, addr=0x{:x}",
+                self.count, self.offset_absolute
+            )
+            .as_str(),
+        )?;
+        f.write_str(")")
+    }
+}
+
+impl<T: BinRead> Default for EXGeoAbsArray<T> {
+    fn default() -> Self {
+        Self {
+            count: 0,
+            offset_absolute: 0,
+            data: vec![],
+        }
+    }
+}
+
+impl<T: BinRead + Serialize> Serialize for EXGeoAbsArray<T> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        self.data.serialize(serializer)
+    }
+}
+
 impl<T: BinRead> BinRead for EXGeoHashArray<T>
 where
     for<'a> <T as BinRead>::Args<'a>: Clone,

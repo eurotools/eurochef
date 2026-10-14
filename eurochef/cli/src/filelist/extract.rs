@@ -22,7 +22,7 @@ pub fn execute_command(
     println!("Extracting {filename} to {output_folder}");
     let mut file = File::open(&filename).context("Failed to open filelist header")?;
     let mut reader = BufReader::new(&mut file);
-    let filelist = UXFileList::read(&mut reader)?;
+    let mut filelist = UXFileList::read(&mut reader)?;
 
     std::fs::create_dir_all(&output_folder)?;
 
@@ -98,6 +98,25 @@ pub fn execute_command(
         data_files.push(File::open(format!("{}DAT", file_base))?);
     }
 
+    // v13 (Disney Universe and later) doesn't store addresses in the catalog
+    // at all - resolve them by scanning the data file for each entry's
+    // hashcode instead. Detected by re-parsing the header as v13; this just
+    // fails its version assert (and is ignored) for every older version.
+    let mut is_v13 = false;
+    {
+        let mut probe_file = File::open(&filename)?;
+        let mut probe_reader = BufReader::new(&mut probe_file);
+        if let Ok(v13) = eurochef_filelist::EXFileList13::read(&mut probe_reader) {
+            println!("Detected filelist v13 - resolving addresses via data scan (no addresses or filenames are stored in this version's catalog)");
+            let resolved = v13.resolve_addresses(&mut data_files[0])?;
+            for ((_, info), (addr, length)) in filelist.files.iter_mut().zip(resolved) {
+                info.addr = addr;
+                info.length = length;
+            }
+            is_v13 = true;
+        }
+    }
+
     let pb = ProgressBar::new(filelist.files.len() as u64);
     pb.set_style(
         ProgressStyle::with_template(
@@ -135,7 +154,7 @@ pub fn execute_command(
 
         let mut filesize = info.length;
 
-        if magic == 0x47454F4D {
+        if !is_v13 && magic == 0x47454F4D {
             df.seek(std::io::SeekFrom::Current(0x10))?;
             filesize = df
                 .read_type(filelist.endian)

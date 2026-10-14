@@ -5,6 +5,7 @@ pub mod edb;
 pub mod entity;
 pub mod entity_mesh;
 pub mod error;
+pub mod geoxt_crypto;
 pub mod header;
 pub mod map;
 pub mod script;

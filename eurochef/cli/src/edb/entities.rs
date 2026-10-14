@@ -170,7 +170,7 @@ pub fn execute_command(
 
         edb.seek(std::io::SeekFrom::Start(*ent_offset))?;
 
-        let ent = edb.read_type_args::<EXGeoEntity>(edb.endian, (header.version, platform));
+        let ent = edb.read_type_args::<EXGeoEntity>(edb.endian, (header.version as u32, platform));
         if let Err(err) = ent {
             error!("Failed to read entity: {err}");
             continue;

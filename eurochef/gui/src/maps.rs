@@ -143,7 +143,7 @@ pub fn read_from_file(edb: &mut EdbFile) -> Vec<ProcessedMap> {
             .unwrap();
 
         let xmap = edb
-            .read_type_args::<EXGeoMap>(edb.endian, (header.version,))
+            .read_type_args::<EXGeoMap>(edb.endian, (header.version as u32,))
             .context("Failed to read map")
             .unwrap();
 
@@ -164,7 +164,7 @@ pub fn read_from_file(edb: &mut EdbFile) -> Vec<ProcessedMap> {
                 .unwrap();
 
             let ent = edb
-                .read_type_args::<EXGeoEntity>(edb.endian, (header.version, edb.platform))
+                .read_type_args::<EXGeoEntity>(edb.endian, (header.version as u32, edb.platform))
                 .unwrap();
 
             if let EXGeoEntity::MapZone(mapzone) = ent {

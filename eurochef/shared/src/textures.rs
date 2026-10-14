@@ -93,7 +93,7 @@ impl UXGeoTexture {
     ) -> anyhow::Result<Self> {
         edb.seek(std::io::SeekFrom::Start(address as u64))?;
         let tex = edb
-            .read_type_args::<EXGeoTexture>(edb.endian, (edb.header.version, edb.platform))
+            .read_type_args::<EXGeoTexture>(edb.endian, (edb.header.version as u32, edb.platform))
             .context("Failed to read texture")?;
 
         if let Some(external_file) = tex.external_file {
@@ -183,7 +183,7 @@ impl UXGeoTexture {
                     tex.height as u32,
                     tex.depth as u32,
                     tex.format,
-                    edb.header.version,
+                    edb.header.version as u32,
                 )
                 .context("Failed to decode texture")?;
 
